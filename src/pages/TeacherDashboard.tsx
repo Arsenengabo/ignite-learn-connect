@@ -1,7 +1,14 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine } from "lucide-react";
+import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine, ArrowLeft } from "lucide-react";
+import { QuizBuilder } from "@/components/teacher/QuizBuilder";
+import { CompetitionCreator } from "@/components/teacher/CompetitionCreator";
+import { TeacherChat } from "@/components/teacher/TeacherChat";
+import { CourseCreator } from "@/components/teacher/CourseCreator";
+import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
+import { MCQScanner } from "@/components/teacher/MCQScanner";
 export const TeacherDashboard = () => {
   return <div className="space-y-6">
       {/* Welcome Section */}
