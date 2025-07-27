@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap } from "lucide-react";
-
 export const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,16 +16,17 @@ export const AuthForm = () => {
     fullName: "",
     role: "student" as "student" | "teacher"
   });
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+      const {
+        error
+      } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -37,7 +37,6 @@ export const AuthForm = () => {
           }
         }
       });
-
       if (error) {
         toast({
           title: "Sign up failed",
@@ -60,17 +59,16 @@ export const AuthForm = () => {
       setIsLoading(false);
     }
   };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       });
-
       if (error) {
         toast({
           title: "Sign in failed",
@@ -88,9 +86,7 @@ export const AuthForm = () => {
       setIsLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4">
+  return <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -98,8 +94,8 @@ export const AuthForm = () => {
               <GraduationCap className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Ignite Learn Connect</h1>
-          <p className="text-white/80">Empowering education through technology</p>
+          <h1 className="text-4xl font-bold mb-2 text-slate-500">Ignite Learn Connect</h1>
+          <p className="text-slate-500">Empowering education through technology</p>
         </div>
 
         <Card className="bg-card/95 backdrop-blur-sm border-primary/20">
@@ -118,23 +114,17 @@ export const AuthForm = () => {
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
+                    <Input id="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    email: e.target.value
+                  }))} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
+                    <Input id="password" type="password" value={formData.password} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    password: e.target.value
+                  }))} required />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -147,18 +137,17 @@ export const AuthForm = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      required
-                    />
+                    <Input id="fullName" value={formData.fullName} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    fullName: e.target.value
+                  }))} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">I am a...</Label>
-                    <Select value={formData.role} onValueChange={(value: "student" | "teacher") => 
-                      setFormData(prev => ({ ...prev, role: value }))
-                    }>
+                    <Select value={formData.role} onValueChange={(value: "student" | "teacher") => setFormData(prev => ({
+                    ...prev,
+                    role: value
+                  }))}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -170,23 +159,17 @@ export const AuthForm = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
+                    <Input id="email" type="email" value={formData.email} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    email: e.target.value
+                  }))} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
+                    <Input id="password" type="password" value={formData.password} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    password: e.target.value
+                  }))} required />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -198,6 +181,5 @@ export const AuthForm = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
