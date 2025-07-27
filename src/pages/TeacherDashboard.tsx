@@ -2,14 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine } from "lucide-react";
-
 export const TeacherDashboard = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-6 text-white">
-        <h2 className="text-3xl font-bold mb-2">Welcome back, Teacher! 👨‍🏫</h2>
-        <p className="text-white/80">Shape the future of education with your expertise</p>
+        <h2 className="text-3xl font-bold mb-2 text-indigo-500">Welcome back, Teacher! 👨‍🏫</h2>
+        <p className="text-indigo-400">Shape the future of education with your expertise</p>
       </div>
 
       {/* Quick Stats */}
@@ -206,6 +204,5 @@ export const TeacherDashboard = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
