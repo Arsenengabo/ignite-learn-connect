@@ -2,14 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Trophy, MessageSquare, Play, Star } from "lucide-react";
-
 export const StudentDashboard = () => {
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-6 text-white">
-        <h2 className="text-3xl font-bold mb-2">Welcome back, Student! 🎓</h2>
-        <p className="text-white/80">Ready to continue your learning journey?</p>
+        <h2 className="text-3xl font-bold mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
+        <p className="text-indigo-400">Ready to continue your learning journey?</p>
       </div>
 
       {/* Quick Stats */}
@@ -172,6 +170,5 @@ export const StudentDashboard = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
