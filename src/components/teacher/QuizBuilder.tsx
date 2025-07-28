@@ -93,7 +93,12 @@ export const QuizBuilder = () => {
       const { data: quizData, error: quizError } = await supabase
         .from('quizzes')
         .insert({
-          ...quiz,
+          title: quiz.title,
+          description: quiz.description,
+          subject: quiz.subject,
+          difficulty_level: quiz.difficultyLevel,
+          time_limit: quiz.timeLimit,
+          is_published: quiz.isPublished,
           teacher_id: user.user.id,
           total_questions: questions.length,
         })
