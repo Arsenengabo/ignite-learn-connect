@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,14 +21,20 @@ interface Question {
   orderIndex: number;
 }
 
-export const QuizBuilder = () => {
+interface QuizBuilderProps {
+  editingQuiz?: any;
+  onQuizSaved?: () => void;
+  onBack?: () => void;
+}
+
+export const QuizBuilder = ({ editingQuiz, onQuizSaved, onBack }: QuizBuilderProps) => {
   const [quiz, setQuiz] = useState({
-    title: "",
-    description: "",
-    subject: "",
-    difficultyLevel: "",
-    timeLimit: 30,
-    isPublished: false,
+    title: editingQuiz?.title || "",
+    description: editingQuiz?.description || "",
+    subject: editingQuiz?.subject || "",
+    difficultyLevel: editingQuiz?.difficulty_level || "",
+    timeLimit: editingQuiz?.time_limit || 30,
+    isPublished: editingQuiz?.is_published || false,
   });
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -89,23 +95,55 @@ export const QuizBuilder = () => {
         return;
       }
 
-      // Insert quiz
-      const { data: quizData, error: quizError } = await supabase
-        .from('quizzes')
-        .insert({
-          title: quiz.title,
-          description: quiz.description,
-          subject: quiz.subject,
-          difficulty_level: quiz.difficultyLevel,
-          time_limit: quiz.timeLimit,
-          is_published: quiz.isPublished,
-          teacher_id: user.user.id,
-          total_questions: questions.length,
-        })
-        .select()
-        .single();
+      let quizData;
 
-      if (quizError) throw quizError;
+      if (editingQuiz) {
+        // Update existing quiz
+        const { data, error: quizError } = await supabase
+          .from('quizzes')
+          .update({
+            title: quiz.title,
+            description: quiz.description,
+            subject: quiz.subject,
+            difficulty_level: quiz.difficultyLevel,
+            time_limit: quiz.timeLimit,
+            is_published: quiz.isPublished,
+            total_questions: questions.length,
+          })
+          .eq('id', editingQuiz.id)
+          .select()
+          .single();
+
+        if (quizError) throw quizError;
+        quizData = data;
+
+        // Delete existing questions for this quiz
+        const { error: deleteError } = await supabase
+          .from('quiz_questions')
+          .delete()
+          .eq('quiz_id', editingQuiz.id);
+
+        if (deleteError) throw deleteError;
+      } else {
+        // Insert new quiz
+        const { data, error: quizError } = await supabase
+          .from('quizzes')
+          .insert({
+            title: quiz.title,
+            description: quiz.description,
+            subject: quiz.subject,
+            difficulty_level: quiz.difficultyLevel,
+            time_limit: quiz.timeLimit,
+            is_published: quiz.isPublished,
+            teacher_id: user.user.id,
+            total_questions: questions.length,
+          })
+          .select()
+          .single();
+
+        if (quizError) throw quizError;
+        quizData = data;
+      }
 
       // Insert questions
       const questionsToInsert = questions.map(q => ({
@@ -125,29 +163,75 @@ export const QuizBuilder = () => {
 
       if (questionsError) throw questionsError;
 
-      toast.success("Quiz created successfully!");
+      toast.success(editingQuiz ? "Quiz updated successfully!" : "Quiz created successfully!");
       
-      // Reset form
-      setQuiz({
-        title: "",
-        description: "",
-        subject: "",
-        difficultyLevel: "",
-        timeLimit: 30,
-        isPublished: false,
-      });
-      setQuestions([]);
+      if (onQuizSaved) {
+        onQuizSaved();
+      }
+      
+      if (!editingQuiz) {
+        // Reset form only for new quizzes
+        setQuiz({
+          title: "",
+          description: "",
+          subject: "",
+          difficultyLevel: "",
+          timeLimit: 30,
+          isPublished: false,
+        });
+        setQuestions([]);
+      }
     } catch (error) {
       console.error('Error creating quiz:', error);
       toast.error("Failed to create quiz");
     }
   };
 
+  // Load questions for editing
+  useEffect(() => {
+    if (editingQuiz) {
+      fetchQuestionsForQuiz(editingQuiz.id);
+    }
+  }, [editingQuiz]);
+
+  const fetchQuestionsForQuiz = async (quizId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('quiz_id', quizId)
+        .order('order_index');
+
+      if (error) throw error;
+
+      const loadedQuestions = data.map(q => ({
+        id: q.id,
+        questionText: q.question_text,
+        questionType: q.question_type as 'multiple_choice' | 'open_ended',
+        options: q.options as string[] || [],
+        correctAnswer: q.correct_answer,
+        explanation: q.explanation || "",
+        points: q.points,
+        orderIndex: q.order_index,
+      }));
+
+      setQuestions(loadedQuestions);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      toast.error("Failed to load quiz questions");
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {onBack && (
+        <Button variant="outline" onClick={onBack}>
+          ← Back to Dashboard
+        </Button>
+      )}
       <Card>
         <CardHeader>
-          <CardTitle>Create New Quiz</CardTitle>
+          <CardTitle>{editingQuiz ? 'Edit Quiz' : 'Create New Quiz'}</CardTitle>
           <CardDescription>Build interactive quizzes for your students</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -349,7 +433,7 @@ export const QuizBuilder = () => {
         <div className="flex justify-end">
           <Button onClick={saveQuiz} className="min-w-[150px]">
             <Save className="w-4 h-4 mr-2" />
-            Save Quiz
+            {editingQuiz ? 'Update Quiz' : 'Save Quiz'}
           </Button>
         </div>
       )}

@@ -4,7 +4,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StudentDashboard } from "./StudentDashboard";
-import { TeacherDashboard } from "./TeacherDashboard";
+import TeacherDashboard from "./TeacherDashboard";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
