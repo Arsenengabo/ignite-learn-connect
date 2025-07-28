@@ -10,6 +10,45 @@ import { CourseCreator } from "@/components/teacher/CourseCreator";
 import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
 import { MCQScanner } from "@/components/teacher/MCQScanner";
 export const TeacherDashboard = () => {
+  const [activeView, setActiveView] = useState<string>('dashboard');
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'quiz-builder':
+        return <QuizBuilder />;
+      case 'competition-creator':
+        return <CompetitionCreator />;
+      case 'teacher-chat':
+        return <TeacherChat />;
+      case 'course-creator':
+        return <CourseCreator />;
+      case 'ai-question-generator':
+        return <AIQuestionGenerator />;
+      case 'mcq-scanner':
+        return <MCQScanner />;
+      default:
+        return null;
+    }
+  };
+
+  if (activeView !== 'dashboard') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => setActiveView('dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+        {renderActiveView()}
+      </div>
+    );
+  }
+
   return <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-6 text-white">
@@ -67,7 +106,7 @@ export const TeacherDashboard = () => {
 
       {/* Main Features */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('quiz-builder')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Plus className="h-6 w-6 text-primary" />
@@ -78,13 +117,13 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full">
+            <Button className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('quiz-builder'); }}>
               Create New Quiz
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('competition-creator')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Trophy className="h-6 w-6 text-accent" />
@@ -95,13 +134,13 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('competition-creator'); }}>
               Create Competition
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('teacher-chat')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <MessageSquare className="h-6 w-6 text-secondary" />
@@ -112,13 +151,13 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="secondary" className="w-full">
+            <Button variant="secondary" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('teacher-chat'); }}>
               Join Discussion
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('course-creator')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Play className="h-6 w-6 text-primary" />
@@ -129,13 +168,13 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('course-creator'); }}>
               New Course
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('mcq-scanner')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <ScanLine className="h-6 w-6 text-primary" />
@@ -146,13 +185,13 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('mcq-scanner'); }}>
               Start Grading
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20" onClick={() => setActiveView('ai-question-generator')}>
           <CardHeader>
             <div className="flex items-center space-x-2">
               <BookOpen className="h-6 w-6 text-primary" />
@@ -163,7 +202,7 @@ export const TeacherDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full">
+            <Button className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('ai-question-generator'); }}>
               Try AI Generator
             </Button>
           </CardContent>
