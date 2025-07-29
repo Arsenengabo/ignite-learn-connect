@@ -29,8 +29,8 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("");
-  const [difficultyFilter, setDifficultyFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,18 +96,18 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
       );
     }
 
-    if (subjectFilter) {
+    if (subjectFilter && subjectFilter !== "all") {
       filtered = filtered.filter(quiz => quiz.subject === subjectFilter);
     }
 
-    if (difficultyFilter) {
+    if (difficultyFilter && difficultyFilter !== "all") {
       filtered = filtered.filter(quiz => quiz.difficulty_level === difficultyFilter);
     }
 
     setFilteredQuizzes(filtered);
   };
 
-  const uniqueSubjects = [...new Set(quizzes.map(quiz => quiz.subject).filter(Boolean))];
+  const uniqueSubjects = [...new Set(quizzes.map(quiz => quiz.subject).filter(subject => subject && subject.trim() !== ''))];
   const difficultyLevels = ['beginner', 'intermediate', 'advanced'];
 
   if (loading) {
@@ -167,7 +167,7 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
             <SelectValue placeholder="All Subjects" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Subjects</SelectItem>
+            <SelectItem value="all">All Subjects</SelectItem>
             {uniqueSubjects.map(subject => (
               <SelectItem key={subject} value={subject}>{subject}</SelectItem>
             ))}
@@ -178,7 +178,7 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
             <SelectValue placeholder="All Levels" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Levels</SelectItem>
+            <SelectItem value="all">All Levels</SelectItem>
             {difficultyLevels.map(level => (
               <SelectItem key={level} value={level}>
                 {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -188,8 +188,8 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
         </Select>
         <Button variant="outline" onClick={() => {
           setSearchTerm("");
-          setSubjectFilter("");
-          setDifficultyFilter("");
+          setSubjectFilter("all");
+          setDifficultyFilter("all");
         }}>
           Clear Filters
         </Button>
@@ -247,12 +247,12 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
         ))}
       </div>
 
-      {filteredQuizzes.length === 0 && (
+          {filteredQuizzes.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">No quizzes found</h3>
           <p className="text-muted-foreground">
-            {searchTerm || subjectFilter || difficultyFilter
+            {searchTerm || (subjectFilter !== "all") || (difficultyFilter !== "all")
               ? "Try adjusting your filters"
               : "Check back later for new quizzes"}
           </p>
