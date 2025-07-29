@@ -1,8 +1,129 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Trophy, MessageSquare, Play, Star } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { QuizBrowser } from "@/components/student/QuizBrowser";
+import { QuizTaker } from "@/components/student/QuizTaker";
+import { CompetitionBrowser } from "@/components/student/CompetitionBrowser";
+import { CourseBrowser } from "@/components/student/CourseBrowser";
+
 export const StudentDashboard = () => {
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses'>('dashboard');
+  const [selectedQuizId, setSelectedQuizId] = useState<string>("");
+  const [stats, setStats] = useState({
+    quizzesTaken: 0,
+    competitions: 0,
+    courses: 0,
+    avgScore: 0
+  });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Set up real-time subscriptions
+    const quizChannel = supabase
+      .channel('quiz-sessions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quiz_sessions'
+        },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(quizChannel);
+    };
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch quiz statistics
+      const { data: sessions } = await supabase
+        .from('quiz_sessions')
+        .select('*, quizzes(title, subject)')
+        .eq('student_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      const quizzesTaken = sessions?.length || 0;
+      const totalScore = sessions?.reduce((sum, session) => sum + (session.score || 0), 0) || 0;
+      const totalPossible = sessions?.reduce((sum, session) => sum + (session.total_questions || 0), 0) || 0;
+      const avgScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
+
+      setStats({
+        quizzesTaken,
+        competitions: 0, // TODO: Implement when competition participation is ready
+        courses: 0, // TODO: Implement when course enrollment is ready
+        avgScore
+      });
+
+      // Set recent activity from quiz sessions
+      setRecentActivity(sessions?.slice(0, 3).map(session => ({
+        id: session.id,
+        type: 'quiz',
+        title: session.quizzes?.title || 'Quiz',
+        subject: session.quizzes?.subject,
+        completed_at: session.completed_at,
+        score: session.score,
+        total_questions: session.total_questions
+      })) || []);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const handleStartQuiz = (quizId: string) => {
+    setSelectedQuizId(quizId);
+    setCurrentView('quiz-taking');
+  };
+
+  const handleQuizComplete = () => {
+    setCurrentView('dashboard');
+    fetchDashboardData();
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 1440) {
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    } else {
+      return `${Math.floor(diffInMinutes / 1440)} days ago`;
+    }
+  };
+
+  if (currentView === 'quizzes') {
+    return <QuizBrowser onBack={() => setCurrentView('dashboard')} onStartQuiz={handleStartQuiz} />;
+  }
+
+  if (currentView === 'quiz-taking') {
+    return <QuizTaker quizId={selectedQuizId} onBack={() => setCurrentView('quizzes')} onComplete={handleQuizComplete} />;
+  }
+
+  if (currentView === 'competitions') {
+    return <CompetitionBrowser onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'courses') {
+    return <CourseBrowser onBack={() => setCurrentView('dashboard')} />;
+  }
   return <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-6 text-white">
@@ -17,7 +138,7 @@ export const StudentDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Quizzes Taken</p>
-                <p className="text-2xl font-bold">12</p>
+                <p className="text-2xl font-bold">{stats.quizzesTaken}</p>
               </div>
               <BookOpen className="h-8 w-8 text-primary" />
             </div>
@@ -28,7 +149,7 @@ export const StudentDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Competitions</p>
-                <p className="text-2xl font-bold">3</p>
+                <p className="text-2xl font-bold">{stats.competitions}</p>
               </div>
               <Trophy className="h-8 w-8 text-accent" />
             </div>
@@ -39,7 +160,7 @@ export const StudentDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Courses</p>
-                <p className="text-2xl font-bold">8</p>
+                <p className="text-2xl font-bold">{stats.courses}</p>
               </div>
               <Play className="h-8 w-8 text-secondary" />
             </div>
@@ -50,7 +171,7 @@ export const StudentDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Score</p>
-                <p className="text-2xl font-bold">87%</p>
+                <p className="text-2xl font-bold">{stats.avgScore}%</p>
               </div>
               <Star className="h-8 w-8 text-primary" />
             </div>
@@ -71,7 +192,7 @@ export const StudentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full">
+            <Button className="w-full" onClick={() => setCurrentView('quizzes')}>
               Browse Quizzes
             </Button>
           </CardContent>
@@ -88,7 +209,7 @@ export const StudentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={() => setCurrentView('competitions')}>
               Join Competition
             </Button>
           </CardContent>
@@ -122,7 +243,7 @@ export const StudentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={() => setCurrentView('courses')}>
               Browse Courses
             </Button>
           </CardContent>
@@ -137,36 +258,30 @@ export const StudentDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <BookOpen className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Mathematics Quiz #5</p>
-                  <p className="text-sm text-muted-foreground">Completed 2 hours ago</p>
+            {recentActivity.length > 0 ? (
+              recentActivity.map(activity => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">{activity.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Completed {formatTimeAgo(activity.completed_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {Math.round((activity.score / activity.total_questions) * 100)}%
+                  </Badge>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No recent activity</p>
+                <p className="text-sm">Take a quiz to get started!</p>
               </div>
-              <Badge variant="secondary">92%</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Trophy className="h-5 w-5 text-accent" />
-                <div>
-                  <p className="font-medium">Science Competition</p>
-                  <p className="text-sm text-muted-foreground">Joined yesterday</p>
-                </div>
-              </div>
-              <Badge>Active</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Play className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Physics Course - Chapter 3</p>
-                  <p className="text-sm text-muted-foreground">Started 3 days ago</p>
-                </div>
-              </div>
-              <Badge variant="outline">In Progress</Badge>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
