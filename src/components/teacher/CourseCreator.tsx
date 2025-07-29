@@ -81,13 +81,13 @@ export const CourseCreator = () => {
       const filePath = `${type === 'course' ? 'course-thumbnails' : 'course-content'}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('courses')
+        .from('course-content')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('courses')
+        .from('course-content')
         .getPublicUrl(filePath);
 
       if (type === 'course') {
