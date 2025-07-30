@@ -8,10 +8,12 @@ import { QuizBrowser } from "@/components/student/QuizBrowser";
 import { QuizTaker } from "@/components/student/QuizTaker";
 import { CompetitionBrowser } from "@/components/student/CompetitionBrowser";
 import { CourseBrowser } from "@/components/student/CourseBrowser";
+import { CourseViewer } from "@/components/student/CourseViewer";
 
 export const StudentDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing'>('dashboard');
   const [selectedQuizId, setSelectedQuizId] = useState<string>("");
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [stats, setStats] = useState({
     quizzesTaken: 0,
     competitions: 0,
@@ -95,6 +97,11 @@ export const StudentDashboard = () => {
     fetchDashboardData();
   };
 
+  const handleStartCourse = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    setCurrentView('course-viewing');
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -122,7 +129,11 @@ export const StudentDashboard = () => {
   }
 
   if (currentView === 'courses') {
-    return <CourseBrowser onBack={() => setCurrentView('dashboard')} />;
+    return <CourseBrowser onBack={() => setCurrentView('dashboard')} onStartCourse={handleStartCourse} />;
+  }
+
+  if (currentView === 'course-viewing') {
+    return <CourseViewer courseId={selectedCourseId} onBack={() => setCurrentView('courses')} />;
   }
   return <div className="space-y-6">
       {/* Welcome Section */}

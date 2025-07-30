@@ -20,9 +20,10 @@ interface Course {
 
 interface CourseBrowserProps {
   onBack: () => void;
+  onStartCourse: (courseId: string) => void;
 }
 
-export const CourseBrowser = ({ onBack }: CourseBrowserProps) => {
+export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -77,10 +78,7 @@ export const CourseBrowser = ({ onBack }: CourseBrowserProps) => {
   };
 
   const handleEnrollCourse = (courseId: string) => {
-    toast({
-      title: "Coming Soon",
-      description: "Course enrollment functionality will be available soon!",
-    });
+    onStartCourse(courseId);
   };
 
   if (loading) {
