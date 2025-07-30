@@ -5,12 +5,14 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StudentDashboard } from "./StudentDashboard";
 import TeacherDashboard from "./TeacherDashboard";
+import { LandingPage } from "./LandingPage";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -66,17 +68,16 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold">Ignite Learn Connect</h2>
-          <p>Loading your learning experience...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
       </div>
     );
   }
 
   if (!user || !session) {
+    if (!showAuth) {
+      return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    }
     return <AuthForm />;
   }
 
