@@ -7,7 +7,7 @@ import { QuizBuilder } from "@/components/teacher/QuizBuilder";
 import { RecentQuizzes } from "@/components/teacher/RecentQuizzes";
 import { CompetitionCreator } from "@/components/teacher/CompetitionCreator";
 import { TeacherChat } from "@/components/teacher/TeacherChat";
-import { CourseCreatorFixed } from "@/components/teacher/CourseCreatorFixed";
+import { CourseCreator } from "@/components/teacher/CourseCreator";
 import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
 import { MCQScanner } from "@/components/teacher/MCQScanner";
 
@@ -45,7 +45,7 @@ const TeacherDashboard = () => {
       case 'chat':
         return <TeacherChat />;
       case 'course':
-        return <CourseCreatorFixed />;
+        return <CourseCreator />;
       case 'ai-questions':
         return <AIQuestionGenerator />;
       case 'mcq-scanner':
