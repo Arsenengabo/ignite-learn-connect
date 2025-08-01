@@ -75,6 +75,13 @@ export const CourseCreator = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file size (max 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 100MB");
+      return;
+    }
+
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
@@ -85,7 +92,10 @@ export const CourseCreator = () => {
         .from('course-content')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('course-content')
@@ -98,9 +108,10 @@ export const CourseCreator = () => {
         setCurrentModule({ ...currentModule, contentUrl: publicUrl });
         toast.success("Content uploaded successfully");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
-      toast.error("Failed to upload file");
+      const errorMessage = error?.message || "Failed to upload file";
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -350,7 +361,7 @@ export const CourseCreator = () => {
                 <Input
                   id="content"
                   type="file"
-                  accept={currentModule.contentType === 'video' ? 'video/*' : '.pdf,.doc,.docx,.txt'}
+                  accept={currentModule.contentType === 'video' ? 'video/*,.mp4,.mov,.avi,.mkv' : '.pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx'}
                   onChange={(e) => handleFileUpload(e, 'module')}
                   disabled={isUploading}
                 />
