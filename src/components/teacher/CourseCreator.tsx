@@ -23,6 +23,8 @@ interface CourseModule {
 }
 
 export const CourseCreator = () => {
+  console.log('CourseCreator render start - React:', React);
+  console.log('useState function:', useState);
   const [course, setCourse] = useState({
     title: "",
     description: "",
