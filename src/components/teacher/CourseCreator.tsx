@@ -126,6 +126,11 @@ export const CourseCreator = () => {
         return;
       }
 
+      if (!course.difficultyLevel.trim()) {
+        toast.error("Please select a difficulty level");
+        return;
+      }
+
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
         toast.error("Please log in to create a course");
@@ -173,17 +178,17 @@ export const CourseCreator = () => {
 
       toast.success("Course created successfully!");
       
-      // Reset form
-      setCourse({
-        title: "",
-        description: "",
-        subject: "",
-        difficultyLevel: "",
-        durationWeeks: 4,
-        price: 0,
-        isPublished: false,
-        thumbnailUrl: "",
-      });
+          // Reset form
+          setCourse({
+            title: "",
+            description: "",
+            subject: "",
+            difficultyLevel: "",
+            durationWeeks: 4,
+            price: 0,
+            isPublished: false,
+            thumbnailUrl: "",
+          });
       setModules([]);
     } catch (error) {
       console.error('Error creating course:', error);
