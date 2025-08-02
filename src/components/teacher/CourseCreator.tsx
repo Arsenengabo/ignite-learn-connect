@@ -382,24 +382,82 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
           </div>
 
           {currentModule.contentType !== 'text' && (
-            <div>
-              <Label htmlFor="content">Upload Content</Label>
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Input
-                  id="content"
-                  type="file"
-                  accept={currentModule.contentType === 'video' ? 'video/*,.mp4,.mov,.avi,.mkv' : '.pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx'}
-                  onChange={(e) => handleFileUpload(e, 'module')}
-                  disabled={isUploading}
-                />
-                {currentModule.contentUrl && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={currentModule.contentUrl} target="_blank" rel="noopener noreferrer">
-                      <Eye className="w-4 h-4" />
-                    </a>
-                  </Button>
+                <Label htmlFor="content">
+                  {currentModule.contentType === 'video' ? '📹 Upload Video Content' : '📄 Upload Document/File'}
+                </Label>
+                {isUploading && (
+                  <Badge variant="secondary" className="animate-pulse">
+                    Uploading...
+                  </Badge>
                 )}
               </div>
+              
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-primary/50 transition-colors">
+                <div className="text-center space-y-2">
+                  <div className="text-4xl">
+                    {currentModule.contentType === 'video' ? '🎬' : '📁'}
+                  </div>
+                  <div>
+                    <Input
+                      id="content"
+                      type="file"
+                      accept={currentModule.contentType === 'video' ? 'video/*,.mp4,.mov,.avi,.mkv' : '.pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx'}
+                      onChange={(e) => handleFileUpload(e, 'module')}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                    <Label 
+                      htmlFor="content" 
+                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {currentModule.contentType === 'video' ? 'Choose Video File' : 'Choose Document'}
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {currentModule.contentType === 'video' 
+                      ? 'Supported formats: MP4, MOV, AVI, MKV (Max: 100MB)'
+                      : 'Supported formats: PDF, DOC, DOCX, TXT, PPT, PPTX, XLS, XLSX (Max: 100MB)'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {currentModule.contentUrl && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="text-green-600">✅</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-800">
+                      {currentModule.contentType === 'video' ? 'Video uploaded successfully!' : 'Document uploaded successfully!'}
+                    </p>
+                    <p className="text-xs text-green-600">Content is ready for your module</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={currentModule.contentUrl} target="_blank" rel="noopener noreferrer">
+                      <Eye className="w-4 h-4 mr-1" />
+                      Preview
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentModule.contentType === 'text' && (
+            <div className="space-y-2">
+              <Label htmlFor="textContent">📝 Text Content</Label>
+              <Textarea
+                id="textContent"
+                value={currentModule.contentUrl || ''}
+                onChange={(e) => setCurrentModule({ ...currentModule, contentUrl: e.target.value })}
+                placeholder="Enter your lesson content here..."
+                className="min-h-[120px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Write your lesson content directly or provide instructions for students
+              </p>
             </div>
           )}
 
