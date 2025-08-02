@@ -156,35 +156,45 @@ export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => 
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {course.subject && (
-                    <Badge variant="outline">{course.subject}</Badge>
+                    <Badge variant="secondary">{course.subject}</Badge>
                   )}
                   {course.difficulty_level && (
-                    <Badge variant="outline">
+                    <Badge 
+                      variant="outline"
+                      className={
+                        course.difficulty_level.toLowerCase() === 'beginner' ? 'border-green-500 text-green-700' :
+                        course.difficulty_level.toLowerCase() === 'intermediate' ? 'border-yellow-500 text-yellow-700' :
+                        'border-red-500 text-red-700'
+                      }
+                    >
                       {course.difficulty_level.charAt(0).toUpperCase() + course.difficulty_level.slice(1)}
                     </Badge>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   {course.duration_weeks && (
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4" />
                       <span>{course.duration_weeks} weeks</span>
                     </div>
                   )}
-                  {course.price > 0 ? (
-                    <span className="font-medium text-primary">${course.price}</span>
-                  ) : (
-                    <span className="font-medium text-green-600">Free</span>
-                  )}
+                  <div className="flex items-center justify-end">
+                    {course.price > 0 ? (
+                      <span className="font-semibold text-primary">${course.price}</span>
+                    ) : (
+                      <span className="font-semibold text-green-600">Free</span>
+                    )}
+                  </div>
                 </div>
 
                 <Button 
-                  className="w-full flex items-center space-x-2" 
+                  className="w-full flex items-center justify-center space-x-2" 
                   onClick={() => handleEnrollCourse(course.id)}
+                  variant={course.price > 0 ? "default" : "secondary"}
                 >
                   <Play className="h-4 w-4" />
-                  <span>{course.price > 0 ? 'Enroll Now' : 'Start Learning'}</span>
+                  <span>{course.price > 0 ? 'Enroll Now' : 'Start Free Course'}</span>
                 </Button>
               </div>
             </CardContent>

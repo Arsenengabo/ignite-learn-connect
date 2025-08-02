@@ -8,12 +8,14 @@ import { RecentQuizzes } from "@/components/teacher/RecentQuizzes";
 import { CompetitionCreator } from "@/components/teacher/CompetitionCreator";
 import { TeacherChat } from "@/components/teacher/TeacherChat";
 import { CourseCreator } from "@/components/teacher/CourseCreator";
+import { CourseManager } from "@/components/teacher/CourseManager";
 import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
 import { MCQScanner } from "@/components/teacher/MCQScanner";
 
 const TeacherDashboard = () => {
   const [activeView, setActiveView] = useState<string | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
 
   const handleEditQuiz = (quiz: any) => {
     setEditingQuiz(quiz);
@@ -25,9 +27,20 @@ const TeacherDashboard = () => {
     setEditingQuiz(null);
   };
 
+  const handleEditCourse = (course: any) => {
+    setEditingCourse(course);
+    setActiveView('course');
+  };
+
+  const handleCourseSaved = () => {
+    setActiveView('course-manager');
+    setEditingCourse(null);
+  };
+
   const handleBackToDashboard = () => {
     setActiveView(null);
     setEditingQuiz(null);
+    setEditingCourse(null);
   };
 
   const renderActiveView = () => {
@@ -45,7 +58,9 @@ const TeacherDashboard = () => {
       case 'chat':
         return <TeacherChat />;
       case 'course':
-        return <CourseCreator />;
+        return <CourseCreator editingCourse={editingCourse} onCourseSaved={handleCourseSaved} />;
+      case 'course-manager':
+        return <CourseManager onEditCourse={handleEditCourse} onCreateNew={() => setActiveView('course')} />;
       case 'ai-questions':
         return <AIQuestionGenerator />;
       case 'mcq-scanner':
@@ -136,19 +151,19 @@ const TeacherDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('course')}>
+          <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('course-manager')}>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Play className="h-6 w-6 text-primary" />
-                <CardTitle>Create Course</CardTitle>
+                <CardTitle>Manage Courses</CardTitle>
               </div>
               <CardDescription>
-                Develop comprehensive online courses
+                Create and manage your online courses
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('course'); }}>
-                New Course
+              <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('course-manager'); }}>
+                Course Manager
               </Button>
             </CardContent>
           </Card>

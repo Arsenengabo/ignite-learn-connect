@@ -22,7 +22,12 @@ interface CourseModule {
   isPublished: boolean;
 }
 
-export const CourseCreator = () => {
+interface CourseCreatorProps {
+  editingCourse?: any;
+  onCourseSaved?: () => void;
+}
+
+export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorProps) => {
   console.log('CourseCreator render start - React:', React);
   console.log('useState function:', useState);
   const [course, setCourse] = useState({
@@ -178,18 +183,23 @@ export const CourseCreator = () => {
 
       toast.success("Course created successfully!");
       
-          // Reset form
-          setCourse({
-            title: "",
-            description: "",
-            subject: "",
-            difficultyLevel: "",
-            durationWeeks: 4,
-            price: 0,
-            isPublished: false,
-            thumbnailUrl: "",
-          });
+      // Reset form
+      setCourse({
+        title: "",
+        description: "",
+        subject: "",
+        difficultyLevel: "",
+        durationWeeks: 4,
+        price: 0,
+        isPublished: false,
+        thumbnailUrl: "",
+      });
       setModules([]);
+      
+      // Call callback if provided
+      if (onCourseSaved) {
+        onCourseSaved();
+      }
     } catch (error) {
       console.error('Error creating course:', error);
       toast.error("Failed to create course");
@@ -304,13 +314,23 @@ export const CourseCreator = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="publish"
-              checked={course.isPublished}
-              onCheckedChange={(checked) => setCourse({ ...course, isPublished: checked })}
-            />
-            <Label htmlFor="publish">Publish course (make available to students)</Label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="publish"
+                checked={course.isPublished}
+                onCheckedChange={(checked) => setCourse({ ...course, isPublished: checked })}
+              />
+              <Label htmlFor="publish">Publish course</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {course.isPublished 
+                ? "✅ Course is published and visible to students" 
+                : "⚠️ Course is in draft mode - students cannot see it"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Only published courses appear in the student course browser. You can toggle this anytime.
+            </p>
           </div>
         </CardContent>
       </Card>
