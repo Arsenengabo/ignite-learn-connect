@@ -91,9 +91,16 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
 
     setIsUploading(true);
     try {
+      // Get current user
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const userId = session.session.user.id;
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${type === 'course' ? 'thumbnails' : 'modules'}/${fileName}`;
+      const filePath = `${userId}/${type === 'course' ? 'thumbnails' : 'modules'}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('course-content')
