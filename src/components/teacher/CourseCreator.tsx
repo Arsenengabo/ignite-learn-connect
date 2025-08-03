@@ -93,7 +93,7 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${type === 'course' ? 'course-thumbnails' : 'course-content'}/${fileName}`;
+      const filePath = `${type === 'course' ? 'thumbnails' : 'modules'}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('course-content')
