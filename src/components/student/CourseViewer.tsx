@@ -6,6 +6,150 @@ import { ArrowLeft, Play, CheckCircle, Clock, FileText, Video, User } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
+// Video Player Component
+const VideoPlayer = ({ contentUrl }: { contentUrl: string }) => {
+  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const getVideoUrl = async () => {
+      try {
+        const { data } = await supabase.storage
+          .from('course-content')
+          .createSignedUrl(contentUrl, 3600); // 1 hour expiry
+
+        if (data?.signedUrl) {
+          setVideoUrl(data.signedUrl);
+        } else {
+          setError('Failed to load video');
+        }
+      } catch (err) {
+        console.error('Error loading video:', err);
+        setError('Failed to load video');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (contentUrl) {
+      getVideoUrl();
+    }
+  }, [contentUrl]);
+
+  if (loading) {
+    return (
+      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <Video className="h-12 w-12 mx-auto mb-2 text-muted-foreground animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading video...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !videoUrl) {
+    return (
+      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <Video className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{error || 'Video not available'}</p>
+          <p className="text-xs text-muted-foreground">Path: {contentUrl}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+      <video 
+        controls 
+        className="w-full h-full"
+        src={videoUrl}
+        preload="metadata"
+      >
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  );
+};
+
+// Document Viewer Component
+const DocumentViewer = ({ contentUrl }: { contentUrl: string }) => {
+  const [documentUrl, setDocumentUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const getDocumentUrl = async () => {
+      try {
+        const { data } = await supabase.storage
+          .from('course-content')
+          .createSignedUrl(contentUrl, 3600); // 1 hour expiry
+
+        if (data?.signedUrl) {
+          setDocumentUrl(data.signedUrl);
+        } else {
+          setError('Failed to load document');
+        }
+      } catch (err) {
+        console.error('Error loading document:', err);
+        setError('Failed to load document');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (contentUrl) {
+      getDocumentUrl();
+    }
+  }, [contentUrl]);
+
+  if (loading) {
+    return (
+      <div className="bg-muted rounded-lg p-8 flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-12 w-12 mx-auto mb-2 text-muted-foreground animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading document...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !documentUrl) {
+    return (
+      <div className="bg-muted rounded-lg p-8 flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{error || 'Document not available'}</p>
+          <p className="text-xs text-muted-foreground">Path: {contentUrl}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-muted rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <FileText className="h-5 w-5" />
+          <span className="font-medium">Course Document</span>
+        </div>
+        <Button asChild size="sm">
+          <a href={documentUrl} target="_blank" rel="noopener noreferrer">
+            Open Document
+          </a>
+        </Button>
+      </div>
+      <iframe 
+        src={documentUrl} 
+        className="w-full h-96 border rounded"
+        title="Course Document"
+      />
+    </div>
+  );
+};
+
 interface Course {
   id: string;
   title: string;
@@ -232,13 +376,9 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
               <CardContent>
                 <div className="space-y-4">
                   {currentModule.content_type === 'video' && currentModule.content_url ? (
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <Video className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Video content</p>
-                        <p className="text-xs text-muted-foreground">{currentModule.content_url}</p>
-                      </div>
-                    </div>
+                    <VideoPlayer contentUrl={currentModule.content_url} />
+                  ) : currentModule.content_type === 'document' && currentModule.content_url ? (
+                    <DocumentViewer contentUrl={currentModule.content_url} />
                   ) : currentModule.content_type === 'text' ? (
                     <div className="prose max-w-none">
                       <p>Text content for this module would be displayed here.</p>
