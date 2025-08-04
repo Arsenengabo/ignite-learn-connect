@@ -15,9 +15,19 @@ const VideoPlayer = ({ contentUrl }: { contentUrl: string }) => {
   useEffect(() => {
     const getVideoUrl = async () => {
       try {
+        // Extract the file path from the full URL
+        const urlParts = contentUrl.split('/course-content/');
+        const filePath = urlParts[1];
+        
+        if (!filePath) {
+          setError('Invalid video URL');
+          setLoading(false);
+          return;
+        }
+
         const { data } = await supabase.storage
           .from('course-content')
-          .createSignedUrl(contentUrl, 3600); // 1 hour expiry
+          .createSignedUrl(filePath, 3600); // 1 hour expiry
 
         if (data?.signedUrl) {
           setVideoUrl(data.signedUrl);
@@ -83,9 +93,19 @@ const DocumentViewer = ({ contentUrl }: { contentUrl: string }) => {
   useEffect(() => {
     const getDocumentUrl = async () => {
       try {
+        // Extract the file path from the full URL
+        const urlParts = contentUrl.split('/course-content/');
+        const filePath = urlParts[1];
+        
+        if (!filePath) {
+          setError('Invalid document URL');
+          setLoading(false);
+          return;
+        }
+
         const { data } = await supabase.storage
           .from('course-content')
-          .createSignedUrl(contentUrl, 3600); // 1 hour expiry
+          .createSignedUrl(filePath, 3600); // 1 hour expiry
 
         if (data?.signedUrl) {
           setDocumentUrl(data.signedUrl);
