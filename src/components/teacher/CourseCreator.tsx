@@ -69,7 +69,7 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
       description: "",
       contentType: 'text',
       orderIndex: 0,
-      isPublished: false,
+      isPublished: true,
     });
     toast.success("Module added");
   };
