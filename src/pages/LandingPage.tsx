@@ -3,22 +3,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Rocket, Users, BarChart3, Settings, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useState } from "react";
-
 interface LandingPageProps {
   onGetStarted: () => void;
 }
-
-export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
-  return (
-    <div className="min-h-screen bg-background"
-         style={{ background: 'var(--gradient-hero)' }}>
+export const LandingPage = ({
+  onGetStarted
+}: LandingPageProps) => {
+  return <div className="min-h-screen bg-background" style={{
+    background: 'var(--gradient-hero)'
+  }}>
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Rocket className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">EduPlatform</span>
+              <span className="text-xl font-bold text-foreground">CodeX</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -54,12 +54,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             Create engaging courses, interactive quizzes, and competitive learning environments.
           </p>
           
-          <Button 
-            onClick={onGetStarted}
-            size="lg" 
-            className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 text-lg rounded-xl transition-all duration-300"
-            style={{ boxShadow: 'var(--shadow-primary)' }}
-          >
+          <Button onClick={onGetStarted} size="lg" className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 text-lg rounded-xl transition-all duration-300" style={{
+          boxShadow: 'var(--shadow-primary)'
+        }}>
             Get Started Free
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
@@ -232,12 +229,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           <p className="text-xl text-muted-foreground mb-8">
             Join thousands of educators and students already using our platform to achieve better learning outcomes.
           </p>
-          <Button 
-            onClick={onGetStarted}
-            size="lg" 
-            className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 text-lg rounded-xl transition-all duration-300"
-            style={{ boxShadow: 'var(--shadow-primary)' }}
-          >
+          <Button onClick={onGetStarted} size="lg" className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 text-lg rounded-xl transition-all duration-300" style={{
+          boxShadow: 'var(--shadow-primary)'
+        }}>
             Start Your Journey Today
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
@@ -291,6 +285,5 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
