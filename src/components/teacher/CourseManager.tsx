@@ -2,9 +2,20 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, EyeOff, Users, Clock, BookOpen, DollarSign } from "lucide-react";
+import { Edit, Eye, EyeOff, Users, Clock, BookOpen, DollarSign, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Course {
   id: string;
@@ -73,6 +84,34 @@ export const CourseManager = ({ onEditCourse, onCreateNew }: CourseManagerProps)
     } catch (error) {
       console.error('Error updating course:', error);
       toast.error("Failed to update course status");
+    }
+  };
+
+  const deleteCourse = async (course: Course) => {
+    try {
+      // First delete all course modules
+      const { error: modulesError } = await supabase
+        .from('course_modules')
+        .delete()
+        .eq('course_id', course.id);
+
+      if (modulesError) throw modulesError;
+
+      // Then delete the course
+      const { error: courseError } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', course.id);
+
+      if (courseError) throw courseError;
+
+      // Update local state
+      setCourses(courses.filter(c => c.id !== course.id));
+      
+      toast.success('Course deleted successfully');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error("Failed to delete course");
     }
   };
 
@@ -208,6 +247,35 @@ export const CourseManager = ({ onEditCourse, onCreateNew }: CourseManagerProps)
                             </>
                           )}
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{course.title}"? This action cannot be undone. 
+                                All course modules and content will be permanently deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteCourse(course)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete Course
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>
