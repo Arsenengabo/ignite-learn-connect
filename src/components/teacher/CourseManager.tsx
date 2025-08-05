@@ -46,19 +46,53 @@ export const CourseManager = ({ onEditCourse, onCreateNew }: CourseManagerProps)
     fetchCourses();
   }, []);
 
+  // Set up real-time subscription for course progress changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('course-progress-teacher-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'course_progress'
+        },
+        (payload) => {
+          console.log('Course progress changed:', payload);
+          fetchCourses(); // Refresh courses to update student counts
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchCourses = async () => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Fetch courses with enrollment counts
       const { data, error } = await supabase
         .from('courses')
-        .select('*')
+        .select(`
+          *,
+          course_progress(count)
+        `)
         .eq('teacher_id', user.user.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setCourses(data || []);
+
+      // Process the data to include enrollment counts
+      const coursesWithCounts = (data || []).map(course => ({
+        ...course,
+        enrollment_count: course.course_progress?.[0]?.count || 0
+      }));
+
+      setCourses(coursesWithCounts);
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error("Failed to load courses");

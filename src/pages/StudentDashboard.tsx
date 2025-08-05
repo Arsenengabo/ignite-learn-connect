@@ -41,8 +41,24 @@ export const StudentDashboard = () => {
       )
       .subscribe();
 
+    const courseChannel = supabase
+      .channel('course-progress-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'course_progress'
+        },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(quizChannel);
+      supabase.removeChannel(courseChannel);
     };
   }, []);
 
@@ -59,20 +75,30 @@ export const StudentDashboard = () => {
         .eq('status', 'completed')
         .order('completed_at', { ascending: false });
 
+      // Fetch course progress
+      const { data: courseProgress } = await supabase
+        .from('course_progress')
+        .select('*, courses(title, subject)')
+        .eq('student_id', user.id)
+        .order('updated_at', { ascending: false });
+
       const quizzesTaken = sessions?.length || 0;
       const totalScore = sessions?.reduce((sum, session) => sum + (session.score || 0), 0) || 0;
       const totalPossible = sessions?.reduce((sum, session) => sum + (session.total_questions || 0), 0) || 0;
       const avgScore = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
 
+      // Count completed courses
+      const completedCourses = courseProgress?.filter(progress => progress.completed_at)?.length || 0;
+
       setStats({
         quizzesTaken,
         competitions: 0, // TODO: Implement when competition participation is ready
-        courses: 0, // TODO: Implement when course enrollment is ready
+        courses: completedCourses,
         avgScore
       });
 
-      // Set recent activity from quiz sessions
-      setRecentActivity(sessions?.slice(0, 3).map(session => ({
+      // Combine recent activity from quizzes and courses
+      const quizActivity = sessions?.slice(0, 2).map(session => ({
         id: session.id,
         type: 'quiz',
         title: session.quizzes?.title || 'Quiz',
@@ -80,7 +106,24 @@ export const StudentDashboard = () => {
         completed_at: session.completed_at,
         score: session.score,
         total_questions: session.total_questions
-      })) || []);
+      })) || [];
+
+      const courseActivity = courseProgress?.filter(progress => progress.completed_at)
+        .slice(0, 2).map(progress => ({
+          id: progress.id,
+          type: 'course',
+          title: progress.courses?.title || 'Course',
+          subject: progress.courses?.subject,
+          completed_at: progress.completed_at,
+          progress_percentage: progress.progress_percentage
+        })) || [];
+
+      // Combine and sort by completion date
+      const allActivity = [...quizActivity, ...courseActivity]
+        .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
+        .slice(0, 3);
+
+      setRecentActivity(allActivity);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -273,16 +316,26 @@ export const StudentDashboard = () => {
               recentActivity.map(activity => (
                 <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <BookOpen className="h-5 w-5 text-primary" />
+                    {activity.type === 'course' ? (
+                      <Play className="h-5 w-5 text-secondary" />
+                    ) : (
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    )}
                     <div>
                       <p className="font-medium">{activity.title}</p>
                       <p className="text-sm text-muted-foreground">
-                        Completed {formatTimeAgo(activity.completed_at)}
+                        {activity.type === 'course' ? 'Course completed' : 'Quiz completed'} {formatTimeAgo(activity.completed_at)}
                       </p>
+                      {activity.subject && (
+                        <Badge variant="outline" className="text-xs mt-1">{activity.subject}</Badge>
+                      )}
                     </div>
                   </div>
                   <Badge variant="secondary">
-                    {Math.round((activity.score / activity.total_questions) * 100)}%
+                    {activity.type === 'course' 
+                      ? `${Math.round(activity.progress_percentage)}%` 
+                      : `${Math.round((activity.score / activity.total_questions) * 100)}%`
+                    }
                   </Badge>
                 </div>
               ))

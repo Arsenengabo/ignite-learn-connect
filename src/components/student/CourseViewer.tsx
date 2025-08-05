@@ -204,11 +204,59 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
   const [completedModules, setCompletedModules] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [courseProgress, setCourseProgress] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchCourseData();
+    loadCourseProgress();
   }, [courseId]);
+
+  // Set up real-time subscription for course progress
+  useEffect(() => {
+    const channel = supabase
+      .channel('course-progress-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'course_progress',
+          filter: `course_id=eq.${courseId}`
+        },
+        (payload) => {
+          console.log('Course progress changed:', payload);
+          loadCourseProgress();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [courseId]);
+
+  const loadCourseProgress = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: progressData, error } = await supabase
+        .from('course_progress')
+        .select('*')
+        .eq('student_id', user.id)
+        .eq('course_id', courseId)
+        .single();
+
+      if (progressData) {
+        setCourseProgress(progressData);
+        // Set completed modules based on stored progress
+        setCompletedModules(new Set());
+      }
+    } catch (error) {
+      console.error('Error loading course progress:', error);
+    }
+  };
 
   const fetchCourseData = async () => {
     try {
@@ -251,6 +299,11 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
       }
 
       setModules(modulesData || []);
+
+      // Initialize course progress if not exists
+      if (modulesData && modulesData.length > 0) {
+        await initializeCourseProgress(modulesData.length);
+      }
     } catch (error) {
       console.error('Error fetching course data:', error);
       toast({
@@ -263,19 +316,92 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
     }
   };
 
-  const handleModuleComplete = (moduleId: string) => {
-    const newCompleted = new Set(completedModules);
-    newCompleted.add(moduleId);
-    setCompletedModules(newCompleted);
-    
-    toast({
-      title: "Module Completed!",
-      description: "Great job! You've completed this module.",
-    });
+  const initializeCourseProgress = async (totalModules: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    // Auto-advance to next module if available
-    if (currentModuleIndex < modules.length - 1) {
-      setCurrentModuleIndex(currentModuleIndex + 1);
+      // Check if progress already exists
+      const { data: existingProgress } = await supabase
+        .from('course_progress')
+        .select('id')
+        .eq('student_id', user.id)
+        .eq('course_id', courseId)
+        .single();
+
+      // Only create if doesn't exist
+      if (!existingProgress) {
+        const { error } = await supabase
+          .from('course_progress')
+          .insert({
+            student_id: user.id,
+            course_id: courseId,
+            total_modules: totalModules,
+            modules_completed: 0,
+            progress_percentage: 0
+          });
+
+        if (error) {
+          console.error('Error initializing course progress:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing course progress:', error);
+    }
+  };
+
+  const handleModuleComplete = async (moduleId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const newCompleted = new Set(completedModules);
+      newCompleted.add(moduleId);
+      setCompletedModules(newCompleted);
+      
+      const completedCount = newCompleted.size;
+      const totalModules = modules.length;
+      const progressPercentage = (completedCount / totalModules) * 100;
+      const isCompleted = completedCount === totalModules;
+
+      // Create or update course progress
+      const progressData = {
+        student_id: user.id,
+        course_id: courseId,
+        modules_completed: completedCount,
+        total_modules: totalModules,
+        progress_percentage: progressPercentage,
+        completed_at: isCompleted ? new Date().toISOString() : null,
+      };
+
+      const { error } = await supabase
+        .from('course_progress')
+        .upsert(progressData, { 
+          onConflict: 'student_id,course_id' 
+        });
+
+      if (error) {
+        console.error('Error updating course progress:', error);
+      }
+
+      toast({
+        title: isCompleted ? "🎉 Course Completed!" : "Module Completed!",
+        description: isCompleted 
+          ? "Congratulations! You've completed the entire course." 
+          : "Great job! You've completed this module.",
+      });
+
+      // Auto-advance to next module if available and course not completed
+      if (currentModuleIndex < modules.length - 1 && !isCompleted) {
+        setCurrentModuleIndex(currentModuleIndex + 1);
+      }
+    } catch (error) {
+      console.error('Error completing module:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save progress",
+        variant: "destructive",
+      });
     }
   };
 

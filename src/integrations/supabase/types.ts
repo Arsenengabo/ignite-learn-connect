@@ -205,6 +205,53 @@ export type Database = {
           },
         ]
       }
+      course_progress: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          id: string
+          modules_completed: number | null
+          progress_percentage: number | null
+          started_at: string
+          student_id: string
+          total_modules: number | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          modules_completed?: number | null
+          progress_percentage?: number | null
+          started_at?: string
+          student_id: string
+          total_modules?: number | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          modules_completed?: number | null
+          progress_percentage?: number | null
+          started_at?: string
+          student_id?: string
+          total_modules?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           created_at: string
