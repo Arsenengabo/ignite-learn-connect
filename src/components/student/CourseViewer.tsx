@@ -209,8 +209,14 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
 
   useEffect(() => {
     fetchCourseData();
-    loadCourseProgress();
   }, [courseId]);
+
+  // Load progress after modules are loaded
+  useEffect(() => {
+    if (modules.length > 0) {
+      loadCourseProgress();
+    }
+  }, [modules, courseId]);
 
   // Set up real-time subscription for course progress
   useEffect(() => {
@@ -250,8 +256,16 @@ export const CourseViewer = ({ courseId, onBack }: CourseViewerProps) => {
 
       if (progressData) {
         setCourseProgress(progressData);
-        // Set completed modules based on stored progress
-        setCompletedModules(new Set());
+        
+        // Load completed modules - simulate by marking first N modules as completed
+        // based on modules_completed count
+        const completedSet = new Set<string>();
+        if (modules.length > 0 && progressData.modules_completed > 0) {
+          for (let i = 0; i < Math.min(progressData.modules_completed, modules.length); i++) {
+            completedSet.add(modules[i].id);
+          }
+        }
+        setCompletedModules(completedSet);
       }
     } catch (error) {
       console.error('Error loading course progress:', error);
