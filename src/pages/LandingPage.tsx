@@ -245,7 +245,7 @@ export const LandingPage = ({
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Rocket className="w-6 h-6 text-primary" />
-                <span className="text-xl font-bold text-foreground">EduPlatform</span>
+                <span className="text-xl font-bold text-foreground">CodeX</span>
               </div>
               <p className="text-muted-foreground">
                 Transforming education through innovative technology and AI-powered learning solutions.
@@ -281,7 +281,7 @@ export const LandingPage = ({
           </div>
           
           <div className="border-t border-border mt-8 pt-8 text-center">
-            <p className="text-muted-foreground">© 2024 EduPlatform. All rights reserved.</p>
+            <p className="text-muted-foreground">© 2025 Codex. All rights reserved.</p>
           </div>
         </div>
       </footer>
