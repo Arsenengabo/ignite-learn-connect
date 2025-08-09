@@ -1,1 +1,4 @@
 project_id = "ucziztbaamtmmvycfyuz"
+
+[functions.ai-question-generator]
+verify_jwt = true

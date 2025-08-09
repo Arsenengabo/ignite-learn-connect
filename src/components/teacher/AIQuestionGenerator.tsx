@@ -34,7 +34,7 @@ export const AIQuestionGenerator = () => {
   });
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [apiKey, setApiKey] = useState("");
+  const [provider, setProvider] = useState<"openai" | "anthropic" | "gemini" | "perplexity">("openai");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -47,11 +47,7 @@ export const AIQuestionGenerator = () => {
   };
 
   const generateQuestions = async () => {
-    if (!apiKey.trim()) {
-      toast.error("Please enter your OpenAI API key");
-      return;
-    }
-
+    // Using secure server-side API keys via Supabase Edge Function
     if (!textContent.trim() && !urlContent.trim() && !pdfFile) {
       toast.error("Please provide content to generate questions from");
       return;
@@ -96,47 +92,26 @@ Return the response as a JSON array with this format:
   }
 ]`;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+      const { data, error } = await supabase.functions.invoke('ai-question-generator', {
+        body: {
+          provider,
+          prompt,
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert educator who creates high-quality questions for assessment. Always respond with valid JSON.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate questions');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate questions');
       }
 
-      const data = await response.json();
-      const questionsText = data.choices[0].message.content;
-      
-      try {
-        const questions = JSON.parse(questionsText);
-        setGeneratedQuestions(questions);
-        toast.success(`Generated ${questions.length} questions successfully!`);
-      } catch (parseError) {
-        // If JSON parsing fails, try to extract questions manually
-        toast.error("Failed to parse generated questions. Please try again.");
+      const questions = (data as any)?.questions as GeneratedQuestion[] | undefined;
+      if (!questions || !Array.isArray(questions)) {
+        throw new Error('Invalid response format from AI provider');
       }
+      setGeneratedQuestions(questions);
+      toast.success(`Generated ${questions.length} questions successfully!`);
     } catch (error) {
       console.error('Error generating questions:', error);
-      toast.error("Failed to generate questions. Please check your API key and try again.");
+      toast.error("Failed to generate questions. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -185,18 +160,22 @@ Difficulty: ${q.difficulty}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* API Key Input */}
+          {/* AI Provider */}
           <div>
-            <Label htmlFor="apiKey">OpenAI API Key</Label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your OpenAI API key"
-            />
+            <Label htmlFor="provider">AI Provider</Label>
+            <Select value={provider} onValueChange={(value) => setProvider(value as any)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                <SelectItem value="gemini">Google Gemini</SelectItem>
+                <SelectItem value="perplexity">Perplexity</SelectItem>
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              Your API key is only used for this session and not stored
+              Uses secure server-side keys. You only need one provider configured.
             </p>
           </div>
 
