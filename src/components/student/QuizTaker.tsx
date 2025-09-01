@@ -70,10 +70,11 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
       setQuiz(quizData);
       setTimeLeft(quizData.time_limit ? quizData.time_limit * 60 : 3600); // Default 1 hour
 
-      // Get quiz questions
+      // Temporarily use regular table until migration is complete
+      // TODO: Switch to quiz_questions_safe after migration
       const { data: questionsData, error: questionsError } = await supabase
         .from('quiz_questions')
-        .select('*')
+        .select('id, quiz_id, question_text, question_type, options, points, order_index')
         .eq('quiz_id', quizId)
         .order('order_index');
 
@@ -86,9 +87,13 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
         return;
       }
 
-      // Process questions and ensure options is an array
+      // Process questions and ensure options is an array - exclude correct_answer for security
       const processedQuestions = (questionsData || []).map(q => ({
-        ...q,
+        id: q.id,
+        question_text: q.question_text,
+        correct_answer: '', // Hidden for security until migration complete
+        points: q.points,
+        order_index: q.order_index,
         options: Array.isArray(q.options) ? q.options : typeof q.options === 'string' ? JSON.parse(q.options) : []
       }));
       setQuestions(processedQuestions);
@@ -146,27 +151,30 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
     setSubmitting(true);
 
     try {
+      // Prepare responses for secure submission
+      const responses = questions.map(question => ({
+        question_id: question.id,
+        answer: answers[question.id] || ""
+      }));
+
+      // Temporarily use manual submission until migration is complete
+      // TODO: Switch to submit_quiz_responses RPC after migration
       let totalScore = 0;
 
-      // Submit all answers
-      for (const question of questions) {
-        const userAnswer = answers[question.id] || "";
-        const isCorrect = userAnswer === question.correct_answer;
-        const pointsEarned = isCorrect ? question.points : 0;
-        totalScore += pointsEarned;
-
+      // Submit all answers - server will handle scoring after migration
+      for (const response of responses) {
         await supabase
           .from('quiz_responses')
           .insert({
             session_id: sessionId,
-            question_id: question.id,
-            answer: userAnswer,
-            is_correct: isCorrect,
-            points_earned: pointsEarned
+            question_id: response.question_id,
+            answer: response.answer,
+            is_correct: false, // Will be calculated server-side after migration
+            points_earned: 0 // Will be calculated server-side after migration
           });
       }
 
-      // Update session
+      // Update session as completed
       await supabase
         .from('quiz_sessions')
         .update({
@@ -178,7 +186,7 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
 
       toast({
         title: "Quiz Completed!",
-        description: `You scored ${totalScore} out of ${questions.reduce((sum, q) => sum + q.points, 0)} points`,
+        description: "Your responses have been submitted securely.",
       });
 
       onComplete();
