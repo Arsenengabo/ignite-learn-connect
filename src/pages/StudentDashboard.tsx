@@ -178,75 +178,75 @@ export const StudentDashboard = () => {
   if (currentView === 'course-viewing') {
     return <CourseViewer courseId={selectedCourseId} onBack={() => setCurrentView('courses')} />;
   }
-  return <div className="space-y-6">
+  return <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-subtle rounded-lg p-6 text-white">
-        <h2 className="text-3xl font-bold mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
-        <p className="text-indigo-400">Ready to continue your learning journey?</p>
+      <div className="bg-gradient-subtle rounded-lg p-4 sm:p-6 text-white">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
+        <p className="text-sm sm:text-base text-indigo-400">Ready to continue your learning journey?</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Quizzes Taken</p>
-                <p className="text-2xl font-bold">{stats.quizzesTaken}</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Quizzes Taken</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.quizzesTaken}</p>
               </div>
-              <BookOpen className="h-8 w-8 text-primary" />
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Competitions</p>
-                <p className="text-2xl font-bold">{stats.competitions}</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Competitions</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.competitions}</p>
               </div>
-              <Trophy className="h-8 w-8 text-accent" />
+              <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Courses</p>
-                <p className="text-2xl font-bold">{stats.courses}</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Courses</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.courses}</p>
               </div>
-              <Play className="h-8 w-8 text-secondary" />
+              <Play className="h-6 w-6 sm:h-8 sm:w-8 text-secondary" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Score</p>
-                <p className="text-2xl font-bold">{stats.avgScore}%</p>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Avg Score</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.avgScore}%</p>
               </div>
-              <Star className="h-8 w-8 text-primary" />
+              <Star className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Features */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
-              <BookOpen className="h-6 w-6 text-primary" />
-              <CardTitle>Take Quizzes</CardTitle>
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <CardTitle className="text-lg sm:text-xl">Take Quizzes</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Test your knowledge with interactive quizzes
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => setCurrentView('quizzes')}>
+          <CardContent className="pt-0">
+            <Button className="w-full text-sm sm:text-base" onClick={() => setCurrentView('quizzes')}>
               Browse Quizzes
             </Button>
           </CardContent>
@@ -311,19 +311,19 @@ export const StudentDashboard = () => {
           <CardDescription>Your latest learning activities</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentActivity.length > 0 ? (
               recentActivity.map(activity => (
                 <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     {activity.type === 'course' ? (
-                      <Play className="h-5 w-5 text-secondary" />
+                      <Play className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
                     ) : (
-                      <BookOpen className="h-5 w-5 text-primary" />
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     )}
-                    <div>
-                      <p className="font-medium">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate">{activity.title}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         {activity.type === 'course' ? 'Course completed' : 'Quiz completed'} {formatTimeAgo(activity.completed_at)}
                       </p>
                       {activity.subject && (
@@ -331,7 +331,7 @@ export const StudentDashboard = () => {
                       )}
                     </div>
                   </div>
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="text-xs sm:text-sm ml-2 flex-shrink-0">
                     {activity.type === 'course' 
                       ? `${Math.round(activity.progress_percentage)}%` 
                       : `${Math.round((activity.score / activity.total_questions) * 100)}%`
