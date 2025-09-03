@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -20,7 +21,9 @@ import {
   GraduationCap,
   Star,
   Play,
-  Zap
+  Zap,
+  Menu,
+  X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 interface LandingPageProps {
@@ -29,9 +32,15 @@ interface LandingPageProps {
 export const LandingPage = ({
   onGetStarted
 }: LandingPageProps) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const handleJoinAsTeacher = () => {
     localStorage.setItem('preferredRole', 'teacher');
     onGetStarted();
+  };
+
+  const handleMobileNavClick = () => {
+    setIsMobileMenuOpen(false);
   };
 
   return <div className="min-h-screen bg-background" style={{
@@ -49,8 +58,13 @@ export const LandingPage = ({
             {/* Mobile Menu */}
             <div className="flex md:hidden items-center space-x-2">
               <ThemeToggle />
-              <Button onClick={onGetStarted} variant="outline" size="sm">
-                Sign In
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
             </div>
 
@@ -66,6 +80,40 @@ export const LandingPage = ({
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border z-40 shadow-lg">
+            <div className="px-4 py-4 space-y-4">
+              <a 
+                href="#features" 
+                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={handleMobileNavClick}
+              >
+                Features
+              </a>
+              <a 
+                href="#how-it-works" 
+                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={handleMobileNavClick}
+              >
+                How It Works
+              </a>
+              <a 
+                href="#testimonials" 
+                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={handleMobileNavClick}
+              >
+                Reviews
+              </a>
+              <div className="pt-2 border-t border-border">
+                <Button onClick={onGetStarted} variant="outline" className="w-full">
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
