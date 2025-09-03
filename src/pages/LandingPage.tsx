@@ -42,9 +42,19 @@ export const LandingPage = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <GraduationCap className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">Codex</span>
+              <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+              <span className="text-lg sm:text-xl font-bold text-foreground">Codex</span>
             </div>
+            
+            {/* Mobile Menu */}
+            <div className="flex md:hidden items-center space-x-2">
+              <ThemeToggle />
+              <Button onClick={onGetStarted} variant="outline" size="sm">
+                Sign In
+              </Button>
+            </div>
+
+            {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
               <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
@@ -59,43 +69,43 @@ export const LandingPage = ({
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="pt-24 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in">
-            <Zap className="w-4 h-4 text-primary mr-2" />
-            <span className="text-primary text-sm font-medium">The Future of Connected Learning</span>
+          <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 sm:mb-8 animate-fade-in">
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-primary mr-2" />
+            <span className="text-primary text-xs sm:text-sm font-medium">The Future of Connected Learning</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight animate-slide-up">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4 sm:mb-6 leading-tight animate-slide-up px-2">
             Codex – Learn, Teach, and
-            <br />
+            <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-primary to-learning bg-clip-text text-transparent">
               Connect in One Digital Space
             </span>
           </h1>
           
-          <p className="text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed px-4">
             Live classes, AI exams, and a connected student community – all in one platform. 
             Experience Discord-inspired learning with professional education tools.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 text-lg rounded-xl transition-all duration-300 animate-pulse-glow" 
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl transition-all duration-300 w-full sm:w-auto" 
               style={{ boxShadow: 'var(--shadow-primary)' }}
             >
-              <Play className="w-5 h-5 mr-2" />
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Start Learning
             </Button>
             <Button 
               onClick={handleJoinAsTeacher} 
               variant="outline" 
               size="lg" 
-              className="px-8 py-4 text-lg rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+              className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 w-full sm:w-auto"
             >
-              <GraduationCap className="w-5 h-5 mr-2" />
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Join as a Teacher
             </Button>
           </div>
@@ -105,18 +115,18 @@ export const LandingPage = ({
       {/* Core Features Section */}
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
               Revolutionary Features for
-              <br />
+              <br className="hidden sm:block" />
               <span className="text-primary">Modern Education</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
               Combining the best of Discord's community features with professional education tools.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <Card className="learning-card group">
               <CardContent className="p-6">
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
@@ -223,16 +233,16 @@ export const LandingPage = ({
       {/* How Codex Works Section */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
               How Codex Works
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
               Simple steps to transform your learning experience
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid sm:grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
             <div className="text-center">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-primary">1</span>
@@ -263,13 +273,13 @@ export const LandingPage = ({
       {/* Benefits Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
               Benefits for Everyone
             </h2>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-12">
+          <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-12">
             <Card className="learning-card">
               <CardContent className="p-8 text-center">
                 <GraduationCap className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -315,18 +325,18 @@ export const LandingPage = ({
       {/* Community & Engagement Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
               Discord-Inspired Learning
-              <br />
+              <br className="hidden sm:block" />
               <span className="text-primary">Community</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
               Experience the future of connected education with secure, moderated environments
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             <Card className="learning-card group">
               <CardContent className="p-6 text-center">
                 <MessageCircle className="w-12 h-12 text-primary mx-auto mb-4" />
