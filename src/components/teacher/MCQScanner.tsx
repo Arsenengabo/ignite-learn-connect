@@ -42,7 +42,7 @@ export const MCQScanner = () => {
       // Upload the image file
       const fileExt = answerSheet.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `answer-sheets/${fileName}`;
+      const filePath = `${user.user.id}/answer-sheets/${fileName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('scans')
