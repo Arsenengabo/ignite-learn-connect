@@ -87,61 +87,63 @@ export const RecentQuizzes = ({ onEditQuiz }: RecentQuizzesProps) => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Recent Quizzes</CardTitle>
-        <CardDescription>Manage your recent quiz activities</CardDescription>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-lg sm:text-xl">Recent Quizzes</CardTitle>
+        <CardDescription className="text-sm">Manage your recent quiz activities</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6">
         {quizzes.length === 0 ? (
-          <p className="text-muted-foreground">No quizzes created yet. Start by creating your first quiz!</p>
+          <p className="text-muted-foreground text-sm sm:text-base">No quizzes created yet. Start by creating your first quiz!</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {quizzes.map((quiz) => (
-              <div key={quiz.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{quiz.title}</h3>
+              <div key={quiz.id} className="border rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base sm:text-lg truncate">{quiz.title}</h3>
                     {quiz.description && (
-                      <p className="text-muted-foreground text-sm mt-1">{quiz.description}</p>
+                      <p className="text-muted-foreground text-xs sm:text-sm mt-1 line-clamp-2">{quiz.description}</p>
                     )}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2">
                       {quiz.subject && (
-                        <Badge variant="secondary">{quiz.subject}</Badge>
+                        <Badge variant="secondary" className="text-xs">{quiz.subject}</Badge>
                       )}
                       {quiz.difficulty_level && (
-                        <Badge variant="outline">{quiz.difficulty_level}</Badge>
+                        <Badge variant="outline" className="text-xs">{quiz.difficulty_level}</Badge>
                       )}
-                      <Badge variant={quiz.is_published ? "default" : "secondary"}>
+                      <Badge variant={quiz.is_published ? "default" : "secondary"} className="text-xs">
                         {quiz.is_published ? "Published" : "Draft"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {quiz.total_questions} questions
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>{quiz.total_questions} questions</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {new Date(quiz.updated_at).toLocaleDateString()}
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>{new Date(quiz.updated_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 sm:flex-col lg:flex-row">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEditQuiz(quiz)}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      <span className="hidden xs:inline">Edit</span>
                     </Button>
                     <Button
                       variant={quiz.is_published ? "secondary" : "default"}
                       size="sm"
                       onClick={() => togglePublishStatus(quiz)}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <Eye className="w-4 h-4 mr-1" />
-                      {quiz.is_published ? "Unpublish" : "Publish"}
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      <span className="hidden xs:inline">{quiz.is_published ? "Unpublish" : "Publish"}</span>
                     </Button>
                   </div>
                 </div>
