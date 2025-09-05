@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine, ArrowLeft } from "lucide-react";
+import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine, ArrowLeft, FileText } from "lucide-react";
 import { QuizBuilder } from "@/components/teacher/QuizBuilder";
 import { RecentQuizzes } from "@/components/teacher/RecentQuizzes";
 import { CompetitionCreator } from "@/components/teacher/CompetitionCreator";
@@ -11,6 +11,7 @@ import { CourseCreator } from "@/components/teacher/CourseCreator";
 import { CourseManager } from "@/components/teacher/CourseManager";
 import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
 import { MCQScanner } from "@/components/teacher/MCQScanner";
+import { AnswerSheetGenerator } from "@/components/teacher/AnswerSheetGenerator";
 
 const TeacherDashboard = () => {
   const [activeView, setActiveView] = useState<string | null>(null);
@@ -65,6 +66,8 @@ const TeacherDashboard = () => {
         return <AIQuestionGenerator />;
       case 'mcq-scanner':
         return <MCQScanner />;
+      case 'answer-generator':
+        return <AnswerSheetGenerator />;
       default:
         return null;
     }
@@ -164,6 +167,23 @@ const TeacherDashboard = () => {
             <CardContent>
               <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('course-manager'); }}>
                 Course Manager
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-elegant transition-shadow cursor-pointer" onClick={() => setActiveView('answer-generator')}>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <FileText className="h-6 w-6 text-primary" />
+                <CardTitle>Create Answer Sheet</CardTitle>
+              </div>
+              <CardDescription>
+                Generate optimized OMR answer sheets for scanning
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={(e) => { e.stopPropagation(); setActiveView('answer-generator'); }}>
+                Generate Sheet
               </Button>
             </CardContent>
           </Card>
