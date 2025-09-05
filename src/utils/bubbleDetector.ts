@@ -23,33 +23,49 @@ export class BubbleDetector {
   }
 
   async detectBubbles(imageFile: File): Promise<DetectionResult[]> {
+    console.log('Starting bubble detection for file:', imageFile.name);
+    
     const image = await this.loadImage(imageFile);
+    console.log('Image loaded:', image.width, 'x', image.height);
+    
     this.canvas.width = image.width;
     this.canvas.height = image.height;
     this.ctx.drawImage(image, 0, 0);
 
-    // Convert to grayscale for better bubble detection
-    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-    const grayImageData = this.convertToGrayscale(imageData);
-    this.ctx.putImageData(grayImageData, 0, 0);
-
-    // Detect bubble regions based on standard OMR sheet layout
-    const bubbleRegions = this.detectBubbleRegions();
+    // Apply image preprocessing for better bubble detection
+    const processedImageData = this.preprocessImage();
+    
+    // Detect bubble regions with improved algorithm
+    const bubbleRegions = this.detectBubbleRegionsAdvanced();
+    console.log('Detected bubble regions:', bubbleRegions.length);
     
     // Analyze each bubble region to determine if it's filled
     const results: DetectionResult[] = [];
     
     for (let question = 1; question <= 10; question++) {
       const questionBubbles = bubbleRegions.filter(b => b.question === question);
-      const detectedAnswer = this.analyzeQuestionBubbles(questionBubbles, grayImageData);
+      console.log(`Question ${question} bubbles:`, questionBubbles.length);
       
-      results.push({
-        question,
-        detectedAnswer: detectedAnswer.answer,
-        confidence: detectedAnswer.confidence
-      });
+      if (questionBubbles.length > 0) {
+        const detectedAnswer = this.analyzeQuestionBubblesAdvanced(questionBubbles, processedImageData);
+        console.log(`Question ${question} detected:`, detectedAnswer);
+        
+        results.push({
+          question,
+          detectedAnswer: detectedAnswer.answer,
+          confidence: detectedAnswer.confidence
+        });
+      } else {
+        console.warn(`No bubbles found for question ${question}`);
+        results.push({
+          question,
+          detectedAnswer: '',
+          confidence: 0
+        });
+      }
     }
 
+    console.log('Final detection results:', results);
     return results;
   }
 
@@ -62,92 +78,138 @@ export class BubbleDetector {
     });
   }
 
-  private convertToGrayscale(imageData: ImageData): ImageData {
+  private preprocessImage(): ImageData {
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = imageData.data;
+
+    // Convert to grayscale and apply contrast enhancement
     for (let i = 0; i < data.length; i += 4) {
       const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-      data[i] = gray;     // Red
-      data[i + 1] = gray; // Green
-      data[i + 2] = gray; // Blue
+      
+      // Apply contrast enhancement
+      const enhanced = gray < 128 ? Math.max(0, gray - 30) : Math.min(255, gray + 30);
+      
+      data[i] = enhanced;     // Red
+      data[i + 1] = enhanced; // Green
+      data[i + 2] = enhanced; // Blue
       // Alpha channel (data[i + 3]) remains unchanged
     }
+
+    this.ctx.putImageData(imageData, 0, 0);
     return imageData;
   }
 
-  private detectBubbleRegions(): BubbleRegion[] {
+  private detectBubbleRegionsAdvanced(): BubbleRegion[] {
     const regions: BubbleRegion[] = [];
     const width = this.canvas.width;
     const height = this.canvas.height;
 
-    // Standard OMR sheet has questions starting around 30% from top
-    // and bubbles are arranged in a grid pattern
-    const startY = Math.floor(height * 0.3);
-    const endY = Math.floor(height * 0.9);
-    const questionHeight = (endY - startY) / 10; // 10 questions
+    console.log('Canvas dimensions:', width, 'x', height);
 
-    // Bubble positions (A, B, C, D) are typically spread across width
-    const startX = Math.floor(width * 0.1);
-    const endX = Math.floor(width * 0.7);
-    const bubbleWidth = Math.floor((endX - startX) / 4); // 4 options per question
+    // More precise detection based on actual OMR sheet layout
+    // Questions typically start after the header (around 25% from top)
+    const headerHeight = Math.floor(height * 0.25);
+    const questionAreaHeight = height - headerHeight - Math.floor(height * 0.1); // Leave 10% at bottom
+    const questionHeight = questionAreaHeight / 10; // 10 questions
+
+    // Bubbles are typically in the left 60% of the page width
+    const leftMargin = Math.floor(width * 0.08);
+    const bubbleAreaWidth = Math.floor(width * 0.6);
+    const bubbleSpacing = bubbleAreaWidth / 4; // 4 options (A, B, C, D)
+
+    console.log('Detection parameters:', {
+      headerHeight,
+      questionAreaHeight,
+      questionHeight,
+      leftMargin,
+      bubbleAreaWidth,
+      bubbleSpacing
+    });
 
     for (let question = 1; question <= 10; question++) {
-      const questionY = startY + (question - 1) * questionHeight;
+      const questionCenterY = headerHeight + (question - 0.5) * questionHeight;
+      const bubbleHeight = Math.floor(questionHeight * 0.3); // Bubble height
+      const bubbleWidth = Math.floor(bubbleSpacing * 0.4); // Bubble width
+      
       const options = ['A', 'B', 'C', 'D'];
 
       for (let optionIndex = 0; optionIndex < 4; optionIndex++) {
-        const bubbleX = startX + optionIndex * bubbleWidth;
+        const bubbleCenterX = leftMargin + (optionIndex + 0.5) * bubbleSpacing;
         
-        regions.push({
-          x: bubbleX,
-          y: questionY,
-          width: Math.floor(bubbleWidth * 0.3), // Bubble is smaller than full width
-          height: Math.floor(questionHeight * 0.4),
+        const region = {
+          x: Math.floor(bubbleCenterX - bubbleWidth / 2),
+          y: Math.floor(questionCenterY - bubbleHeight / 2),
+          width: bubbleWidth,
+          height: bubbleHeight,
           option: options[optionIndex],
           question
-        });
+        };
+        
+        regions.push(region);
+        
+        if (question <= 2) { // Debug first 2 questions
+          console.log(`Q${question}${options[optionIndex]}:`, region);
+        }
       }
     }
 
     return regions;
   }
 
-  private analyzeQuestionBubbles(bubbles: BubbleRegion[], imageData: ImageData): { answer: string; confidence: number } {
-    let darkestBubble = '';
-    let darkestValue = 255;
-    let confidenceScore = 0;
-
-    const bubbleValues: { option: string; darkness: number }[] = [];
+  private analyzeQuestionBubblesAdvanced(bubbles: BubbleRegion[], imageData: ImageData): { answer: string; confidence: number } {
+    const bubbleAnalysis: { option: string; darkness: number; pixelCount: number }[] = [];
 
     for (const bubble of bubbles) {
-      const darkness = this.calculateBubbleDarkness(bubble, imageData);
-      bubbleValues.push({ option: bubble.option, darkness });
-
-      if (darkness < darkestValue) {
-        darkestValue = darkness;
-        darkestBubble = bubble.option;
-      }
+      const analysis = this.calculateBubbleDarknessAdvanced(bubble, imageData);
+      bubbleAnalysis.push({
+        option: bubble.option,
+        darkness: analysis.averageDarkness,
+        pixelCount: analysis.pixelCount
+      });
     }
 
-    // Calculate confidence based on darkness difference
-    const sortedBubbles = bubbleValues.sort((a, b) => a.darkness - b.darkness);
+    console.log(`Question ${bubbles[0].question} analysis:`, bubbleAnalysis);
+
+    // Sort by darkness (lower values = darker = more filled)
+    const sortedBubbles = bubbleAnalysis.sort((a, b) => a.darkness - b.darkness);
+    
+    if (sortedBubbles.length === 0) {
+      return { answer: '', confidence: 0 };
+    }
+
     const darkest = sortedBubbles[0];
     const secondDarkest = sortedBubbles[1];
     
-    // Higher confidence if there's a clear difference between darkest and second darkest
-    const darknessDiff = secondDarkest.darkness - darkest.darkness;
-    confidenceScore = Math.min(darknessDiff / 50, 1); // Normalize to 0-1
+    // Calculate confidence based on darkness difference and absolute darkness
+    let confidenceScore = 0;
+    
+    if (darkest.darkness < 180) { // Must be reasonably dark to be considered filled
+      const darknessDiff = secondDarkest ? secondDarkest.darkness - darkest.darkness : 50;
+      confidenceScore = Math.min(darknessDiff / 40, 1); // Normalize difference
+      
+      // Boost confidence if bubble is very dark
+      if (darkest.darkness < 120) {
+        confidenceScore = Math.min(confidenceScore + 0.3, 1);
+      }
+    }
 
-    // Only consider it filled if it's significantly darker than average
-    const averageDarkness = bubbleValues.reduce((sum, b) => sum + b.darkness, 0) / bubbleValues.length;
-    const isSignificantlyDark = darkest.darkness < averageDarkness - 20;
+    const isSignificantlyDark = darkest.darkness < 160 && confidenceScore > 0.3;
+
+    console.log(`Question ${bubbles[0].question} result:`, {
+      darkest: darkest.darkness,
+      secondDarkest: secondDarkest?.darkness,
+      confidenceScore,
+      isSignificantlyDark,
+      selectedAnswer: isSignificantlyDark ? darkest.option : ''
+    });
 
     return {
-      answer: isSignificantlyDark ? darkestBubble : '',
+      answer: isSignificantlyDark ? darkest.option : '',
       confidence: isSignificantlyDark ? confidenceScore : 0
     };
   }
 
-  private calculateBubbleDarkness(bubble: BubbleRegion, imageData: ImageData): number {
+  private calculateBubbleDarknessAdvanced(bubble: BubbleRegion, imageData: ImageData): { averageDarkness: number; pixelCount: number } {
     const { x, y, width, height } = bubble;
     const data = imageData.data;
     const canvasWidth = imageData.width;
@@ -155,11 +217,11 @@ export class BubbleDetector {
     let totalDarkness = 0;
     let pixelCount = 0;
 
-    // Sample pixels in the bubble region
-    for (let dy = 0; dy < height; dy += 2) { // Sample every other pixel for performance
-      for (let dx = 0; dx < width; dx += 2) {
-        const pixelX = Math.floor(x + dx);
-        const pixelY = Math.floor(y + dy);
+    // Sample all pixels in the bubble region for accuracy
+    for (let dy = 0; dy < height; dy++) {
+      for (let dx = 0; dx < width; dx++) {
+        const pixelX = x + dx;
+        const pixelY = y + dy;
         
         if (pixelX >= 0 && pixelX < canvasWidth && pixelY >= 0 && pixelY < imageData.height) {
           const index = (pixelY * canvasWidth + pixelX) * 4;
@@ -170,6 +232,9 @@ export class BubbleDetector {
       }
     }
 
-    return pixelCount > 0 ? totalDarkness / pixelCount : 255;
+    return {
+      averageDarkness: pixelCount > 0 ? totalDarkness / pixelCount : 255,
+      pixelCount
+    };
   }
 }
