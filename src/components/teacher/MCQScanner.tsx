@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ScanLine, Upload, Download, CheckCircle } from "lucide-react";
+import { ScanLine, Upload, Download, CheckCircle, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BubbleDetector } from "@/utils/bubbleDetector";
 
 export const MCQScanner = () => {
   const [scanName, setScanName] = useState("");
@@ -14,6 +15,7 @@ export const MCQScanner = () => {
   const [answerKey, setAnswerKey] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResults, setScanResults] = useState<any>(null);
+  const [detectionAccuracy, setDetectionAccuracy] = useState<number>(0);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -55,7 +57,32 @@ export const MCQScanner = () => {
         .getPublicUrl(filePath);
 
       // Parse answer key
-      const answers = answerKey.split(',').map(a => a.trim());
+      const answers = answerKey.split(',').map(a => a.trim().toUpperCase());
+
+      // Use bubble detector to analyze the answer sheet
+      const bubbleDetector = new BubbleDetector();
+      const detectionResults = await bubbleDetector.detectBubbles(answerSheet);
+      
+      // Calculate accuracy metrics
+      let correctAnswers = 0;
+      let totalConfidence = 0;
+      const studentAnswers = detectionResults.map((result, index) => {
+        const correctAnswer = answers[index];
+        const isCorrect = result.detectedAnswer === correctAnswer;
+        if (isCorrect) correctAnswers++;
+        totalConfidence += result.confidence;
+        
+        return {
+          question: result.question,
+          correct_answer: correctAnswer,
+          student_answer: result.detectedAnswer || 'Not detected',
+          is_correct: isCorrect,
+          confidence: result.confidence
+        };
+      });
+
+      const averageConfidence = totalConfidence / detectionResults.length;
+      setDetectionAccuracy(Math.round(averageConfidence * 100));
 
       // Save scan record
       const { data: scanData, error: scanError } = await supabase
@@ -65,27 +92,22 @@ export const MCQScanner = () => {
           scan_name: scanName,
           image_url: publicUrl,
           answer_key: answers,
-          status: 'completed', // In real implementation, this would be 'processing'
+          status: 'completed',
         })
         .select()
         .single();
 
       if (scanError) throw scanError;
 
-      // Simulate processing results
-      const mockResults = {
+      const processedResults = {
         total_questions: answers.length,
-        correct_answers: Math.floor(answers.length * 0.8),
-        score_percentage: 80,
-        student_answers: answers.map((correct, index) => ({
-          question: index + 1,
-          correct_answer: correct,
-          student_answer: Math.random() > 0.2 ? correct : 'B', // 80% correct rate
-          is_correct: Math.random() > 0.2
-        }))
+        correct_answers: correctAnswers,
+        score_percentage: Math.round((correctAnswers / answers.length) * 100),
+        student_answers: studentAnswers,
+        detection_accuracy: Math.round(averageConfidence * 100)
       };
 
-      setScanResults(mockResults);
+      setScanResults(processedResults);
       toast.success("Answer sheet processed successfully!");
       
       // Reset form
@@ -177,7 +199,7 @@ export const MCQScanner = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="text-center p-4 bg-muted rounded-lg">
                 <p className="text-2xl font-bold">{scanResults.total_questions}</p>
                 <p className="text-sm text-muted-foreground">Total Questions</p>
@@ -194,6 +216,15 @@ export const MCQScanner = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">Score</p>
               </div>
+              <div className="text-center p-4 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Eye className="w-4 h-4" />
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {scanResults.detection_accuracy}%
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">Detection Accuracy</p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -208,13 +239,25 @@ export const MCQScanner = () => {
                         : 'bg-red-100 dark:bg-red-900'
                     }`}
                   >
-                    <span className="font-medium">Q{result.question}: </span>
-                    <span>{result.student_answer}</span>
-                    {!result.is_correct && (
-                      <span className="text-muted-foreground">
-                        {" "}(Correct: {result.correct_answer})
-                      </span>
-                    )}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium">Q{result.question}: </span>
+                        <span className="font-semibold">{result.student_answer}</span>
+                        {!result.is_correct && (
+                          <span className="text-muted-foreground">
+                            {" "}(Correct: {result.correct_answer})
+                          </span>
+                        )}
+                      </div>
+                      {result.confidence !== undefined && (
+                        <Badge 
+                          variant={result.confidence > 0.7 ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {Math.round(result.confidence * 100)}%
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
