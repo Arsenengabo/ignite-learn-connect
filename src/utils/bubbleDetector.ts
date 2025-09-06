@@ -106,30 +106,46 @@ export class BubbleDetector {
 
     console.log('Canvas dimensions:', width, 'x', height);
 
-    // More precise detection based on actual OMR sheet layout
-    // Questions typically start after the header (around 25% from top)
-    const headerHeight = Math.floor(height * 0.25);
-    const questionAreaHeight = height - headerHeight - Math.floor(height * 0.1); // Leave 10% at bottom
+    // Match the exact layout from AnswerSheetGenerator
+    // Scale from SVG coordinates (595x842) to actual image dimensions
+    const svgWidth = 595;
+    const svgHeight = 842;
+    const scaleX = width / svgWidth;
+    const scaleY = height / svgHeight;
+
+    // Match AnswerSheetGenerator layout parameters exactly
+    const titleAreaHeight = 120 * scaleY;
+    const studentInfoHeight = 80 * scaleY; // Assuming student info is enabled
+    const instructionsHeight = 80 * scaleY;
+    const questionsStartY = titleAreaHeight + studentInfoHeight + instructionsHeight + (20 * scaleY);
+    const questionAreaHeight = height - questionsStartY - (40 * scaleY);
     const questionHeight = questionAreaHeight / 10; // 10 questions
 
-    // Bubbles are typically in the left 60% of the page width
-    const leftMargin = Math.floor(width * 0.08);
-    const bubbleAreaWidth = Math.floor(width * 0.6);
+    // Match exact bubble positioning from generator
+    const leftMargin = (svgWidth * 0.08) * scaleX;
+    const bubbleAreaWidth = (svgWidth * 0.6) * scaleX;
     const bubbleSpacing = bubbleAreaWidth / 4; // 4 options (A, B, C, D)
 
     console.log('Detection parameters:', {
-      headerHeight,
+      titleAreaHeight,
+      studentInfoHeight,
+      instructionsHeight,
+      questionsStartY,
       questionAreaHeight,
       questionHeight,
       leftMargin,
       bubbleAreaWidth,
-      bubbleSpacing
+      bubbleSpacing,
+      scaleX,
+      scaleY
     });
 
     for (let question = 1; question <= 10; question++) {
-      const questionCenterY = headerHeight + (question - 0.5) * questionHeight;
-      const bubbleHeight = Math.floor(questionHeight * 0.3); // Bubble height
-      const bubbleWidth = Math.floor(bubbleSpacing * 0.4); // Bubble width
+      const questionCenterY = questionsStartY + (question - 0.5) * questionHeight;
+      // Calculate bubble size to match generator (radius scaled appropriately)
+      const bubbleRadius = Math.min(questionHeight * 0.15, bubbleSpacing * 0.15);
+      const bubbleHeight = Math.floor(bubbleRadius * 2);
+      const bubbleWidth = Math.floor(bubbleRadius * 2);
       
       const options = ['A', 'B', 'C', 'D'];
 
@@ -180,20 +196,26 @@ export class BubbleDetector {
     const darkest = sortedBubbles[0];
     const secondDarkest = sortedBubbles[1];
     
-    // Calculate confidence based on darkness difference and absolute darkness
+    // Improved confidence calculation with better thresholds for filled bubbles
     let confidenceScore = 0;
     
-    if (darkest.darkness < 180) { // Must be reasonably dark to be considered filled
-      const darknessDiff = secondDarkest ? secondDarkest.darkness - darkest.darkness : 50;
-      confidenceScore = Math.min(darknessDiff / 40, 1); // Normalize difference
+    // Lower threshold for better detection of filled bubbles
+    if (darkest.darkness < 200) { // More lenient threshold for filled bubbles
+      const darknessDiff = secondDarkest ? secondDarkest.darkness - darkest.darkness : 30;
+      confidenceScore = Math.min(darknessDiff / 30, 1); // More sensitive to differences
       
-      // Boost confidence if bubble is very dark
-      if (darkest.darkness < 120) {
+      // Boost confidence if bubble is very dark (pencil marks)
+      if (darkest.darkness < 150) {
+        confidenceScore = Math.min(confidenceScore + 0.4, 1);
+      }
+      
+      // Additional boost for pen marks (very dark)
+      if (darkest.darkness < 100) {
         confidenceScore = Math.min(confidenceScore + 0.3, 1);
       }
     }
 
-    const isSignificantlyDark = darkest.darkness < 160 && confidenceScore > 0.3;
+    const isSignificantlyDark = darkest.darkness < 180 && confidenceScore > 0.25;
 
     console.log(`Question ${bubbles[0].question} result:`, {
       darkest: darkest.darkness,
