@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Printer } from "lucide-react";
+import { FileText, Download, Printer, Image, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface SheetConfig {
@@ -108,7 +108,7 @@ export const AnswerSheetGenerator = () => {
     return svg;
   };
 
-  const downloadSheet = () => {
+  const downloadSVG = () => {
     const svg = generateSVG();
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
@@ -119,7 +119,91 @@ export const AnswerSheetGenerator = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Answer sheet downloaded successfully!");
+    toast.success("SVG answer sheet downloaded successfully!");
+  };
+
+  const downloadPDF = () => {
+    const svg = generateSVG();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = document.createElement('img');
+    
+    img.onload = () => {
+      // Set canvas size for high quality (A4 at 300 DPI)
+      canvas.width = 2480; // A4 width at 300 DPI
+      canvas.height = 3508; // A4 height at 300 DPI
+      
+      if (ctx) {
+        // Fill white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the SVG
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to high-quality PNG for PDF conversion
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `answer-sheet-${config.questions}q-${config.options}o-hq.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success("High-quality PNG downloaded successfully! Use print-to-PDF for PDF format.");
+          }
+        }, 'image/png', 1.0);
+      }
+    };
+    
+    // Convert SVG to data URL
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
+  };
+
+  const downloadPNG = () => {
+    const svg = generateSVG();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = document.createElement('img');
+    
+    img.onload = () => {
+      // Set canvas size for high quality
+      canvas.width = 1190; // A4 width at 200 DPI
+      canvas.height = 1684; // A4 height at 200 DPI
+      
+      if (ctx) {
+        // Fill white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the SVG
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to PNG
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `answer-sheet-${config.questions}q-${config.options}o.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success("PNG answer sheet downloaded successfully!");
+          }
+        }, 'image/png', 1.0);
+      }
+    };
+    
+    // Convert SVG to data URL
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    img.src = url;
   };
 
   const printSheet = () => {
@@ -241,14 +325,22 @@ export const AnswerSheetGenerator = () => {
             <Label htmlFor="studentInfo">Include student information fields</Label>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={downloadSheet} className="flex-1">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Button onClick={downloadSVG} className="flex-1">
               <Download className="w-4 h-4 mr-2" />
-              Download SVG
+              SVG
+            </Button>
+            <Button onClick={downloadPNG} variant="outline" className="flex-1">
+              <Image className="w-4 h-4 mr-2" />
+              PNG
+            </Button>
+            <Button onClick={downloadPDF} variant="outline" className="flex-1">
+              <FileDown className="w-4 h-4 mr-2" />
+              PDF
             </Button>
             <Button onClick={printSheet} variant="outline" className="flex-1">
               <Printer className="w-4 h-4 mr-2" />
-              Print Sheet
+              Print
             </Button>
           </div>
         </CardContent>
