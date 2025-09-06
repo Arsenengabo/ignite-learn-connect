@@ -28,9 +28,12 @@ export const AnswerSheetGenerator = () => {
     const width = 595; // A4 width in points
     const height = 842; // A4 height in points
     
-    // Layout parameters matching the detection system
-    const headerHeight = height * 0.25;
-    const questionAreaHeight = height - headerHeight - (height * 0.1);
+    // Layout parameters - fixed positioning
+    const titleAreaHeight = 120;
+    const studentInfoHeight = config.studentInfo ? 80 : 0;
+    const instructionsHeight = 80;
+    const questionsStartY = titleAreaHeight + studentInfoHeight + instructionsHeight + 20;
+    const questionAreaHeight = height - questionsStartY - 40;
     const questionHeight = questionAreaHeight / config.questions;
     const leftMargin = width * 0.08;
     const bubbleAreaWidth = width * 0.6;
@@ -76,7 +79,7 @@ export const AnswerSheetGenerator = () => {
     const options = ['A', 'B', 'C', 'D'];
     
     for (let question = 1; question <= config.questions; question++) {
-      const questionCenterY = headerHeight + (question - 0.5) * questionHeight;
+      const questionCenterY = questionsStartY + (question - 0.5) * questionHeight;
       
       // Question number
       svg += `
