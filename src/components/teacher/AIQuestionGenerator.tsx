@@ -34,7 +34,7 @@ export const AIQuestionGenerator = () => {
   });
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [provider, setProvider] = useState<"openai" | "anthropic" | "gemini" | "perplexity">("openai");
+  const [provider, setProvider] = useState<"openai" | "anthropic" | "gemini" | "perplexity">("gemini");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
