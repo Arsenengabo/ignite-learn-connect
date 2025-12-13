@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import logo from "@/assets/logo.png";
 interface LandingPageProps {
   onGetStarted: () => void;
 }
@@ -51,7 +52,7 @@ export const LandingPage = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+              <img src={logo} alt="Codex Logo" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
               <span className="text-lg sm:text-xl font-bold text-foreground">Codex</span>
             </div>
             

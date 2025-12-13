@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -29,9 +30,7 @@ export const AppLayout = ({ children, user, userProfile }: AppLayoutProps) => {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary" />
-            </div>
+            <img src={logo} alt="Codex Logo" className="w-10 h-10 object-contain" />
             <div>
               <h1 className="text-xl font-bold">Ignite Learn Connect</h1>
               <p className="text-sm text-muted-foreground capitalize">
