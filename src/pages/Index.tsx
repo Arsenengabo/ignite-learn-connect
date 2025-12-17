@@ -11,6 +11,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
 
@@ -21,13 +22,14 @@ const Index = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Fetch user profile when signed in
+        // Fetch user profile and role when signed in
         if (session?.user) {
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            fetchUserData(session.user.id);
           }, 0);
         } else {
           setUserProfile(null);
+          setUserRole(null);
         }
       }
     );
@@ -38,29 +40,46 @@ const Index = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserData(session.user.id);
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserData = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
       } else {
-        setUserProfile(data);
+        setUserProfile(profileData);
+      }
+
+      // Fetch role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+        // Fallback to profile role if user_roles doesn't have entry
+        setUserRole(profileData?.role || 'student');
+      } else {
+        setUserRole(roleData?.role || 'student');
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
@@ -81,9 +100,12 @@ const Index = () => {
     return <AuthForm />;
   }
 
+  // Create a profile object with role for AppLayout
+  const profileWithRole = { ...userProfile, role: userRole };
+
   return (
-    <AppLayout user={user} userProfile={userProfile}>
-      {userProfile?.role === 'teacher' ? (
+    <AppLayout user={user} userProfile={profileWithRole}>
+      {userRole === 'teacher' ? (
         <TeacherDashboard />
       ) : (
         <StudentDashboard />
