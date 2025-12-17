@@ -359,12 +359,20 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          combination_department: string | null
           created_at: string
+          district: string | null
+          education_level: string | null
+          education_level_taught: string | null
           email: string
           full_name: string | null
           id: string
+          organization_name: string | null
+          province: string | null
           role: string
+          role_description: string | null
           school_name: string | null
+          subjects_taught: string[] | null
           subscription_end: string | null
           subscription_tier: string | null
           updated_at: string
@@ -373,12 +381,20 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          combination_department?: string | null
           created_at?: string
+          district?: string | null
+          education_level?: string | null
+          education_level_taught?: string | null
           email: string
           full_name?: string | null
           id?: string
+          organization_name?: string | null
+          province?: string | null
           role: string
+          role_description?: string | null
           school_name?: string | null
+          subjects_taught?: string[] | null
           subscription_end?: string | null
           subscription_tier?: string | null
           updated_at?: string
@@ -387,12 +403,20 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          combination_department?: string | null
           created_at?: string
+          district?: string | null
+          education_level?: string | null
+          education_level_taught?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          organization_name?: string | null
+          province?: string | null
           role?: string
+          role_description?: string | null
           school_name?: string | null
+          subjects_taught?: string[] | null
           subscription_end?: string | null
           subscription_tier?: string | null
           updated_at?: string
@@ -589,15 +613,46 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "teacher" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -724,6 +779,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "teacher", "other"],
+    },
   },
 } as const
