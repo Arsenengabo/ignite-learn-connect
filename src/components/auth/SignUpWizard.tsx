@@ -562,23 +562,14 @@ const RoleSpecificStep = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="schoolName">School</Label>
-        <Select
+        <Label htmlFor="schoolName">School Name</Label>
+        <Input
+          id="schoolName"
+          placeholder="Enter your school name"
           value={formData.schoolName}
-          onValueChange={(value) => updateFormData("schoolName", value)}
-          disabled={!formData.district}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select your school" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableSchools.map((school) => (
-              <SelectItem key={school.name} value={school.name}>
-                {school.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(e) => updateFormData("schoolName", e.target.value)}
+          required
+        />
       </div>
 
       <div className="space-y-2">
