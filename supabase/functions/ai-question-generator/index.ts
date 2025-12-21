@@ -31,11 +31,11 @@ async function callLovableAI(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are an expert educator who writes high-quality questions and always returns valid JSON only." },
+        { role: "system", content: "You are an expert educator who writes high-quality questions and always returns valid JSON only. Keep responses concise." },
         { role: "user", content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 8000,
     }),
   });
 
