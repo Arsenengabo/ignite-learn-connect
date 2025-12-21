@@ -54,32 +54,41 @@ async function callLovableAI(prompt: string): Promise<string> {
 }
 
 function tryParseJsonArray(text: string) {
+  // Clean the text first - remove markdown code blocks
+  let cleanText = text.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
+  
   // Direct parse
   try {
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(cleanText);
     if (Array.isArray(parsed)) return parsed;
+    // If it's an object with a questions/mcqs array, extract it
+    if (parsed && typeof parsed === 'object') {
+      if (Array.isArray(parsed.questions)) return parsed.questions;
+      if (Array.isArray(parsed.mcqs)) return parsed.mcqs;
+    }
   } catch {}
 
-  // Code block
-  const block = text.match(/```json([\s\S]*?)```/i) || text.match(/```([\s\S]*?)```/i);
-  if (block?.[1]) {
-    try {
-      const parsed = JSON.parse(block[1].trim());
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
-  }
-
-  // Bracket extraction
-  const start = text.indexOf("[");
-  const end = text.lastIndexOf("]");
+  // Bracket extraction - find the outermost array
+  const start = cleanText.indexOf("[");
+  const end = cleanText.lastIndexOf("]");
   if (start !== -1 && end !== -1 && end > start) {
-    const slice = text.slice(start, end + 1);
+    const slice = cleanText.slice(start, end + 1);
     try {
       const parsed = JSON.parse(slice);
       if (Array.isArray(parsed)) return parsed;
     } catch {}
   }
 
+  // Try to fix common JSON issues (trailing commas, etc.)
+  try {
+    const fixedText = cleanText
+      .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+      .replace(/,\s*}/g, '}'); // Remove trailing commas in objects
+    const parsed = JSON.parse(fixedText);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  console.error("Failed to parse AI response:", text.substring(0, 500));
   throw new Error("Failed to parse JSON array from AI response");
 }
 
