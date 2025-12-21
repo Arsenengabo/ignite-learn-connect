@@ -2,3 +2,6 @@ project_id = "ucziztbaamtmmvycfyuz"
 
 [functions.ai-question-generator]
 verify_jwt = true
+
+[functions.generate-mcqs]
+verify_jwt = false
