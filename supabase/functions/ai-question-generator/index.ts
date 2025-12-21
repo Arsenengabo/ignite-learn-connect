@@ -18,18 +18,18 @@ Each item must have:
   return `${schema}\n\n${userPrompt}\n\nImportant: Output ONLY the JSON array.`;
 }
 
-async function callOpenAI(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY secret");
+async function callLovableAI(prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("Missing LOVABLE_API_KEY secret");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: "You are an expert educator who writes high-quality questions and always returns valid JSON only." },
         { role: "user", content: prompt },
@@ -39,85 +39,16 @@ async function callOpenAI(prompt: string): Promise<string> {
     }),
   });
 
-  if (!res.ok) throw new Error(`OpenAI error: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "";
-}
-
-async function callAnthropic(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("Missing ANTHROPIC_API_KEY secret");
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "content-type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 2000,
-      messages: [
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Anthropic error: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  const content = data.content?.[0]?.text ?? "";
-  return content;
-}
-
-async function callGemini(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("Missing GEMINI_API_KEY secret");
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2000 },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini error: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  return text;
-}
-
-async function callPerplexity(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
-  if (!apiKey) throw new Error("Missing PERPLEXITY_API_KEY secret");
-
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-sonar-small-128k-online",
-      messages: [
-        { role: "system", content: "Be precise and concise. Return only JSON when asked to." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.2,
-      top_p: 0.9,
-      max_tokens: 1500,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Perplexity error: ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    if (res.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (res.status === 402) {
+      throw new Error("AI credits exhausted. Please add credits to your Lovable workspace.");
+    }
+    throw new Error(`AI gateway error: ${res.status} ${await res.text()}`);
+  }
+  
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? "";
 }
@@ -149,7 +80,7 @@ function tryParseJsonArray(text: string) {
     } catch {}
   }
 
-  throw new Error("Failed to parse JSON array from provider response");
+  throw new Error("Failed to parse JSON array from AI response");
 }
 
 serve(async (req) => {
@@ -158,37 +89,16 @@ serve(async (req) => {
   }
 
   try {
-    const { provider, prompt } = await req.json();
-    if (!provider || !prompt) {
-      return new Response(JSON.stringify({ error: "Missing provider or prompt" }), {
+    const { prompt } = await req.json();
+    if (!prompt) {
+      return new Response(JSON.stringify({ error: "Missing prompt" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const finalPrompt = buildPrompt(prompt);
-
-    let raw = "";
-    switch (provider) {
-      case "openai":
-        raw = await callOpenAI(finalPrompt);
-        break;
-      case "anthropic":
-        raw = await callAnthropic(finalPrompt);
-        break;
-      case "gemini":
-        raw = await callGemini(finalPrompt);
-        break;
-      case "perplexity":
-        raw = await callPerplexity(finalPrompt);
-        break;
-      default:
-        return new Response(JSON.stringify({ error: "Unsupported provider" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
+    const raw = await callLovableAI(finalPrompt);
     const questions = tryParseJsonArray(raw);
 
     return new Response(JSON.stringify({ questions }), {
