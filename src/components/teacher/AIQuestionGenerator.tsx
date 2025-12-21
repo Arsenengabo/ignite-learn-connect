@@ -34,7 +34,6 @@ export const AIQuestionGenerator = () => {
   });
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [provider, setProvider] = useState<"openai" | "anthropic" | "gemini" | "perplexity">("gemini");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,10 +92,7 @@ Return the response as a JSON array with this format:
 ]`;
 
       const { data, error } = await supabase.functions.invoke('ai-question-generator', {
-        body: {
-          provider,
-          prompt,
-        },
+        body: { prompt },
       });
 
       if (error) {
@@ -160,27 +156,6 @@ Difficulty: ${q.difficulty}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* AI Provider */}
-          <div>
-            <Label htmlFor="provider">AI Provider</Label>
-            <Select value={provider} onValueChange={(value) => setProvider(value as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                <SelectItem value="gemini">Google Gemini</SelectItem>
-                <SelectItem value="perplexity">Perplexity</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Uses secure server-side keys. You only need one provider configured.
-            </p>
-          </div>
-
-          <Separator />
-
           {/* Input Method Selection */}
           <div>
             <Label>Content Source</Label>
