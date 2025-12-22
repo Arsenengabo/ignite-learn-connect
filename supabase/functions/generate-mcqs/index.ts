@@ -5,6 +5,53 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const sanitizeText = (value: unknown) => (typeof value === "string" ? value : "").trim();
+
+// Prevent the AI from embedding the answer inside the visible question/options.
+const sanitizeOptionText = (value: unknown) => {
+  const s = sanitizeText(value);
+  return s
+    .replace(/^[A-D]\s*[\)\.\:\-]\s*/i, "")
+    .replace(/\s*[✓✔]\s*/g, " ")
+    .replace(/\s*\((?:correct|answer|ans)\)\s*/gi, " ")
+    .replace(/\bcorrect\s*answer\b\s*[:\-].*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const sanitizeQuestionText = (value: unknown) => {
+  const s = sanitizeText(value);
+  // Remove obvious answer-reveal prefixes if the model leaks them into the question.
+  return s
+    .replace(/\b(correct\s*answer|answer)\b\s*[:\-].*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const sanitizeMcqPayload = (payload: any) => {
+  const subject = sanitizeText(payload?.subject);
+  const topic = sanitizeText(payload?.topic);
+  const mcqsRaw = Array.isArray(payload?.mcqs) ? payload.mcqs : null;
+
+  if (!mcqsRaw) throw new Error("Invalid AI response format");
+
+  const mcqs = mcqsRaw.map((q: any) => {
+    const optionsRaw = Array.isArray(q?.options) ? q.options : [];
+    const options = optionsRaw.map(sanitizeOptionText);
+
+    const correctAnswer = typeof q?.correctAnswer === "number" ? q.correctAnswer : 0;
+
+    return {
+      question: sanitizeQuestionText(q?.question),
+      options,
+      correctAnswer: Math.min(Math.max(correctAnswer, 0), Math.max(options.length - 1, 0)),
+      explanation: sanitizeText(q?.explanation),
+    };
+  });
+
+  return { subject: subject || "", topic: topic || "", mcqs };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -20,8 +67,13 @@ serve(async (req) => {
 
     console.log(`Generating ${count} MCQs for ${subject}: ${topic}`);
 
-    const systemPrompt = `You are a friendly AI study assistant. 
+    const systemPrompt = `You are a friendly AI study assistant.
 Generate challenging multiple-choice questions to test understanding after revision.
+
+CRITICAL RULES:
+- Return ONLY valid JSON (no markdown, no code fences).
+- Do NOT reveal the correct answer inside the question text or the options.
+- Options must be neutral: no labels like A/B/C/D, no hints, no "correct", no "answer", no ✓/✔.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -30,7 +82,7 @@ Return ONLY valid JSON in this exact format:
   "mcqs": [
     {
       "question": "Question text",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
       "correctAnswer": 0,
       "explanation": "Why this is correct and why others are wrong"
     }
@@ -90,7 +142,7 @@ Make them challenging but fair, testing key concepts and understanding.`;
     let mcqData;
     try {
       const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      mcqData = JSON.parse(cleanContent);
+      mcqData = sanitizeMcqPayload(JSON.parse(cleanContent));
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       throw new Error("Invalid AI response format");
