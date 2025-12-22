@@ -8,6 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Brain, CheckCircle2, XCircle, Sparkles, RotateCcw } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+const sanitizeOptionText = (raw: string) =>
+  raw
+    .replace(/^[A-D]\s*[\)\.\:\-]\s*/i, "")
+    .replace(/\s*[✓✔]\s*/g, " ")
+    .replace(/\s*\((?:correct|answer|ans)\)\s*/gi, " ")
+    .replace(/\bcorrect\s*answer\b\s*[:\-].*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 interface MCQ {
   question: string;
   options: string[];
@@ -142,6 +151,7 @@ export const MCQGenerator = () => {
                   const isCorrect = mcq.correctAnswer === oIndex;
                   const isSelected = answers[qIndex] === oIndex;
                   const showFeedback = showResults && (isSelected || isCorrect);
+                  const displayOption = sanitizeOptionText(option);
 
                   return (
                     <div
@@ -160,7 +170,7 @@ export const MCQGenerator = () => {
                     >
                       <RadioGroupItem value={oIndex.toString()} id={`q${qIndex}-o${oIndex}`} />
                       <Label htmlFor={`q${qIndex}-o${oIndex}`} className="flex-1 cursor-pointer flex items-center gap-2">
-                        {option}
+                        {displayOption}
                         {showFeedback && isCorrect && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                         {showFeedback && isSelected && !isCorrect && <XCircle className="h-4 w-4 text-red-600" />}
                       </Label>
