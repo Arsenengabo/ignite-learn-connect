@@ -308,6 +308,262 @@ export type Database = {
           },
         ]
       }
+      exam_attempts: {
+        Row: {
+          created_at: string
+          exam_id: string
+          id: string
+          max_score: number | null
+          percentage: number | null
+          started_at: string
+          status: string
+          student_id: string
+          submitted_at: string | null
+          time_remaining_seconds: number | null
+          total_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          id?: string
+          max_score?: number | null
+          percentage?: number | null
+          started_at?: string
+          status?: string
+          student_id: string
+          submitted_at?: string | null
+          time_remaining_seconds?: number | null
+          total_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          id?: string
+          max_score?: number | null
+          percentage?: number | null
+          started_at?: string
+          status?: string
+          student_id?: string
+          submitted_at?: string | null
+          time_remaining_seconds?: number | null
+          total_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string
+          exam_id: string
+          explanation: string | null
+          id: string
+          marks: number | null
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          section_id: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string
+          exam_id: string
+          explanation?: string | null
+          id?: string
+          marks?: number | null
+          options?: Json | null
+          order_index?: number
+          question_text: string
+          question_type: string
+          section_id?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string
+          exam_id?: string
+          explanation?: string | null
+          id?: string
+          marks?: number | null
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          section_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_responses: {
+        Row: {
+          answer: string | null
+          attempt_id: string
+          created_at: string
+          feedback: string | null
+          id: string
+          is_correct: boolean | null
+          is_evaluated: boolean | null
+          marks_awarded: number | null
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          attempt_id: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_correct?: boolean | null
+          is_evaluated?: boolean | null
+          marks_awarded?: number | null
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          attempt_id?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_correct?: boolean | null
+          is_evaluated?: boolean | null
+          marks_awarded?: number | null
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          exam_id: string
+          id: string
+          instructions: string | null
+          marks_per_question: number | null
+          negative_marking: number | null
+          order_index: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          exam_id: string
+          id?: string
+          instructions?: string | null
+          marks_per_question?: number | null
+          negative_marking?: number | null
+          order_index?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          exam_id?: string
+          id?: string
+          instructions?: string | null
+          marks_per_question?: number | null
+          negative_marking?: number | null
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sections_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty_level: string | null
+          id: string
+          instructions: string | null
+          is_premium: boolean | null
+          is_published: boolean | null
+          subject: string | null
+          teacher_id: string
+          time_limit_minutes: number | null
+          title: string
+          total_marks: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          instructions?: string | null
+          is_premium?: boolean | null
+          is_published?: boolean | null
+          subject?: string | null
+          teacher_id: string
+          time_limit_minutes?: number | null
+          title: string
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          id?: string
+          instructions?: string | null
+          is_premium?: boolean | null
+          is_published?: boolean | null
+          subject?: string | null
+          teacher_id?: string
+          time_limit_minutes?: number | null
+          title?: string
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mcq_scans: {
         Row: {
           answer_key: Json

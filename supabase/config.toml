@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.generate-mcqs]
 verify_jwt = false
+
+[functions.generate-exam]
+verify_jwt = false
