@@ -26,7 +26,7 @@ interface Response {
   question: {
     question_text: string;
     question_type: string;
-    options: unknown;
+    options: string[] | null;
     correct_answer: string;
     explanation: string;
     marks: number;
@@ -88,7 +88,13 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
         .eq('attempt_id', attemptId);
 
       if (responsesError) throw responsesError;
-      setResponses(responsesData || []);
+      setResponses((responsesData || []).map(r => ({
+        ...r,
+        question: {
+          ...r.question,
+          options: Array.isArray(r.question.options) ? r.question.options : null
+        }
+      })) as Response[]);
 
     } catch (error) {
       console.error("Error loading results:", error);

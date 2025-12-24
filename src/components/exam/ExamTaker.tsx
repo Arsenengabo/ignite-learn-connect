@@ -6,19 +6,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, 
-  Save, Send, Flag 
+  Save, Send, Flag, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProctoring } from "@/hooks/useProctoring";
+import ProctoringOverlay from "./ProctoringOverlay";
+import ProctoringSetup from "./ProctoringSetup";
 
 interface Question {
   id: string;
   question_text: string;
   question_type: string;
-  options: unknown;
+  options: string[] | null;
   marks: number;
   order_index: number;
   section_id: string;
@@ -41,6 +45,8 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [proctoringEnabled, setProctoringEnabled] = useState(true);
+  const [proctoringSetupComplete, setProctoringSetupComplete] = useState(false);
   
   const [exam, setExam] = useState<{
     id: string;
@@ -59,6 +65,32 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Proctoring hook
+  const handleAutoSubmit = useCallback(() => {
+    toast({
+      title: "Exam Auto-Submitted",
+      description: "Your exam was submitted due to proctoring violations.",
+      variant: "destructive"
+    });
+    handleSubmit(true);
+  }, []);
+
+  const {
+    state: proctoringState,
+    videoRef,
+    canvasRef,
+    startProctoring,
+    stopProctoring,
+    config: proctoringConfig
+  } = useProctoring({
+    enableCamera: proctoringEnabled,
+    enableMicrophone: proctoringEnabled,
+    enableTabDetection: proctoringEnabled,
+    enforceFullscreen: proctoringEnabled,
+    maxWarnings: 3,
+    onAutoSubmit: handleAutoSubmit
+  });
 
   // Load exam data
   useEffect(() => {
@@ -96,7 +128,10 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
           .order('order_index');
 
         if (questionsError) throw questionsError;
-        setQuestions(questionsData || []);
+        setQuestions((questionsData || []).map(q => ({
+          ...q,
+          options: Array.isArray(q.options) ? q.options as string[] : null
+        })));
 
         // Create attempt
         const { data: attempt, error: attemptError } = await supabase
@@ -311,16 +346,41 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
     );
   }
 
+  // Show proctoring setup if enabled and not complete
+  if (proctoringEnabled && !proctoringSetupComplete) {
+    return (
+      <ProctoringSetup
+        examTitle={exam.title}
+        onStart={async () => {
+          await startProctoring();
+          setProctoringSetupComplete(true);
+        }}
+        onCancel={onBack}
+      />
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
   const currentSection = sections.find(s => s.id === currentQuestion?.section_id);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const isLowTime = timeRemaining < 300; // Less than 5 minutes
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", proctoringEnabled && proctoringState.isActive && "pt-14")}>
+      {/* Proctoring Overlay */}
+      {proctoringEnabled && proctoringState.isActive && (
+        <ProctoringOverlay
+          state={proctoringState}
+          config={proctoringConfig}
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+        />
+      )}
+
       {/* Header with timer */}
       <Card className={cn(
-        "sticky top-0 z-10",
+        "sticky z-10",
+        proctoringEnabled && proctoringState.isActive ? "top-12" : "top-0",
         isLowTime && "border-destructive bg-destructive/5"
       )}>
         <CardContent className="py-3">
