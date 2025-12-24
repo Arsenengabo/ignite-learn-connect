@@ -80,11 +80,21 @@ export default function ProctoringOverlay({
               <canvas ref={canvasRef} className="hidden" />
               
               {/* Face detection indicator */}
-              <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                {state.faceDetected ? (
+              <div className="absolute bottom-2 left-2 flex flex-col gap-1">
+                {state.isModelLoading ? (
+                  <Badge className="bg-muted text-muted-foreground text-xs">
+                    <Eye className="h-3 w-3 mr-1 animate-pulse" />
+                    Loading AI...
+                  </Badge>
+                ) : state.multipleFaces ? (
+                  <Badge variant="destructive" className="text-xs animate-pulse">
+                    <XCircle className="h-3 w-3 mr-1" />
+                    {state.faceCount} Faces!
+                  </Badge>
+                ) : state.faceDetected ? (
                   <Badge className="bg-success/80 text-success-foreground text-xs">
                     <Eye className="h-3 w-3 mr-1" />
-                    Face OK
+                    1 Face ✓
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="text-xs animate-pulse">

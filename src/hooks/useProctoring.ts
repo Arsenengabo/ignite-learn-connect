@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useFaceDetection } from './useFaceDetection';
 
 export type ViolationType = 
   | 'tab_switch'
@@ -38,7 +39,10 @@ export interface ProctoringState {
   warningCount: number;
   faceDetected: boolean;
   multipleFaces: boolean;
+  faceCount: number;
   lastFaceCheck: Date | null;
+  isModelLoading: boolean;
+  isModelLoaded: boolean;
 }
 
 const defaultConfig: ProctoringConfig = {
@@ -47,7 +51,7 @@ const defaultConfig: ProctoringConfig = {
   enableTabDetection: true,
   enforceFullscreen: true,
   maxWarnings: 3,
-  faceDetectionInterval: 5000,
+  faceDetectionInterval: 2000, // Faster detection with TensorFlow
   onAutoSubmit: () => {}
 };
 
@@ -64,19 +68,41 @@ export function useProctoring(config: Partial<ProctoringConfig> = {}) {
     warningCount: 0,
     faceDetected: true,
     multipleFaces: false,
-    lastFaceCheck: null
+    faceCount: 0,
+    lastFaceCheck: null,
+    isModelLoading: true,
+    isModelLoaded: false
   });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const faceCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastNoFaceTimeRef = useRef<number | null>(null);
+  const lastMultipleFacesTimeRef = useRef<number | null>(null);
 
-  // Add a violation
+  // TensorFlow.js face detection
+  const { 
+    result: faceResult, 
+    initializeDetector, 
+    detectFaces, 
+    isReady: isFaceDetectionReady 
+  } = useFaceDetection();
+
+  // Update state when model loading status changes
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      isModelLoading: faceResult.isLoading,
+      isModelLoaded: faceResult.isModelLoaded
+    }));
+  }, [faceResult.isLoading, faceResult.isModelLoaded]);
+
+  // Add a violation with debounce logic
   const addViolation = useCallback((type: ViolationType, severity: 'warning' | 'critical') => {
     const descriptions: Record<ViolationType, string> = {
       tab_switch: 'Switched away from exam tab',
       fullscreen_exit: 'Exited fullscreen mode',
-      multiple_faces: 'Multiple faces detected',
+      multiple_faces: 'Multiple faces detected in camera',
       no_face: 'Face not visible in camera',
       audio_anomaly: 'Suspicious audio detected',
       copy_paste: 'Copy/paste attempt blocked',
@@ -169,6 +195,9 @@ export function useProctoring(config: Partial<ProctoringConfig> = {}) {
 
   // Start proctoring
   const startProctoring = useCallback(async () => {
+    // Initialize face detection model
+    await initializeDetector();
+
     // Request media access
     if (fullConfig.enableCamera || fullConfig.enableMicrophone) {
       await requestMediaAccess();
@@ -180,7 +209,7 @@ export function useProctoring(config: Partial<ProctoringConfig> = {}) {
     }
 
     setState(prev => ({ ...prev, isActive: true }));
-  }, [fullConfig, requestMediaAccess, enterFullscreen]);
+  }, [fullConfig, requestMediaAccess, enterFullscreen, initializeDetector]);
 
   // Stop proctoring
   const stopProctoring = useCallback(() => {
@@ -304,62 +333,69 @@ export function useProctoring(config: Partial<ProctoringConfig> = {}) {
     };
   }, [state.isActive, addViolation]);
 
-  // Basic face detection using canvas (simplified - for production use TensorFlow.js or similar)
-  const checkFacePresence = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+  // TensorFlow.js face detection with debouncing
+  const checkFacePresence = useCallback(async () => {
+    if (!videoRef.current || !isFaceDetectionReady) return;
 
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    if (video.readyState !== 4) return;
 
-    if (!ctx || video.readyState !== 4) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-
-    // Get image data for basic analysis
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    // Simple skin tone detection (very basic - for demo purposes)
-    let skinPixels = 0;
-    const totalPixels = data.length / 4;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      // Basic skin tone detection
-      if (
-        r > 60 && g > 40 && b > 20 &&
-        r > g && r > b &&
-        Math.abs(r - g) > 15 &&
-        r - g > 15 && r - b > 15
-      ) {
-        skinPixels++;
-      }
-    }
-
-    const skinRatio = skinPixels / totalPixels;
-    const hasFace = skinRatio > 0.05 && skinRatio < 0.5;
+    const result = await detectFaces(video);
+    const now = Date.now();
+    const DEBOUNCE_MS = 3000; // 3 seconds debounce for violations
 
     setState(prev => {
-      if (!hasFace && prev.faceDetected) {
-        addViolation('no_face', 'warning');
+      let shouldAddNoFaceViolation = false;
+      let shouldAddMultipleFacesViolation = false;
+
+      // Check for no face with debounce
+      if (!result.faceDetected && prev.faceDetected) {
+        if (!lastNoFaceTimeRef.current || now - lastNoFaceTimeRef.current > DEBOUNCE_MS) {
+          shouldAddNoFaceViolation = true;
+          lastNoFaceTimeRef.current = now;
+        }
+      } else if (result.faceDetected) {
+        lastNoFaceTimeRef.current = null;
       }
+
+      // Check for multiple faces with debounce
+      if (result.multipleFaces && !prev.multipleFaces) {
+        if (!lastMultipleFacesTimeRef.current || now - lastMultipleFacesTimeRef.current > DEBOUNCE_MS) {
+          shouldAddMultipleFacesViolation = true;
+          lastMultipleFacesTimeRef.current = now;
+        }
+      } else if (!result.multipleFaces) {
+        lastMultipleFacesTimeRef.current = null;
+      }
+
       return {
         ...prev,
-        faceDetected: hasFace,
+        faceDetected: result.faceDetected,
+        multipleFaces: result.multipleFaces,
+        faceCount: result.faceCount,
         lastFaceCheck: new Date()
       };
     });
-  }, [addViolation]);
+
+    // Add violations outside of setState to avoid stale closure
+    if (!result.faceDetected && state.faceDetected) {
+      const timeSinceLastNoFace = lastNoFaceTimeRef.current ? now - lastNoFaceTimeRef.current : Infinity;
+      if (timeSinceLastNoFace > 3000 || !lastNoFaceTimeRef.current) {
+        addViolation('no_face', 'warning');
+      }
+    }
+
+    if (result.multipleFaces && !state.multipleFaces) {
+      const timeSinceLastMultiple = lastMultipleFacesTimeRef.current ? now - lastMultipleFacesTimeRef.current : Infinity;
+      if (timeSinceLastMultiple > 3000 || !lastMultipleFacesTimeRef.current) {
+        addViolation('multiple_faces', 'critical');
+      }
+    }
+  }, [isFaceDetectionReady, detectFaces, addViolation, state.faceDetected, state.multipleFaces]);
 
   // Set up face detection interval
   useEffect(() => {
-    if (!state.isActive || !fullConfig.enableCamera || !state.cameraStream) return;
+    if (!state.isActive || !fullConfig.enableCamera || !state.cameraStream || !isFaceDetectionReady) return;
 
     faceCheckIntervalRef.current = setInterval(checkFacePresence, fullConfig.faceDetectionInterval);
 
@@ -368,7 +404,7 @@ export function useProctoring(config: Partial<ProctoringConfig> = {}) {
         clearInterval(faceCheckIntervalRef.current);
       }
     };
-  }, [state.isActive, fullConfig.enableCamera, fullConfig.faceDetectionInterval, state.cameraStream, checkFacePresence]);
+  }, [state.isActive, fullConfig.enableCamera, fullConfig.faceDetectionInterval, state.cameraStream, checkFacePresence, isFaceDetectionReady]);
 
   return {
     state,
