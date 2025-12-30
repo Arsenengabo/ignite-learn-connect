@@ -895,6 +895,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      evaluate_exam_responses: {
+        Args: { p_attempt_id: string; p_responses: Json }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
