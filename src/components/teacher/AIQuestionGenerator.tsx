@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -53,6 +54,65 @@ interface GeneratedExam {
   sections: GeneratedSection[];
 }
 
+// Online Exam Ready Interfaces
+interface OnlineExamQuestion {
+  id: string;
+  number: number;
+  sectionId: string;
+  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  questionText: string;
+  marks: number;
+  options: string[] | null;
+  required: boolean;
+}
+
+interface OnlineExamSection {
+  id: string;
+  name: string;
+  order: number;
+  questions: OnlineExamQuestion[];
+}
+
+interface GradingQuestion {
+  id: string;
+  type: string;
+  correctAnswer: string;
+  sampleAnswer: string;
+  explanation: string;
+  keyPoints: string[];
+  evaluationGuidelines: string;
+  marks: number;
+  partialMarkingAllowed: boolean;
+  gradingType: "exact_match" | "semantic" | "keyword_based";
+}
+
+interface OnlineExamReady {
+  metadata: {
+    examId: string;
+    examName: string;
+    subject: string;
+    totalMarks: number;
+    duration: number;
+    totalQuestions: number;
+    createdAt: string;
+  };
+  config: {
+    allowNavigation: boolean;
+    allowFlagForReview: boolean;
+    autoSubmitOnTimeout: boolean;
+    showQuestionNumbers: boolean;
+    shuffleQuestions: boolean;
+    shuffleOptions: boolean;
+  };
+  instructions: string[];
+  studentView: {
+    sections: OnlineExamSection[];
+  };
+  gradingMetadata: {
+    questions: GradingQuestion[];
+  };
+}
+
 export const AIQuestionGenerator = () => {
   const [examName, setExamName] = useState("");
   const [subject, setSubject] = useState("");
@@ -69,8 +129,10 @@ export const AIQuestionGenerator = () => {
   ]);
   
   const [generatedExam, setGeneratedExam] = useState<GeneratedExam | null>(null);
+  const [onlineExam, setOnlineExam] = useState<OnlineExamReady | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewMode, setPreviewMode] = useState<"questions" | "answers" | "key" | null>(null);
+  const [generationMode, setGenerationMode] = useState<"standard" | "online">("standard");
+  const [previewQuestion, setPreviewQuestion] = useState(0);
 
   const addSection = () => {
     setSections([...sections, {
@@ -127,6 +189,9 @@ export const AIQuestionGenerator = () => {
     }
 
     setIsGenerating(true);
+    setGeneratedExam(null);
+    setOnlineExam(null);
+    
     try {
       const examFormat = {
         examName,
@@ -140,26 +205,76 @@ export const AIQuestionGenerator = () => {
       };
 
       const { data, error } = await supabase.functions.invoke('ai-question-generator', {
-        body: { examFormat },
+        body: { 
+          examFormat,
+          onlineExamReady: generationMode === "online"
+        },
       });
 
       if (error) {
         throw new Error(error.message || 'Failed to generate exam');
       }
 
-      const exam = data?.exam as GeneratedExam;
-      if (!exam || !exam.sections) {
-        throw new Error('Invalid response format from AI');
+      if (generationMode === "online") {
+        const exam = data?.exam as OnlineExamReady;
+        if (!exam || !exam.studentView || !exam.gradingMetadata) {
+          throw new Error('Invalid online exam response format from AI');
+        }
+        setOnlineExam(exam);
+        toast.success("Online exam generated successfully!");
+      } else {
+        const exam = data?.exam as GeneratedExam;
+        if (!exam || !exam.sections) {
+          throw new Error('Invalid response format from AI');
+        }
+        setGeneratedExam(exam);
+        toast.success("Exam generated successfully!");
       }
-
-      setGeneratedExam(exam);
-      toast.success("Exam generated successfully!");
     } catch (error: any) {
       console.error('Error generating exam:', error);
       toast.error(error.message || "Failed to generate exam. Please try again.");
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const exportOnlineExamJSON = () => {
+    if (!onlineExam) return;
+    
+    // Export only studentView for online exam delivery
+    const studentExam = {
+      metadata: onlineExam.metadata,
+      config: onlineExam.config,
+      instructions: onlineExam.instructions,
+      studentView: onlineExam.studentView
+    };
+    
+    const blob = new Blob([JSON.stringify(studentExam, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${onlineExam.metadata.examName}_student_exam.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Student exam JSON exported!");
+  };
+
+  const exportGradingMetadataJSON = () => {
+    if (!onlineExam) return;
+    
+    const gradingData = {
+      metadata: onlineExam.metadata,
+      gradingMetadata: onlineExam.gradingMetadata
+    };
+    
+    const blob = new Blob([JSON.stringify(gradingData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${onlineExam.metadata.examName}_grading_key.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Grading metadata exported!");
   };
 
   const exportPDF = (mode: "questions" | "answers" | "key") => {
