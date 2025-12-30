@@ -4,7 +4,7 @@ project_id = "ucziztbaamtmmvycfyuz"
 verify_jwt = true
 
 [functions.generate-mcqs]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-exam]
-verify_jwt = false
+verify_jwt = true
