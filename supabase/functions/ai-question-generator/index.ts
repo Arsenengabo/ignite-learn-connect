@@ -27,10 +27,73 @@ interface ExamFormat {
   sections: ExamSection[];
 }
 
-function buildExamPrompt(format: ExamFormat): string {
-  const systemPrompt = `You are an AI exam-generation engine integrated into a React + Supabase + Gemini AI application that supports professional exam creation, online exam delivery, preview, PDF export, and AI-based answer evaluation.
-Your task is to generate a fully structured, academically professional exam in strict JSON format, suitable for calculation-based subjects and automated assessment.
+function buildExamPrompt(format: ExamFormat, onlineExamReady: boolean = false): string {
+  const basePrompt = `You are an AI exam-generation engine integrated into a React + Supabase + Gemini AI application that supports professional exam creation, online exam delivery, preview, PDF export, and AI-based answer evaluation.
+Your task is to generate a fully structured, academically professional exam in strict JSON format, suitable for calculation-based subjects and automated assessment.`;
 
+  const outputFormat = onlineExamReady ? `
+Required Output Format for Online Exam (Strict JSON Only):
+{
+  "metadata": {
+    "examId": "string (UUID format)",
+    "examName": "string",
+    "subject": "string",
+    "totalMarks": number,
+    "duration": number,
+    "totalQuestions": number,
+    "createdAt": "string (ISO timestamp)"
+  },
+  "config": {
+    "allowNavigation": true,
+    "allowFlagForReview": true,
+    "autoSubmitOnTimeout": true,
+    "showQuestionNumbers": true,
+    "shuffleQuestions": false,
+    "shuffleOptions": false
+  },
+  "instructions": ["string"],
+  "studentView": {
+    "sections": [{
+      "id": "string",
+      "name": "string",
+      "order": number,
+      "questions": [{
+        "id": "string (unique question ID)",
+        "number": number,
+        "sectionId": "string",
+        "type": "mcq" | "short_answer" | "long_answer" | "true_false",
+        "questionText": "string",
+        "marks": number,
+        "options": ["string"] | null,
+        "required": true
+      }]
+    }]
+  },
+  "gradingMetadata": {
+    "questions": [{
+      "id": "string (matching studentView question ID)",
+      "type": "mcq" | "short_answer" | "long_answer" | "true_false",
+      "correctAnswer": "string",
+      "sampleAnswer": "string",
+      "explanation": "string",
+      "keyPoints": ["string"],
+      "evaluationGuidelines": "string",
+      "marks": number,
+      "partialMarkingAllowed": boolean,
+      "gradingType": "exact_match" | "semantic" | "keyword_based"
+    }]
+  }
+}
+
+CRITICAL ONLINE EXAM RULES:
+- studentView MUST NOT contain any answers, hints, explanations, or grading data
+- All question IDs must be unique UUIDs that match between studentView and gradingMetadata
+- Questions must be independently answerable and clearly worded
+- Do not embed correct answers or hints inside the question text
+- gradingMetadata is for backend use only and never exposed to students
+- For MCQ/True-False: gradingType = "exact_match"
+- For short_answer: gradingType = "keyword_based"
+- For long_answer: gradingType = "semantic"` : `
 Required Output Format (Strict JSON Only):
 {
   "examName": "string",
@@ -54,7 +117,10 @@ Required Output Format (Strict JSON Only):
       "keyPoints": ["string"]
     }]
   }]
-}
+}`;
+
+  const systemPrompt = `${basePrompt}
+${outputFormat}
 
 General Exam Generation Rules:
 - Use only the provided topics and distribute them evenly.
@@ -119,7 +185,7 @@ Section ${idx + 1}: ${section.name}
 ${section.questions.map(q => `- ${q.count} ${q.type} questions, ${q.marksEach} marks each`).join("\n")}
 `).join("\n")}
 
-Generate the complete exam now. Return ONLY the JSON object, no markdown or additional text.`;
+${onlineExamReady ? 'Generate the ONLINE-EXAM-READY format with separated studentView and gradingMetadata.' : 'Generate the complete exam now.'} Return ONLY the JSON object, no markdown or additional text.`;
 
   return JSON.stringify({ systemPrompt, userPrompt });
 }
@@ -166,7 +232,7 @@ function tryParseExamJson(text: string) {
   // Direct parse
   try {
     const parsed = JSON.parse(cleanText);
-    if (parsed && typeof parsed === 'object' && parsed.examName) return parsed;
+    if (parsed && typeof parsed === 'object') return parsed;
   } catch {}
 
   // Brace extraction - find the outermost object
@@ -230,8 +296,8 @@ serve(async (req) => {
     
     // Check if it's the new exam format or legacy prompt format
     if (body.examFormat) {
-      // New comprehensive exam generation
       const format = body.examFormat as ExamFormat;
+      const onlineExamReady = body.onlineExamReady === true;
       
       if (!format.examName || !format.subject || !format.sections?.length) {
         return new Response(JSON.stringify({ error: "Missing required exam format fields" }), {
@@ -240,13 +306,13 @@ serve(async (req) => {
         });
       }
 
-      const prompts = JSON.parse(buildExamPrompt(format));
-      console.log("Generating exam:", format.examName);
+      const prompts = JSON.parse(buildExamPrompt(format, onlineExamReady));
+      console.log("Generating exam:", format.examName, "online-ready:", onlineExamReady);
       
       const raw = await callLovableAI(prompts.systemPrompt, prompts.userPrompt);
       const exam = tryParseExamJson(raw);
 
-      return new Response(JSON.stringify({ exam }), {
+      return new Response(JSON.stringify({ exam, onlineExamReady }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else if (body.prompt) {
