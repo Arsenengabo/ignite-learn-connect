@@ -233,53 +233,25 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
 
     setSubmitting(true);
     try {
-      // Save all responses
-      let totalScore = 0;
-      
-      for (const question of questions) {
-        const answer = answers[question.id] || "";
-        
-        // Get correct answer to auto-evaluate objective questions
-        const { data: fullQuestion } = await supabase
-          .from('exam_questions')
-          .select('correct_answer')
-          .eq('id', question.id)
-          .single();
+      // Prepare responses for server-side evaluation
+      const responses = questions.map(question => ({
+        question_id: question.id,
+        answer: answers[question.id] || ""
+      }));
 
-        const isObjective = ['mcq', 'true_false', 'fill_blank'].includes(question.question_type);
-        const isCorrect = isObjective && fullQuestion 
-          ? answer.toLowerCase().trim() === fullQuestion.correct_answer.toLowerCase().trim()
-          : null;
-        const marks = isCorrect ? question.marks : 0;
-        
-        if (isCorrect) totalScore += marks;
+      // Call server-side function to evaluate answers securely
+      // This prevents students from accessing correct_answer directly
+      const { data: result, error: evalError } = await supabase
+        .rpc('evaluate_exam_responses', {
+          p_attempt_id: attemptId,
+          p_responses: responses
+        });
 
-        await supabase
-          .from('exam_responses')
-          .upsert({
-            attempt_id: attemptId,
-            question_id: question.id,
-            answer,
-            is_correct: isCorrect,
-            marks_awarded: marks,
-            is_evaluated: isObjective
-          }, { onConflict: 'attempt_id,question_id' });
-      }
+      if (evalError) throw evalError;
 
-      // Update attempt
-      const hasSubjective = questions.some(q => 
-        ['short_answer', 'long_answer'].includes(q.question_type)
-      );
-
-      await supabase
-        .from('exam_attempts')
-        .update({
-          status: hasSubjective ? 'submitted' : 'evaluated',
-          submitted_at: new Date().toISOString(),
-          total_score: totalScore,
-          percentage: (totalScore / (exam?.total_marks || 1)) * 100
-        })
-        .eq('id', attemptId);
+      const evalResult = result as { total_score: number; has_subjective: boolean } | null;
+      const totalScore = evalResult?.total_score || 0;
+      const hasSubjective = evalResult?.has_subjective || false;
 
       toast({
         title: autoSubmit ? "Time's Up!" : "Exam Submitted",
