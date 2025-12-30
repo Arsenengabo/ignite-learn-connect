@@ -470,6 +470,13 @@ export type Database = {
             referencedRelation: "exam_questions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "exam_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_questions_student_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       exam_sections: {
@@ -892,7 +899,63 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      exam_questions_student_view: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          exam_id: string | null
+          explanation: string | null
+          id: string | null
+          marks: number | null
+          options: Json | null
+          order_index: number | null
+          question_text: string | null
+          question_type: string | null
+          section_id: string | null
+        }
+        Insert: {
+          correct_answer?: never
+          created_at?: string | null
+          exam_id?: string | null
+          explanation?: never
+          id?: string | null
+          marks?: number | null
+          options?: Json | null
+          order_index?: number | null
+          question_text?: string | null
+          question_type?: string | null
+          section_id?: string | null
+        }
+        Update: {
+          correct_answer?: never
+          created_at?: string | null
+          exam_id?: string | null
+          explanation?: never
+          id?: string | null
+          marks?: number | null
+          options?: Json | null
+          order_index?: number | null
+          question_text?: string | null
+          question_type?: string | null
+          section_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       evaluate_exam_responses: {
@@ -902,6 +965,10 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_completed_exam: {
+        Args: { exam_id_param: string; user_id_param?: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
