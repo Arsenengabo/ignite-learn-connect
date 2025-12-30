@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.generate-exam]
 verify_jwt = true
+
+[functions.evaluate-subjective]
+verify_jwt = true
