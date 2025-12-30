@@ -7,140 +7,256 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Upload, FileText, Link, Sparkles, Download, Copy } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+
+interface SectionQuestion {
+  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  count: number;
+  marksEach: number;
+}
+
+interface ExamSection {
+  name: string;
+  questions: SectionQuestion[];
+}
 
 interface GeneratedQuestion {
+  number: number;
+  type: "mcq" | "short_answer" | "long_answer" | "true_false";
   question: string;
-  type: 'multiple_choice' | 'open_ended';
-  options?: string[];
-  correct_answer: string;
+  marks: number;
+  options?: string[] | null;
+  correctAnswer?: string;
   explanation?: string;
-  difficulty: string;
+  sampleAnswer?: string;
+  evaluationGuidelines?: string;
+  keyPoints?: string[];
+}
+
+interface GeneratedSection {
+  name: string;
+  totalMarks: number;
+  questions: GeneratedQuestion[];
+}
+
+interface GeneratedExam {
+  examName: string;
+  subject: string;
+  totalMarks: number;
+  duration: number;
+  instructions: string[];
+  sections: GeneratedSection[];
 }
 
 export const AIQuestionGenerator = () => {
-  const [inputMethod, setInputMethod] = useState<'pdf' | 'url' | 'text'>('text');
-  const [textContent, setTextContent] = useState("");
-  const [urlContent, setUrlContent] = useState("");
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [generationSettings, setGenerationSettings] = useState({
-    questionCount: 5,
-    questionType: 'mixed',
-    difficulty: 'mixed',
-    subject: '',
-    focus: '',
-  });
-  const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
+  const [examName, setExamName] = useState("");
+  const [subject, setSubject] = useState("");
+  const [topics, setTopics] = useState("");
+  const [duration, setDuration] = useState(60);
+  const [totalMarks, setTotalMarks] = useState(100);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard" | "mixed">("medium");
+  const [instructions, setInstructions] = useState("Answer all questions.\nWrite clearly and show all working.\nNo calculators unless specified.");
+  const [sections, setSections] = useState<ExamSection[]>([
+    {
+      name: "Section A: Multiple Choice",
+      questions: [{ type: "mcq", count: 10, marksEach: 1 }]
+    }
+  ]);
+  
+  const [generatedExam, setGeneratedExam] = useState<GeneratedExam | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"questions" | "answers" | "key" | null>(null);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setPdfFile(file);
-      toast.success("PDF file selected");
-    } else {
-      toast.error("Please select a valid PDF file");
+  const addSection = () => {
+    setSections([...sections, {
+      name: `Section ${String.fromCharCode(65 + sections.length)}`,
+      questions: [{ type: "short_answer", count: 5, marksEach: 2 }]
+    }]);
+  };
+
+  const removeSection = (index: number) => {
+    if (sections.length > 1) {
+      setSections(sections.filter((_, i) => i !== index));
     }
   };
 
-  const generateQuestions = async () => {
-    // Using secure server-side API keys via Supabase Edge Function
-    if (!textContent.trim() && !urlContent.trim() && !pdfFile) {
-      toast.error("Please provide content to generate questions from");
+  const updateSection = (index: number, field: keyof ExamSection, value: string) => {
+    const updated = [...sections];
+    updated[index] = { ...updated[index], [field]: value };
+    setSections(updated);
+  };
+
+  const addQuestionType = (sectionIndex: number) => {
+    const updated = [...sections];
+    updated[sectionIndex].questions.push({ type: "mcq", count: 5, marksEach: 1 });
+    setSections(updated);
+  };
+
+  const removeQuestionType = (sectionIndex: number, questionIndex: number) => {
+    const updated = [...sections];
+    if (updated[sectionIndex].questions.length > 1) {
+      updated[sectionIndex].questions = updated[sectionIndex].questions.filter((_, i) => i !== questionIndex);
+      setSections(updated);
+    }
+  };
+
+  const updateQuestionType = (sectionIndex: number, questionIndex: number, field: keyof SectionQuestion, value: string | number) => {
+    const updated = [...sections];
+    updated[sectionIndex].questions[questionIndex] = {
+      ...updated[sectionIndex].questions[questionIndex],
+      [field]: field === "type" ? value : Number(value)
+    };
+    setSections(updated);
+  };
+
+  const calculateTotalMarks = () => {
+    return sections.reduce((total, section) => {
+      return total + section.questions.reduce((sectionTotal, q) => sectionTotal + (q.count * q.marksEach), 0);
+    }, 0);
+  };
+
+  const generateExam = async () => {
+    if (!examName.trim() || !subject.trim() || !topics.trim()) {
+      toast.error("Please fill in exam name, subject, and topics");
       return;
     }
 
     setIsGenerating(true);
     try {
-      let content = "";
-      
-      if (inputMethod === 'text') {
-        content = textContent;
-      } else if (inputMethod === 'url') {
-        content = `Please fetch content from: ${urlContent}`;
-      } else if (inputMethod === 'pdf' && pdfFile) {
-        // In a real implementation, you would extract text from PDF
-        content = "PDF content would be extracted here";
-        toast.info("PDF text extraction would be implemented here");
-      }
-
-      const prompt = `Generate ${generationSettings.questionCount} ${generationSettings.questionType} questions based on the following content. 
-      
-Content: ${content}
-
-Requirements:
-- Difficulty: ${generationSettings.difficulty}
-- Subject: ${generationSettings.subject || 'General'}
-- Focus: ${generationSettings.focus || 'Comprehensive understanding'}
-- Question types: ${generationSettings.questionType}
-
-For multiple choice questions, provide 4 options.
-For each question, include an explanation of the correct answer.
-
-Return the response as a JSON array with this format:
-[
-  {
-    "question": "Question text",
-    "type": "multiple_choice" or "open_ended",
-    "options": ["A", "B", "C", "D"] (only for multiple choice),
-    "correct_answer": "Correct answer",
-    "explanation": "Why this is correct",
-    "difficulty": "beginner/intermediate/advanced"
-  }
-]`;
+      const examFormat = {
+        examName,
+        subject,
+        topics: topics.split(",").map(t => t.trim()).filter(Boolean),
+        duration,
+        totalMarks: calculateTotalMarks(),
+        difficulty,
+        instructions: instructions.split("\n").filter(Boolean),
+        sections
+      };
 
       const { data, error } = await supabase.functions.invoke('ai-question-generator', {
-        body: { prompt },
+        body: { examFormat },
       });
 
       if (error) {
-        throw new Error(error.message || 'Failed to generate questions');
+        throw new Error(error.message || 'Failed to generate exam');
       }
 
-      const questions = (data as any)?.questions as GeneratedQuestion[] | undefined;
-      if (!questions || !Array.isArray(questions)) {
-        throw new Error('Invalid response format from AI provider');
+      const exam = data?.exam as GeneratedExam;
+      if (!exam || !exam.sections) {
+        throw new Error('Invalid response format from AI');
       }
-      setGeneratedQuestions(questions);
-      toast.success(`Generated ${questions.length} questions successfully!`);
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      toast.error("Failed to generate questions. Please try again.");
+
+      setGeneratedExam(exam);
+      toast.success("Exam generated successfully!");
+    } catch (error: any) {
+      console.error('Error generating exam:', error);
+      toast.error(error.message || "Failed to generate exam. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const copyQuestion = (question: GeneratedQuestion) => {
-    const questionText = `Question: ${question.question}
-Type: ${question.type}
-${question.options ? `Options: ${question.options.join(', ')}` : ''}
-Correct Answer: ${question.correct_answer}
-${question.explanation ? `Explanation: ${question.explanation}` : ''}`;
-    
-    navigator.clipboard.writeText(questionText);
-    toast.success("Question copied to clipboard");
+  const exportPDF = (mode: "questions" | "answers" | "key") => {
+    if (!generatedExam) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+    const lineHeight = 7;
+    const margin = 20;
+
+    const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+      doc.setFontSize(fontSize);
+      doc.setFont("helvetica", isBold ? "bold" : "normal");
+      const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+      
+      if (yPos + lines.length * lineHeight > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.text(lines, margin, yPos);
+      yPos += lines.length * lineHeight;
+    };
+
+    // Header
+    addText(generatedExam.examName, 16, true);
+    addText(`Subject: ${generatedExam.subject}`, 12);
+    addText(`Duration: ${generatedExam.duration} minutes | Total Marks: ${generatedExam.totalMarks}`, 11);
+    yPos += 5;
+
+    if (mode !== "key") {
+      addText("Instructions:", 12, true);
+      generatedExam.instructions.forEach(inst => {
+        addText(`• ${inst}`, 10);
+      });
+      yPos += 10;
+    }
+
+    generatedExam.sections.forEach(section => {
+      addText(section.name, 14, true);
+      addText(`(Total: ${section.totalMarks} marks)`, 10);
+      yPos += 5;
+
+      section.questions.forEach(q => {
+        if (mode === "key") {
+          addText(`Q${q.number}: ${q.correctAnswer || q.sampleAnswer || "N/A"}`, 10);
+        } else {
+          addText(`Q${q.number}. [${q.marks} marks]`, 11, true);
+          addText(q.question, 11);
+
+          if (q.options && q.options.length > 0) {
+            q.options.forEach((opt, i) => {
+              addText(`   ${String.fromCharCode(65 + i)}) ${opt}`, 10);
+            });
+          }
+
+          if (mode === "answers") {
+            yPos += 3;
+            if (q.correctAnswer) {
+              addText(`Answer: ${q.correctAnswer}`, 10);
+            }
+            if (q.sampleAnswer) {
+              addText(`Sample Answer: ${q.sampleAnswer}`, 10);
+            }
+            if (q.explanation) {
+              addText(`Explanation: ${q.explanation}`, 10);
+            }
+            if (q.keyPoints && q.keyPoints.length > 0) {
+              addText("Key Points:", 10, true);
+              q.keyPoints.forEach(kp => addText(`• ${kp}`, 9));
+            }
+          }
+          yPos += 5;
+        }
+      });
+      yPos += 10;
+    });
+
+    const fileName = mode === "questions" 
+      ? `${generatedExam.examName}_Questions.pdf`
+      : mode === "answers"
+      ? `${generatedExam.examName}_With_Answers.pdf`
+      : `${generatedExam.examName}_Answer_Key.pdf`;
+
+    doc.save(fileName);
+    toast.success(`${fileName} exported successfully!`);
   };
 
-  const exportQuestions = () => {
-    const questionsText = generatedQuestions.map((q, index) => 
-      `Question ${index + 1}: ${q.question}
-Type: ${q.type}
-${q.options ? `Options: ${q.options.join(', ')}` : ''}
-Correct Answer: ${q.correct_answer}
-${q.explanation ? `Explanation: ${q.explanation}` : ''}
-Difficulty: ${q.difficulty}
-`).join('\n\n');
-
-    const blob = new Blob([questionsText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'generated-questions.txt';
-    a.click();
-    URL.revokeObjectURL(url);
+  const getQuestionTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      mcq: "Multiple Choice",
+      short_answer: "Short Answer",
+      long_answer: "Long Answer",
+      true_false: "True/False"
+    };
+    return labels[type] || type;
   };
 
   return (
@@ -149,272 +265,361 @@ Difficulty: ${q.difficulty}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            AI Question Generator
+            AI Exam Generator
           </CardTitle>
           <CardDescription>
-            Generate questions from PDFs, URLs, or text using AI
+            Generate professional exams with AI-powered question creation and evaluation support
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Input Method Selection */}
-          <div>
-            <Label>Content Source</Label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <Button
-                variant={inputMethod === 'text' ? 'default' : 'outline'}
-                onClick={() => setInputMethod('text')}
-                size="sm"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Text
-              </Button>
-              <Button
-                variant={inputMethod === 'url' ? 'default' : 'outline'}
-                onClick={() => setInputMethod('url')}
-                size="sm"
-              >
-                <Link className="w-4 h-4 mr-2" />
-                URL
-              </Button>
-              <Button
-                variant={inputMethod === 'pdf' ? 'default' : 'outline'}
-                onClick={() => setInputMethod('pdf')}
-                size="sm"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                PDF
-              </Button>
-            </div>
-          </div>
-
-          {/* Content Input */}
-          {inputMethod === 'text' && (
-            <div>
-              <Label htmlFor="textContent">Text Content</Label>
-              <Textarea
-                id="textContent"
-                value={textContent}
-                onChange={(e) => setTextContent(e.target.value)}
-                placeholder="Paste your content here..."
-                rows={6}
-              />
-            </div>
-          )}
-
-          {inputMethod === 'url' && (
-            <div>
-              <Label htmlFor="urlContent">Website URL</Label>
-              <Input
-                id="urlContent"
-                value={urlContent}
-                onChange={(e) => setUrlContent(e.target.value)}
-                placeholder="https://example.com/article"
-              />
-            </div>
-          )}
-
-          {inputMethod === 'pdf' && (
-            <div>
-              <Label htmlFor="pdfFile">Upload PDF</Label>
-              <Input
-                id="pdfFile"
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-              />
-              {pdfFile && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Selected: {pdfFile.name}
-                </p>
-              )}
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Generation Settings */}
+          {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="questionCount">Number of Questions</Label>
-              <Select
-                value={generationSettings.questionCount.toString()}
-                onValueChange={(value) => setGenerationSettings({
-                  ...generationSettings,
-                  questionCount: parseInt(value)
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">3 Questions</SelectItem>
-                  <SelectItem value="5">5 Questions</SelectItem>
-                  <SelectItem value="10">10 Questions</SelectItem>
-                  <SelectItem value="15">15 Questions</SelectItem>
-                  <SelectItem value="20">20 Questions</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="examName">Exam Name *</Label>
+              <Input
+                id="examName"
+                value={examName}
+                onChange={(e) => setExamName(e.target.value)}
+                placeholder="e.g., Mid-Term Mathematics Exam 2024"
+              />
             </div>
-
             <div>
-              <Label htmlFor="questionType">Question Type</Label>
-              <Select
-                value={generationSettings.questionType}
-                onValueChange={(value) => setGenerationSettings({
-                  ...generationSettings,
-                  questionType: value
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                  <SelectItem value="multiple_choice">Multiple Choice Only</SelectItem>
-                  <SelectItem value="open_ended">Open Ended Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="difficulty">Difficulty Level</Label>
-              <Select
-                value={generationSettings.difficulty}
-                onValueChange={(value) => setGenerationSettings({
-                  ...generationSettings,
-                  difficulty: value
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="subject">Subject</Label>
+              <Label htmlFor="subject">Subject *</Label>
               <Input
                 id="subject"
-                value={generationSettings.subject}
-                onChange={(e) => setGenerationSettings({
-                  ...generationSettings,
-                  subject: e.target.value
-                })}
-                placeholder="e.g., Mathematics, Science"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="e.g., Mathematics, Physics"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="focus">Focus/Theme (Optional)</Label>
+            <Label htmlFor="topics">Topics (comma-separated) *</Label>
             <Input
-              id="focus"
-              value={generationSettings.focus}
-              onChange={(e) => setGenerationSettings({
-                ...generationSettings,
-                focus: e.target.value
-              })}
-              placeholder="e.g., Problem solving, Critical thinking"
+              id="topics"
+              value={topics}
+              onChange={(e) => setTopics(e.target.value)}
+              placeholder="e.g., Algebra, Quadratic Equations, Linear Functions"
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Input
+                id="duration"
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+                min={15}
+                max={300}
+              />
+            </div>
+            <div>
+              <Label htmlFor="difficulty">Difficulty</Label>
+              <Select value={difficulty} onValueChange={(v: typeof difficulty) => setDifficulty(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                  <SelectItem value="mixed">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Calculated Total Marks</Label>
+              <div className="h-10 px-3 py-2 border rounded-md bg-muted flex items-center font-medium">
+                {calculateTotalMarks()} marks
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="instructions">Instructions (one per line)</Label>
+            <Textarea
+              id="instructions"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              rows={3}
+              placeholder="Enter exam instructions..."
+            />
+          </div>
+
+          <Separator />
+
+          {/* Sections */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-base font-semibold">Exam Sections</Label>
+              <Button onClick={addSection} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Section
+              </Button>
+            </div>
+
+            <Accordion type="multiple" defaultValue={["section-0"]} className="space-y-2">
+              {sections.map((section, sectionIndex) => (
+                <AccordionItem key={sectionIndex} value={`section-${sectionIndex}`} className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary">{String.fromCharCode(65 + sectionIndex)}</Badge>
+                      <span>{section.name || `Section ${sectionIndex + 1}`}</span>
+                      <Badge variant="outline" className="ml-2">
+                        {section.questions.reduce((sum, q) => sum + q.count * q.marksEach, 0)} marks
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Label>Section Name</Label>
+                        <Input
+                          value={section.name}
+                          onChange={(e) => updateSection(sectionIndex, "name", e.target.value)}
+                          placeholder="e.g., Section A: Multiple Choice"
+                        />
+                      </div>
+                      {sections.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="mt-6 text-destructive"
+                          onClick={() => removeSection(sectionIndex)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Question Types</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => addQuestionType(sectionIndex)}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Type
+                        </Button>
+                      </div>
+
+                      {section.questions.map((q, qIndex) => (
+                        <div key={qIndex} className="grid grid-cols-4 gap-2 items-end bg-muted/50 p-3 rounded-lg">
+                          <div>
+                            <Label className="text-xs">Type</Label>
+                            <Select
+                              value={q.type}
+                              onValueChange={(v) => updateQuestionType(sectionIndex, qIndex, "type", v)}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mcq">MCQ</SelectItem>
+                                <SelectItem value="true_false">True/False</SelectItem>
+                                <SelectItem value="short_answer">Short Answer</SelectItem>
+                                <SelectItem value="long_answer">Long Answer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Count</Label>
+                            <Input
+                              type="number"
+                              className="h-9"
+                              value={q.count}
+                              onChange={(e) => updateQuestionType(sectionIndex, qIndex, "count", e.target.value)}
+                              min={1}
+                              max={50}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Marks Each</Label>
+                            <Input
+                              type="number"
+                              className="h-9"
+                              value={q.marksEach}
+                              onChange={(e) => updateQuestionType(sectionIndex, qIndex, "marksEach", e.target.value)}
+                              min={1}
+                              max={50}
+                            />
+                          </div>
+                          <div>
+                            {section.questions.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeQuestionType(sectionIndex, qIndex)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
           <Button 
-            onClick={generateQuestions} 
+            onClick={generateExam} 
             disabled={isGenerating}
             className="w-full"
+            size="lg"
           >
             {isGenerating ? (
-              "Generating Questions..."
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating Exam...
+              </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Generate Questions
+                Generate Exam
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Generated Questions */}
-      {generatedQuestions.length > 0 && (
+      {/* Generated Exam Preview */}
+      {generatedExam && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <CardTitle>Generated Questions ({generatedQuestions.length})</CardTitle>
-                <CardDescription>Review and use the AI-generated questions</CardDescription>
+                <CardTitle>{generatedExam.examName}</CardTitle>
+                <CardDescription>
+                  {generatedExam.subject} | {generatedExam.duration} min | {generatedExam.totalMarks} marks
+                </CardDescription>
               </div>
-              <Button onClick={exportQuestions} variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export All
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => exportPDF("questions")}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Questions Only
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportPDF("answers")}>
+                  <ClipboardList className="w-4 h-4 mr-2" />
+                  With Answers
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportPDF("key")}>
+                  <Key className="w-4 h-4 mr-2" />
+                  Answer Key
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {generatedQuestions.map((question, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary">Q{index + 1}</Badge>
-                        <Badge variant="outline">{question.type}</Badge>
-                        <Badge variant="outline">{question.difficulty}</Badge>
-                      </div>
-                      <h4 className="font-medium mb-2">{question.question}</h4>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyQuestion(question)}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {question.options && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium mb-1">Options:</p>
-                      <div className="grid grid-cols-2 gap-1 text-sm">
-                        {question.options.map((option, optionIndex) => (
-                          <div
-                            key={optionIndex}
-                            className={`p-2 rounded ${
-                              option === question.correct_answer
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-muted'
-                            }`}
-                          >
-                            {String.fromCharCode(65 + optionIndex)}. {option}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">Correct Answer: </span>
-                      <span className="text-green-600 dark:text-green-400">
-                        {question.correct_answer}
-                      </span>
-                    </div>
-                    {question.explanation && (
-                      <div>
-                        <span className="font-medium">Explanation: </span>
-                        <span className="text-muted-foreground">{question.explanation}</span>
-                      </div>
-                    )}
-                  </div>
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-6">
+                {/* Instructions */}
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">Instructions:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    {generatedExam.instructions.map((inst, i) => (
+                      <li key={i}>{inst}</li>
+                    ))}
+                  </ul>
                 </div>
-              ))}
-            </div>
+
+                {/* Sections and Questions */}
+                {generatedExam.sections.map((section, sIndex) => (
+                  <div key={sIndex} className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-lg">{section.name}</h3>
+                      <Badge variant="secondary">{section.totalMarks} marks</Badge>
+                    </div>
+
+                    <div className="space-y-4">
+                      {section.questions.map((q, qIndex) => (
+                        <div key={qIndex} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Badge>Q{q.number}</Badge>
+                              <Badge variant="outline">{getQuestionTypeLabel(q.type)}</Badge>
+                              <Badge variant="secondary">{q.marks} marks</Badge>
+                            </div>
+                          </div>
+
+                          <p className="font-medium mb-3">{q.question}</p>
+
+                          {q.options && q.options.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              {q.options.map((opt, optIndex) => (
+                                <div
+                                  key={optIndex}
+                                  className={`p-2 rounded text-sm ${
+                                    opt === q.correctAnswer
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-300'
+                                      : 'bg-muted'
+                                  }`}
+                                >
+                                  {String.fromCharCode(65 + optIndex)}. {opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="answer" className="border-0">
+                              <AccordionTrigger className="py-2 text-sm text-primary hover:no-underline">
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Answer & Guidelines
+                              </AccordionTrigger>
+                              <AccordionContent className="space-y-3 pt-2">
+                                {q.correctAnswer && (
+                                  <div>
+                                    <span className="font-medium text-sm">Correct Answer: </span>
+                                    <span className="text-green-600 dark:text-green-400">{q.correctAnswer}</span>
+                                  </div>
+                                )}
+                                {q.sampleAnswer && (
+                                  <div>
+                                    <span className="font-medium text-sm">Sample Answer: </span>
+                                    <span className="text-muted-foreground text-sm">{q.sampleAnswer}</span>
+                                  </div>
+                                )}
+                                {q.explanation && (
+                                  <div>
+                                    <span className="font-medium text-sm">Explanation: </span>
+                                    <span className="text-muted-foreground text-sm">{q.explanation}</span>
+                                  </div>
+                                )}
+                                {q.keyPoints && q.keyPoints.length > 0 && (
+                                  <div>
+                                    <span className="font-medium text-sm">Key Points:</span>
+                                    <ul className="list-disc list-inside text-sm text-muted-foreground mt-1">
+                                      {q.keyPoints.map((kp, i) => (
+                                        <li key={i}>{kp}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {q.evaluationGuidelines && (
+                                  <div>
+                                    <span className="font-medium text-sm">Evaluation Guidelines: </span>
+                                    <span className="text-muted-foreground text-sm">{q.evaluationGuidelines}</span>
+                                  </div>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       )}

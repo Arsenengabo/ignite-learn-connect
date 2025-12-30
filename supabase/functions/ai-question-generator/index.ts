@@ -7,19 +7,124 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function buildPrompt(userPrompt: string): string {
-  const schema = `Return ONLY a JSON array. Do not include markdown or backticks.
-Each item must have: 
-- question: string
-- type: "multiple_choice" | "open_ended"
-- options: string[] (only for multiple_choice, exactly 4 options)
-- correct_answer: string (must match one of options for multiple_choice)
-- explanation: string
-- difficulty: "beginner" | "intermediate" | "advanced"`;
-  return `${schema}\n\n${userPrompt}\n\nImportant: Output ONLY the JSON array.`;
+interface ExamSection {
+  name: string;
+  questions: {
+    type: "mcq" | "short_answer" | "long_answer" | "true_false";
+    count: number;
+    marksEach: number;
+  }[];
 }
 
-async function callLovableAI(prompt: string): Promise<string> {
+interface ExamFormat {
+  examName: string;
+  subject: string;
+  topics: string[];
+  duration: number;
+  totalMarks: number;
+  difficulty: "easy" | "medium" | "hard" | "mixed";
+  instructions: string[];
+  sections: ExamSection[];
+}
+
+function buildExamPrompt(format: ExamFormat): string {
+  const systemPrompt = `You are an AI exam-generation engine integrated into a React + Supabase + Gemini AI application that supports professional exam creation, online exam delivery, preview, PDF export, and AI-based answer evaluation.
+Your task is to generate a fully structured, academically professional exam in strict JSON format, suitable for calculation-based subjects and automated assessment.
+
+Required Output Format (Strict JSON Only):
+{
+  "examName": "string",
+  "subject": "string",
+  "totalMarks": number,
+  "duration": number,
+  "instructions": ["string"],
+  "sections": [{
+    "name": "string",
+    "totalMarks": number,
+    "questions": [{
+      "number": number,
+      "type": "mcq" | "short_answer" | "long_answer" | "true_false",
+      "question": "string",
+      "marks": number,
+      "options": ["string"] | null,
+      "correctAnswer": "string",
+      "explanation": "string",
+      "sampleAnswer": "string",
+      "evaluationGuidelines": "string",
+      "keyPoints": ["string"]
+    }]
+  }]
+}
+
+General Exam Generation Rules:
+- Use only the provided topics and distribute them evenly.
+- Follow the selected difficulty level strictly.
+- Respect section-wise question counts and marks exactly.
+- Number questions continuously across all sections.
+
+Mathematics, Physics & Calculation-Based Subject Standards:
+For Mathematics, Physics, Chemistry, Engineering, Economics, follow professional academic conventions:
+- Use standard notation suitable for PDF rendering.
+- Clearly define variables and constants.
+- Use SI units by default.
+- Avoid informal or ambiguous language.
+
+Answer Expectations:
+- Short answers: final result with correct units.
+- Long answers: step-by-step solution including formula, substitution, calculation, and final answer.
+
+Question-Type Constraints:
+MCQ:
+- 4 options, one correct answer
+- Include correctAnswer and brief explanation
+
+True/False:
+- Clear statement with correctAnswer
+
+Short Answer:
+- Include sampleAnswer, keyPoints (list of essential ideas or values), and evaluationGuidelines describing how partial credit should be awarded
+
+Long Answer:
+- Include structured sampleAnswer, keyPoints representing scoring criteria, and evaluationGuidelines explaining mark distribution
+
+AI-Based Answer Evaluation Requirements:
+The generated exam must support automatic or semi-automatic correction using a natural language model:
+- Student answers may vary in wording but express the same meaning.
+- Evaluation must be based on semantic similarity to sampleAnswer, coverage of listed keyPoints, and logical correctness and clarity.
+- Allow partial marking based on how many key points are correctly addressed.
+- Penalize incorrect reasoning, missing critical steps (for long answers), and incorrect units or final conclusions (for numerical answers).
+
+PDF Export Compatibility:
+- Clean, professional, print-ready language
+- No emojis, markdown, or decorative formatting
+- Linear math expressions only
+
+Output Constraints:
+- Return JSON only
+- Do not invent topics, formulas, or marks`;
+
+  const userPrompt = `Generate a complete exam with the following specifications:
+
+Exam Name: ${format.examName}
+Subject: ${format.subject}
+Topics: ${format.topics.join(", ")}
+Duration: ${format.duration} minutes
+Total Marks: ${format.totalMarks}
+Difficulty: ${format.difficulty}
+Instructions: ${format.instructions.join("; ")}
+
+Sections:
+${format.sections.map((section, idx) => `
+Section ${idx + 1}: ${section.name}
+${section.questions.map(q => `- ${q.count} ${q.type} questions, ${q.marksEach} marks each`).join("\n")}
+`).join("\n")}
+
+Generate the complete exam now. Return ONLY the JSON object, no markdown or additional text.`;
+
+  return JSON.stringify({ systemPrompt, userPrompt });
+}
+
+async function callLovableAI(systemPrompt: string, userPrompt: string): Promise<string> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("Missing LOVABLE_API_KEY secret");
 
@@ -32,11 +137,11 @@ async function callLovableAI(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are an expert educator who writes high-quality questions and always returns valid JSON only. Keep responses concise." },
-        { role: "user", content: prompt },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 16000,
     }),
   });
 
@@ -54,43 +159,38 @@ async function callLovableAI(prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-function tryParseJsonArray(text: string) {
+function tryParseExamJson(text: string) {
   // Clean the text first - remove markdown code blocks
   let cleanText = text.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
   
   // Direct parse
   try {
     const parsed = JSON.parse(cleanText);
-    if (Array.isArray(parsed)) return parsed;
-    // If it's an object with a questions/mcqs array, extract it
-    if (parsed && typeof parsed === 'object') {
-      if (Array.isArray(parsed.questions)) return parsed.questions;
-      if (Array.isArray(parsed.mcqs)) return parsed.mcqs;
-    }
+    if (parsed && typeof parsed === 'object' && parsed.examName) return parsed;
   } catch {}
 
-  // Bracket extraction - find the outermost array
-  const start = cleanText.indexOf("[");
-  const end = cleanText.lastIndexOf("]");
+  // Brace extraction - find the outermost object
+  const start = cleanText.indexOf("{");
+  const end = cleanText.lastIndexOf("}");
   if (start !== -1 && end !== -1 && end > start) {
     const slice = cleanText.slice(start, end + 1);
     try {
       const parsed = JSON.parse(slice);
-      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object') return parsed;
     } catch {}
   }
 
   // Try to fix common JSON issues (trailing commas, etc.)
   try {
     const fixedText = cleanText
-      .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
-      .replace(/,\s*}/g, '}'); // Remove trailing commas in objects
+      .replace(/,\s*]/g, ']')
+      .replace(/,\s*}/g, '}');
     const parsed = JSON.parse(fixedText);
-    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') return parsed;
   } catch {}
 
   console.error("Failed to parse AI response:", text.substring(0, 500));
-  throw new Error("Failed to parse JSON array from AI response");
+  throw new Error("Failed to parse exam JSON from AI response");
 }
 
 serve(async (req) => {
@@ -126,21 +226,75 @@ serve(async (req) => {
 
     console.log(`Authenticated user: ${user.id}`);
 
-    const { prompt } = await req.json();
-    if (!prompt) {
-      return new Response(JSON.stringify({ error: "Missing prompt" }), {
+    const body = await req.json();
+    
+    // Check if it's the new exam format or legacy prompt format
+    if (body.examFormat) {
+      // New comprehensive exam generation
+      const format = body.examFormat as ExamFormat;
+      
+      if (!format.examName || !format.subject || !format.sections?.length) {
+        return new Response(JSON.stringify({ error: "Missing required exam format fields" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const prompts = JSON.parse(buildExamPrompt(format));
+      console.log("Generating exam:", format.examName);
+      
+      const raw = await callLovableAI(prompts.systemPrompt, prompts.userPrompt);
+      const exam = tryParseExamJson(raw);
+
+      return new Response(JSON.stringify({ exam }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } else if (body.prompt) {
+      // Legacy simple question generation
+      const { prompt } = body;
+      
+      const schema = `Return ONLY a JSON array. Do not include markdown or backticks.
+Each item must have: 
+- question: string
+- type: "multiple_choice" | "open_ended"
+- options: string[] (only for multiple_choice, exactly 4 options)
+- correct_answer: string (must match one of options for multiple_choice)
+- explanation: string
+- difficulty: "beginner" | "intermediate" | "advanced"`;
+      
+      const finalPrompt = `${schema}\n\n${prompt}\n\nImportant: Output ONLY the JSON array.`;
+      
+      const raw = await callLovableAI(
+        "You are an expert educator who writes high-quality questions and always returns valid JSON only. Keep responses concise.",
+        finalPrompt
+      );
+      
+      // Parse as array for legacy format
+      let cleanText = raw.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
+      let questions;
+      
+      try {
+        questions = JSON.parse(cleanText);
+        if (!Array.isArray(questions)) {
+          const start = cleanText.indexOf("[");
+          const end = cleanText.lastIndexOf("]");
+          if (start !== -1 && end !== -1) {
+            questions = JSON.parse(cleanText.slice(start, end + 1));
+          }
+        }
+      } catch {
+        throw new Error("Failed to parse questions from AI response");
+      }
+
+      return new Response(JSON.stringify({ questions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } else {
+      return new Response(JSON.stringify({ error: "Missing prompt or examFormat" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const finalPrompt = buildPrompt(prompt);
-    const raw = await callLovableAI(finalPrompt);
-    const questions = tryParseJsonArray(raw);
-
-    return new Response(JSON.stringify({ questions }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error) {
     console.error("ai-question-generator error:", error);
     return new Response(JSON.stringify({ error: error?.message || "Unexpected error" }), {
