@@ -52,9 +52,14 @@ export const MCQScanner = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Generate signed URL for private bucket (1 hour expiry)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('scans')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
+
+      if (signedUrlError) throw signedUrlError;
+
+      const imageUrl = signedUrlData.signedUrl;
 
       // Parse answer key
       const answers = answerKey.split(',').map(a => a.trim().toUpperCase());
@@ -90,7 +95,7 @@ export const MCQScanner = () => {
         .insert({
           teacher_id: user.user.id,
           scan_name: scanName,
-          image_url: publicUrl,
+          image_url: imageUrl,
           answer_key: answers,
           status: 'completed',
         })
