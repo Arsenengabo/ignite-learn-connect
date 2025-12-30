@@ -24,6 +24,20 @@ export const AnswerSheetGenerator = () => {
     studentInfo: true
   });
 
+  // Escape XML/HTML special characters to prevent XSS attacks
+  const escapeXml = (str: string): string => {
+    return str.replace(/[<>&"']/g, (c) => {
+      const entities: Record<string, string> = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        '"': '&quot;',
+        "'": '&apos;'
+      };
+      return entities[c] || c;
+    });
+  };
+
   const generateSVG = (): string => {
     const width = 595; // A4 width in points
     const height = 842; // A4 height in points
@@ -41,13 +55,17 @@ export const AnswerSheetGenerator = () => {
     
     const bubbleRadius = Math.min(questionHeight * 0.15, bubbleSpacing * 0.15);
     
+    // Sanitize user inputs to prevent XSS
+    const safeTitle = escapeXml(config.title);
+    const safeSubtitle = escapeXml(config.subtitle);
+    
     let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="white"/>
   
   <!-- Header -->
-  <text x="${width/2}" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold">${config.title}</text>
-  <text x="${width/2}" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">${config.subtitle}</text>`;
+  <text x="${width/2}" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold">${safeTitle}</text>
+  <text x="${width/2}" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">${safeSubtitle}</text>`;
 
     // Student information section
     if (config.studentInfo) {
