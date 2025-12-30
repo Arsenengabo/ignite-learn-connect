@@ -365,40 +365,49 @@ export type Database = {
         Row: {
           correct_answer: string | null
           created_at: string
+          evaluation_guidelines: string | null
           exam_id: string
           explanation: string | null
           id: string
+          key_points: Json | null
           marks: number | null
           options: Json | null
           order_index: number
           question_text: string
           question_type: string
+          sample_answer: string | null
           section_id: string | null
         }
         Insert: {
           correct_answer?: string | null
           created_at?: string
+          evaluation_guidelines?: string | null
           exam_id: string
           explanation?: string | null
           id?: string
+          key_points?: Json | null
           marks?: number | null
           options?: Json | null
           order_index?: number
           question_text: string
           question_type: string
+          sample_answer?: string | null
           section_id?: string | null
         }
         Update: {
           correct_answer?: string | null
           created_at?: string
+          evaluation_guidelines?: string | null
           exam_id?: string
           explanation?: string | null
           id?: string
+          key_points?: Json | null
           marks?: number | null
           options?: Json | null
           order_index?: number
           question_text?: string
           question_type?: string
+          sample_answer?: string | null
           section_id?: string | null
         }
         Relationships: [

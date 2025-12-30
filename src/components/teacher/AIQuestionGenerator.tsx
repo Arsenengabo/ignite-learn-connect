@@ -10,10 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2, Upload, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { Json } from "@/integrations/supabase/types";
 
 interface SectionQuestion {
   type: "mcq" | "short_answer" | "long_answer" | "true_false";
@@ -131,6 +132,8 @@ export const AIQuestionGenerator = () => {
   const [generatedExam, setGeneratedExam] = useState<GeneratedExam | null>(null);
   const [onlineExam, setOnlineExam] = useState<OnlineExamReady | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedExamId, setSavedExamId] = useState<string | null>(null);
   const [generationMode, setGenerationMode] = useState<"standard" | "online">("standard");
   const [previewQuestion, setPreviewQuestion] = useState(0);
 
@@ -235,6 +238,153 @@ export const AIQuestionGenerator = () => {
       toast.error(error.message || "Failed to generate exam. Please try again.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const saveToDatabase = async (publish: boolean = false) => {
+    const examToSave = generationMode === "online" ? onlineExam : null;
+    const standardExamToSave = generationMode === "standard" ? generatedExam : null;
+    
+    if (!examToSave && !standardExamToSave) {
+      toast.error("No exam to save. Please generate an exam first.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Determine exam data source
+      const examData = examToSave ? {
+        name: examToSave.metadata.examName,
+        subject: examToSave.metadata.subject,
+        totalMarks: examToSave.metadata.totalMarks,
+        duration: examToSave.metadata.duration,
+        instructions: examToSave.instructions.join('\n'),
+        sections: examToSave.studentView.sections,
+        gradingData: examToSave.gradingMetadata.questions,
+      } : {
+        name: standardExamToSave!.examName,
+        subject: standardExamToSave!.subject,
+        totalMarks: standardExamToSave!.totalMarks,
+        duration: standardExamToSave!.duration,
+        instructions: standardExamToSave!.instructions.join('\n'),
+        sections: standardExamToSave!.sections,
+        gradingData: null,
+      };
+
+      // Create the exam
+      const { data: exam, error: examError } = await supabase
+        .from('exams')
+        .insert({
+          teacher_id: user.id,
+          title: examData.name,
+          subject: examData.subject,
+          total_marks: examData.totalMarks,
+          time_limit_minutes: examData.duration,
+          instructions: examData.instructions,
+          difficulty_level: difficulty,
+          is_published: publish,
+        })
+        .select()
+        .single();
+
+      if (examError) throw examError;
+
+      // Create sections and questions
+      if (examToSave) {
+        // Online exam format
+        for (const section of examData.sections as OnlineExamSection[]) {
+          const { data: sectionData, error: sectionError } = await supabase
+            .from('exam_sections')
+            .insert({
+              exam_id: exam.id,
+              title: section.name,
+              order_index: section.order,
+            })
+            .select()
+            .single();
+
+          if (sectionError) throw sectionError;
+
+          // Insert questions for this section
+          for (const q of section.questions) {
+            // Find grading data for this question
+            const grading = (examData.gradingData as GradingQuestion[])?.find(g => g.id === q.id);
+
+            const { error: questionError } = await supabase
+              .from('exam_questions')
+              .insert({
+                exam_id: exam.id,
+                section_id: sectionData.id,
+                question_text: q.questionText,
+                question_type: q.type,
+                options: q.options as Json,
+                marks: q.marks,
+                order_index: q.number,
+                correct_answer: grading?.correctAnswer || null,
+                explanation: grading?.explanation || null,
+                sample_answer: grading?.sampleAnswer || null,
+                key_points: grading?.keyPoints as Json || null,
+                evaluation_guidelines: grading?.evaluationGuidelines || null,
+              });
+
+            if (questionError) throw questionError;
+          }
+        }
+      } else {
+        // Standard exam format
+        for (let sIndex = 0; sIndex < (examData.sections as GeneratedSection[]).length; sIndex++) {
+          const section = (examData.sections as GeneratedSection[])[sIndex];
+          
+          const { data: sectionData, error: sectionError } = await supabase
+            .from('exam_sections')
+            .insert({
+              exam_id: exam.id,
+              title: section.name,
+              order_index: sIndex,
+            })
+            .select()
+            .single();
+
+          if (sectionError) throw sectionError;
+
+          // Insert questions
+          for (const q of section.questions) {
+            const { error: questionError } = await supabase
+              .from('exam_questions')
+              .insert({
+                exam_id: exam.id,
+                section_id: sectionData.id,
+                question_text: q.question,
+                question_type: q.type,
+                options: q.options as Json,
+                marks: q.marks,
+                order_index: q.number,
+                correct_answer: q.correctAnswer || null,
+                explanation: q.explanation || null,
+                sample_answer: q.sampleAnswer || null,
+                key_points: q.keyPoints as Json || null,
+                evaluation_guidelines: q.evaluationGuidelines || null,
+              });
+
+            if (questionError) throw questionError;
+          }
+        }
+      }
+
+      setSavedExamId(exam.id);
+      toast.success(publish 
+        ? "Exam saved and published! Students can now take it online." 
+        : "Exam saved as draft. You can publish it from the Exam Manager."
+      );
+
+    } catch (error: any) {
+      console.error('Error saving exam:', error);
+      toast.error(error.message || "Failed to save exam. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -618,6 +768,36 @@ export const AIQuestionGenerator = () => {
                 </CardDescription>
               </div>
               <div className="flex gap-2 flex-wrap">
+                {!savedExamId ? (
+                  <>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => saveToDatabase(true)}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
+                      Publish for Online
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => saveToDatabase(false)}
+                      disabled={isSaving}
+                    >
+                      Save as Draft
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="default" className="gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Saved to Database
+                  </Badge>
+                )}
                 <Button variant="outline" size="sm" onClick={() => exportPDF("questions")}>
                   <FileText className="w-4 h-4 mr-2" />
                   Questions Only
@@ -735,6 +915,198 @@ export const AIQuestionGenerator = () => {
                 ))}
               </div>
             </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Online Exam Preview */}
+      {onlineExam && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Monitor className="w-5 h-5 text-primary" />
+                  <CardTitle>{onlineExam.metadata.examName}</CardTitle>
+                </div>
+                <CardDescription>
+                  {onlineExam.metadata.subject} | {onlineExam.metadata.duration} min | {onlineExam.metadata.totalMarks} marks | {onlineExam.metadata.totalQuestions} questions
+                </CardDescription>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {!savedExamId ? (
+                  <>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => saveToDatabase(true)}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
+                      Publish for Online
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => saveToDatabase(false)}
+                      disabled={isSaving}
+                    >
+                      Save as Draft
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="default" className="gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Saved to Database
+                  </Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={exportOnlineExamJSON}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Student JSON
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportGradingMetadataJSON}>
+                  <Key className="w-4 h-4 mr-2" />
+                  Grading Key
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Config Badges */}
+              <div className="flex flex-wrap gap-2">
+                {onlineExam.config.allowNavigation && (
+                  <Badge variant="secondary">
+                    <Flag className="w-3 h-3 mr-1" />
+                    Navigation Enabled
+                  </Badge>
+                )}
+                {onlineExam.config.allowFlagForReview && (
+                  <Badge variant="secondary">
+                    <Flag className="w-3 h-3 mr-1" />
+                    Flag for Review
+                  </Badge>
+                )}
+                {onlineExam.config.autoSubmitOnTimeout && (
+                  <Badge variant="secondary">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Auto-Submit on Timeout
+                  </Badge>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Instructions:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  {onlineExam.instructions.map((inst, i) => (
+                    <li key={i}>{inst}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Sections Preview */}
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-6">
+                  {onlineExam.studentView.sections.map((section, sIndex) => (
+                    <div key={sIndex} className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-lg">{section.name}</h3>
+                        <Badge variant="secondary">{section.questions.length} questions</Badge>
+                      </div>
+
+                      <div className="space-y-3">
+                        {section.questions.map((q, qIndex) => {
+                          const gradingInfo = onlineExam.gradingMetadata.questions.find(g => g.id === q.id);
+                          return (
+                            <div key={qIndex} className="border rounded-lg p-4">
+                              <div className="flex items-start justify-between gap-4 mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Badge>Q{q.number}</Badge>
+                                  <Badge variant="outline">{getQuestionTypeLabel(q.type)}</Badge>
+                                  <Badge variant="secondary">{q.marks} marks</Badge>
+                                </div>
+                              </div>
+
+                              <p className="font-medium mb-3">{q.questionText}</p>
+
+                              {q.options && q.options.length > 0 && (
+                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                  {q.options.map((opt, optIndex) => (
+                                    <div
+                                      key={optIndex}
+                                      className="p-2 rounded text-sm bg-muted"
+                                    >
+                                      {String.fromCharCode(65 + optIndex)}. {opt}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Hidden grading data (only visible to teacher) */}
+                              {gradingInfo && (
+                                <Accordion type="single" collapsible className="w-full">
+                                  <AccordionItem value="grading" className="border-0">
+                                    <AccordionTrigger className="py-2 text-sm text-primary hover:no-underline">
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Grading Data (Hidden from Students)
+                                    </AccordionTrigger>
+                                    <AccordionContent className="space-y-3 pt-2 bg-muted/30 p-3 rounded">
+                                      <div className="text-xs text-muted-foreground mb-2">
+                                        This data is stored for AI grading and is not visible to students.
+                                      </div>
+                                      {gradingInfo.correctAnswer && (
+                                        <div>
+                                          <span className="font-medium text-sm">Correct Answer: </span>
+                                          <span className="text-green-600 dark:text-green-400">{gradingInfo.correctAnswer}</span>
+                                        </div>
+                                      )}
+                                      {gradingInfo.sampleAnswer && (
+                                        <div>
+                                          <span className="font-medium text-sm">Sample Answer: </span>
+                                          <span className="text-muted-foreground text-sm">{gradingInfo.sampleAnswer}</span>
+                                        </div>
+                                      )}
+                                      {gradingInfo.keyPoints && gradingInfo.keyPoints.length > 0 && (
+                                        <div>
+                                          <span className="font-medium text-sm">Key Points:</span>
+                                          <ul className="list-disc list-inside text-sm text-muted-foreground mt-1">
+                                            {gradingInfo.keyPoints.map((kp, i) => (
+                                              <li key={i}>{kp}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      {gradingInfo.evaluationGuidelines && (
+                                        <div>
+                                          <span className="font-medium text-sm">Evaluation Guidelines: </span>
+                                          <span className="text-muted-foreground text-sm">{gradingInfo.evaluationGuidelines}</span>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <span className="font-medium text-sm">Grading Type: </span>
+                                        <Badge variant="outline">{gradingInfo.gradingType}</Badge>
+                                        {gradingInfo.partialMarkingAllowed && (
+                                          <Badge variant="secondary" className="ml-2">Partial Marking</Badge>
+                                        )}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </Accordion>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           </CardContent>
         </Card>
       )}
