@@ -971,6 +971,7 @@ export type Database = {
         Args: { p_attempt_id: string; p_responses: Json }
         Returns: Json
       }
+      get_user_display_name: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

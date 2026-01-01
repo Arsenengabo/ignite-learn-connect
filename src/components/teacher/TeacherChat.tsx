@@ -87,17 +87,14 @@ export const TeacherChat = () => {
 
       if (error) throw error;
       
-      // Get sender names separately
+      // Get sender names using the secure function
       const messagesWithNames = await Promise.all((data || []).map(async (msg) => {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', msg.sender_id)
-          .single();
+        const { data: displayName } = await supabase
+          .rpc('get_user_display_name', { _user_id: msg.sender_id });
         
         return {
           ...msg,
-          sender_name: profile?.full_name || 'Unknown User'
+          sender_name: displayName || 'Unknown User'
         };
       }));
       
