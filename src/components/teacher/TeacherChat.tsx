@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Send, Users, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import { ChatMessageSchema, getValidationError } from "@/lib/validations";
 interface ChatMessage {
   id: string;
   message: string;
@@ -135,12 +135,26 @@ export const TeacherChat = () => {
     if (!newMessage.trim() || !selectedChannel || !currentUser) return;
 
     try {
+      // Validate message with Zod
+      const validationResult = ChatMessageSchema.safeParse({
+        message: newMessage,
+        channelId: selectedChannel.id,
+        senderId: currentUser.user_id,
+      });
+
+      if (!validationResult.success) {
+        toast.error(getValidationError(validationResult.error));
+        return;
+      }
+
+      const validated = validationResult.data;
+
       const { error } = await supabase
         .from('chat_messages')
         .insert({
-          channel_id: selectedChannel.id,
-          sender_id: currentUser.user_id,
-          message: newMessage.trim(),
+          channel_id: validated.channelId,
+          sender_id: validated.senderId,
+          message: validated.message,
         });
 
       if (error) throw error;
