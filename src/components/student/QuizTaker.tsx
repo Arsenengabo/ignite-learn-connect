@@ -11,8 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 interface QuizQuestion {
   id: string;
   question_text: string;
-  options: any;
-  correct_answer: string;
+  question_type: string;
+  options: string[];
   points: number;
   order_index: number;
 }
@@ -70,41 +70,13 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
       setQuiz(quizData);
       setTimeLeft(quizData.time_limit ? quizData.time_limit * 60 : 3600); // Default 1 hour
 
-      // Temporarily use regular table until migration is complete
-      // TODO: Switch to quiz_questions_safe after migration
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('quiz_questions')
-        .select('id, quiz_id, question_text, question_type, options, points, order_index')
-        .eq('quiz_id', quizId)
-        .order('order_index');
-
-      if (questionsError) {
-        toast({
-          title: "Error",
-          description: "Failed to load questions",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Process questions and ensure options is an array - exclude correct_answer for security
-      const processedQuestions = (questionsData || []).map(q => ({
-        id: q.id,
-        question_text: q.question_text,
-        correct_answer: '', // Hidden for security until migration complete
-        points: q.points,
-        order_index: q.order_index,
-        options: Array.isArray(q.options) ? q.options : typeof q.options === 'string' ? JSON.parse(q.options) : []
-      }));
-      setQuestions(processedQuestions);
-
-      // Create quiz session
+      // Create quiz session first so student has access
       const { data: sessionData, error: sessionError } = await supabase
         .from('quiz_sessions')
         .insert({
           quiz_id: quizId,
           student_id: (await supabase.auth.getUser()).data.user?.id,
-          total_questions: questionsData?.length || 0,
+          total_questions: 0, // Will be updated after fetching questions
           status: 'in_progress'
         })
         .select()
@@ -120,8 +92,71 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
       }
 
       setSessionId(sessionData.id);
+
+      // Now fetch questions using secure function (excludes correct_answer)
+      const { data: questionsData, error: questionsError } = await supabase
+        .rpc('get_quiz_questions_for_student' as any, { _quiz_id: quizId });
+
+      if (questionsError) {
+        toast({
+          title: "Error",
+          description: "Failed to load questions",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Process questions
+      const questionsArray = questionsData as Array<{
+        id: string;
+        question_text: string;
+        question_type: string;
+        options: string[] | null;
+        points: number;
+        order_index: number;
+      }> | null;
+      
+      const processedQuestions = (questionsArray || []).map(q => ({
+        id: q.id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        points: q.points,
+        order_index: q.order_index,
+        options: Array.isArray(q.options) ? q.options : []
+      }));
+      setQuestions(processedQuestions);
+
+      // Update session with question count
+      await supabase
+        .from('quiz_sessions')
+        .update({ total_questions: processedQuestions.length })
+        .eq('id', sessionData.id);
+
     } catch (error) {
       console.error('Error loading quiz:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerChange = (questionId: string, answer: string) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
     } finally {
       setLoading(false);
     }
