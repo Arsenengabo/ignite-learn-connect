@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Save, Upload, FileText, Video, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CourseSchema, CourseModuleSchema, getValidationError } from "@/lib/validations";
 
 interface CourseModule {
   id?: string;
@@ -53,8 +54,10 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
   const [isUploading, setIsUploading] = useState(false);
 
   const addModule = () => {
-    if (!currentModule.title.trim()) {
-      toast.error("Please enter a module title");
+    // Validate module with Zod
+    const validationResult = CourseModuleSchema.safeParse(currentModule);
+    if (!validationResult.success) {
+      toast.error(getValidationError(validationResult.error));
       return;
     }
 
@@ -133,15 +136,14 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
 
   const saveCourse = async () => {
     try {
-      if (!course.title.trim()) {
-        toast.error("Please add a course title");
+      // Validate course with Zod
+      const validationResult = CourseSchema.safeParse(course);
+      if (!validationResult.success) {
+        toast.error(getValidationError(validationResult.error));
         return;
       }
 
-      if (!course.difficultyLevel.trim()) {
-        toast.error("Please select a difficulty level");
-        return;
-      }
+      const validated = validationResult.data;
 
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
@@ -153,14 +155,14 @@ export const CourseCreator = ({ editingCourse, onCourseSaved }: CourseCreatorPro
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert({
-          title: course.title,
-          description: course.description,
-          subject: course.subject,
-          difficulty_level: course.difficultyLevel,
-          duration_weeks: course.durationWeeks,
-          price: course.price,
-          is_published: course.isPublished,
-          thumbnail_url: course.thumbnailUrl,
+          title: validated.title,
+          description: validated.description,
+          subject: validated.subject,
+          difficulty_level: validated.difficultyLevel,
+          duration_weeks: validated.durationWeeks,
+          price: validated.price,
+          is_published: validated.isPublished,
+          thumbnail_url: validated.thumbnailUrl || null,
           teacher_id: user.user.id,
         })
         .select()

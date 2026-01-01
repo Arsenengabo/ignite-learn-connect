@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { QuizSchema, QuizQuestionSchema, getValidationError } from "@/lib/validations";
 
 interface Question {
   id?: string;
@@ -49,8 +50,10 @@ export const QuizBuilder = ({ editingQuiz, onQuizSaved, onBack }: QuizBuilderPro
   });
 
   const addQuestion = () => {
-    if (!currentQuestion.questionText.trim()) {
-      toast.error("Please enter a question");
+    // Validate question with Zod
+    const validationResult = QuizQuestionSchema.safeParse(currentQuestion);
+    if (!validationResult.success) {
+      toast.error(getValidationError(validationResult.error));
       return;
     }
 
@@ -84,17 +87,25 @@ export const QuizBuilder = ({ editingQuiz, onQuizSaved, onBack }: QuizBuilderPro
 
   const saveQuiz = async () => {
     try {
-      if (!quiz.title.trim() || questions.length === 0) {
-        toast.error("Please add a title and at least one question");
+      // Validate quiz with Zod
+      const validationResult = QuizSchema.safeParse(quiz);
+      if (!validationResult.success) {
+        toast.error(getValidationError(validationResult.error));
         return;
       }
+
+      if (questions.length === 0) {
+        toast.error("Please add at least one question");
+        return;
+      }
+
+      const validated = validationResult.data;
 
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
         toast.error("Please log in to create a quiz");
         return;
       }
-
       let quizData;
 
       if (editingQuiz) {
@@ -102,12 +113,12 @@ export const QuizBuilder = ({ editingQuiz, onQuizSaved, onBack }: QuizBuilderPro
         const { data, error: quizError } = await supabase
           .from('quizzes')
           .update({
-            title: quiz.title,
-            description: quiz.description,
-            subject: quiz.subject,
-            difficulty_level: quiz.difficultyLevel,
-            time_limit: quiz.timeLimit,
-            is_published: quiz.isPublished,
+            title: validated.title,
+            description: validated.description,
+            subject: validated.subject,
+            difficulty_level: validated.difficultyLevel,
+            time_limit: validated.timeLimit,
+            is_published: validated.isPublished,
             total_questions: questions.length,
           })
           .eq('id', editingQuiz.id)
@@ -129,12 +140,12 @@ export const QuizBuilder = ({ editingQuiz, onQuizSaved, onBack }: QuizBuilderPro
         const { data, error: quizError } = await supabase
           .from('quizzes')
           .insert({
-            title: quiz.title,
-            description: quiz.description,
-            subject: quiz.subject,
-            difficulty_level: quiz.difficultyLevel,
-            time_limit: quiz.timeLimit,
-            is_published: quiz.isPublished,
+            title: validated.title,
+            description: validated.description,
+            subject: validated.subject,
+            difficulty_level: validated.difficultyLevel,
+            time_limit: validated.timeLimit,
+            is_published: validated.isPublished,
             teacher_id: user.user.id,
             total_questions: questions.length,
           })

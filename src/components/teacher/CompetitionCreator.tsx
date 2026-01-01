@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, Users, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CompetitionSchema, getValidationError } from "@/lib/validations";
 
 export const CompetitionCreator = () => {
   const [competition, setCompetition] = useState({
@@ -20,7 +21,7 @@ export const CompetitionCreator = () => {
     maxParticipants: 100,
     entryFee: 0,
     prizePool: 0,
-    status: "upcoming",
+    status: "upcoming" as const,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -36,12 +37,16 @@ export const CompetitionCreator = () => {
         return;
       }
 
-      if (!competition.title.trim() || !competition.startTime || !competition.endTime) {
-        toast.error("Please fill in all required fields");
+      // Validate input with Zod
+      const validationResult = CompetitionSchema.safeParse(competition);
+      if (!validationResult.success) {
+        toast.error(getValidationError(validationResult.error));
         return;
       }
 
-      if (new Date(competition.startTime) >= new Date(competition.endTime)) {
+      const validated = validationResult.data;
+
+      if (new Date(validated.startTime) >= new Date(validated.endTime)) {
         toast.error("End time must be after start time");
         return;
       }
@@ -49,15 +54,15 @@ export const CompetitionCreator = () => {
       const { error } = await supabase
         .from('competitions')
         .insert({
-          title: competition.title,
-          description: competition.description,
-          subject: competition.subject,
-          start_time: competition.startTime,
-          end_time: competition.endTime,
-          max_participants: competition.maxParticipants,
-          entry_fee: competition.entryFee,
-          prize_pool: competition.prizePool,
-          status: competition.status,
+          title: validated.title,
+          description: validated.description,
+          subject: validated.subject,
+          start_time: validated.startTime,
+          end_time: validated.endTime,
+          max_participants: validated.maxParticipants,
+          entry_fee: validated.entryFee,
+          prize_pool: validated.prizePool,
+          status: validated.status,
           organizer_id: user.user.id,
         });
 
