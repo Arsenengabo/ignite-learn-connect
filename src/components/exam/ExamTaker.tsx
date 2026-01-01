@@ -120,17 +120,23 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
         if (sectionsError) throw sectionsError;
         setSections(sectionsData || []);
 
-        // Fetch questions
+        // Fetch questions using secure function that excludes answer fields
         const { data: questionsData, error: questionsError } = await supabase
-          .from('exam_questions')
-          .select('id, question_text, question_type, options, marks, order_index, section_id')
-          .eq('exam_id', examId)
-          .order('order_index');
+          .rpc('get_exam_questions_for_student' as any, { _exam_id: examId });
 
         if (questionsError) throw questionsError;
-        setQuestions((questionsData || []).map(q => ({
+        const questionsArray = questionsData as Array<{
+          id: string;
+          question_text: string;
+          question_type: string;
+          options: string[] | null;
+          marks: number;
+          order_index: number;
+          section_id: string;
+        }> | null;
+        setQuestions((questionsArray || []).map(q => ({
           ...q,
-          options: Array.isArray(q.options) ? q.options as string[] : null
+          options: Array.isArray(q.options) ? q.options : null
         })));
 
         // Create attempt
