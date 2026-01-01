@@ -998,6 +998,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      submit_quiz_responses: {
+        Args: { _responses: Json; _session_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "student" | "teacher" | "other"

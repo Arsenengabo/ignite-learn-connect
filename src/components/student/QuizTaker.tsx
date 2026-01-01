@@ -157,71 +157,32 @@ export const QuizTaker = ({ quizId, onBack, onComplete }: QuizTakerProps) => {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAnswerChange = (questionId: string, answer: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
 
   const handleSubmitQuiz = async () => {
     if (submitting) return;
     setSubmitting(true);
 
     try {
-      // Prepare responses for secure submission
+      // Prepare responses for secure server-side scoring
       const responses = questions.map(question => ({
         question_id: question.id,
         answer: answers[question.id] || ""
       }));
 
-      // Temporarily use manual submission until migration is complete
-      // TODO: Switch to submit_quiz_responses RPC after migration
-      let totalScore = 0;
+      // Use secure RPC to submit and score responses
+      const { data: result, error: submitError } = await supabase
+        .rpc('submit_quiz_responses' as any, {
+          _session_id: sessionId,
+          _responses: responses
+        });
 
-      // Submit all answers - server will handle scoring after migration
-      for (const response of responses) {
-        await supabase
-          .from('quiz_responses')
-          .insert({
-            session_id: sessionId,
-            question_id: response.question_id,
-            answer: response.answer,
-            is_correct: false, // Will be calculated server-side after migration
-            points_earned: 0 // Will be calculated server-side after migration
-          });
-      }
+      if (submitError) throw submitError;
 
-      // Update session as completed
-      await supabase
-        .from('quiz_sessions')
-        .update({
-          status: 'completed',
-          score: totalScore,
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', sessionId);
+      const scoreResult = result as { total_score: number; max_score: number; percentage: number } | null;
 
       toast({
         title: "Quiz Completed!",
-        description: "Your responses have been submitted securely.",
+        description: `Your score: ${scoreResult?.total_score || 0}/${scoreResult?.max_score || 0} (${scoreResult?.percentage || 0}%)`,
       });
 
       onComplete();
