@@ -30,7 +30,11 @@ interface Attempt {
   created_at: string;
 }
 
-export default function ExamBrowser() {
+interface ExamBrowserProps {
+  onBack?: () => void;
+}
+
+export default function ExamBrowser({ onBack }: ExamBrowserProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -139,9 +143,16 @@ export default function ExamBrowser() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Available Exams</h2>
-          <p className="text-muted-foreground">Take exams and test your knowledge</p>
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <Button variant="ghost" onClick={onBack}>
+              ← Back
+            </Button>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold">Available Exams</h2>
+            <p className="text-muted-foreground">Take exams and test your knowledge</p>
+          </div>
         </div>
         
         <div className="relative w-64">

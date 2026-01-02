@@ -2,16 +2,17 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Star } from "lucide-react";
+import { BookOpen, Trophy, MessageSquare, Play, Star, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizBrowser } from "@/components/student/QuizBrowser";
 import { QuizTaker } from "@/components/student/QuizTaker";
 import { CompetitionBrowser } from "@/components/student/CompetitionBrowser";
 import { CourseBrowser } from "@/components/student/CourseBrowser";
 import { CourseViewer } from "@/components/student/CourseViewer";
+import ExamBrowser from "@/components/exam/ExamBrowser";
 
 export const StudentDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing' | 'exams'>('dashboard');
   const [selectedQuizId, setSelectedQuizId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [stats, setStats] = useState({
@@ -178,6 +179,10 @@ export const StudentDashboard = () => {
   if (currentView === 'course-viewing') {
     return <CourseViewer courseId={selectedCourseId} onBack={() => setCurrentView('courses')} />;
   }
+
+  if (currentView === 'exams') {
+    return <ExamBrowser onBack={() => setCurrentView('dashboard')} />;
+  }
   return <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-4 sm:p-6 text-white">
@@ -234,7 +239,7 @@ export const StudentDashboard = () => {
       </div>
 
       {/* Main Features */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
@@ -248,6 +253,23 @@ export const StudentDashboard = () => {
           <CardContent className="pt-0">
             <Button className="w-full text-sm sm:text-base" onClick={() => setCurrentView('quizzes')}>
               Browse Quizzes
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <FileText className="h-6 w-6 text-primary" />
+              <CardTitle>Online Exams</CardTitle>
+            </div>
+            <CardDescription>
+              Take exams created by your teachers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" onClick={() => setCurrentView('exams')}>
+              Browse Exams
             </Button>
           </CardContent>
         </Card>
