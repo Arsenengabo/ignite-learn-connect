@@ -971,6 +971,18 @@ export type Database = {
         Args: { p_attempt_id: string; p_responses: Json }
         Returns: Json
       }
+      get_exam_questions_for_student: {
+        Args: { _exam_id: string }
+        Returns: {
+          id: string
+          marks: number
+          options: Json
+          order_index: number
+          question_text: string
+          question_type: string
+          section_id: string
+        }[]
+      }
       get_quiz_questions_for_student: {
         Args: { _quiz_id: string }
         Returns: {
