@@ -183,143 +183,143 @@ export const StudentDashboard = () => {
   if (currentView === 'exams') {
     return <ExamBrowser onBack={() => setCurrentView('dashboard')} />;
   }
-  return <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+  return <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-subtle rounded-lg p-4 sm:p-6 text-white">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
-        <p className="text-sm sm:text-base text-indigo-400">Ready to continue your learning journey?</p>
+      <div className="bg-gradient-subtle rounded-lg p-3 sm:p-4 lg:p-6 text-white">
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
+        <p className="text-xs sm:text-sm lg:text-base text-indigo-400">Ready to continue your learning journey?</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
         <Card>
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Quizzes Taken</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.quizzesTaken}</p>
+          <CardContent className="p-3 sm:p-4 lg:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Quizzes Taken</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.quizzesTaken}</p>
               </div>
-              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-primary flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Competitions</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.competitions}</p>
+          <CardContent className="p-3 sm:p-4 lg:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Competitions</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.competitions}</p>
               </div>
-              <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
+              <Trophy className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-accent flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Courses</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.courses}</p>
+          <CardContent className="p-3 sm:p-4 lg:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Courses</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.courses}</p>
               </div>
-              <Play className="h-6 w-6 sm:h-8 sm:w-8 text-secondary" />
+              <Play className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-secondary flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Avg Score</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.avgScore}%</p>
+          <CardContent className="p-3 sm:p-4 lg:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Avg Score</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.avgScore}%</p>
               </div>
-              <Star className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-primary flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Features */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="pb-3">
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              <CardTitle className="text-lg sm:text-xl">Take Quizzes</CardTitle>
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Take Quizzes</CardTitle>
             </div>
-            <CardDescription className="text-sm">
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
               Test your knowledge with interactive quizzes
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <Button className="w-full text-sm sm:text-base" onClick={() => setCurrentView('quizzes')}>
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('quizzes')}>
               Browse Quizzes
             </Button>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
-              <FileText className="h-6 w-6 text-primary" />
-              <CardTitle>Online Exams</CardTitle>
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Online Exams</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
               Take exams created by your teachers
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full" onClick={() => setCurrentView('exams')}>
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('exams')}>
               Browse Exams
             </Button>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
-              <Trophy className="h-6 w-6 text-accent" />
-              <CardTitle>Competitions</CardTitle>
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-accent flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Competitions</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
               Join study competitions and win prizes
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full" onClick={() => setCurrentView('competitions')}>
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('competitions')}>
               Join Competition
             </Button>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
-              <MessageSquare className="h-6 w-6 text-secondary" />
-              <CardTitle>Student Chat</CardTitle>
+              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-secondary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Student Chat</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
               Connect with students from other schools
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="secondary" className="w-full">
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button variant="secondary" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10">
               Start Chatting
             </Button>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
-              <Play className="h-6 w-6 text-primary" />
-              <CardTitle>Online Courses</CardTitle>
+              <Play className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Online Courses</CardTitle>
             </div>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
               Access teacher-created course content
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full" onClick={() => setCurrentView('courses')}>
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('courses')}>
               Browse Courses
             </Button>
           </CardContent>
@@ -328,32 +328,32 @@ export const StudentDashboard = () => {
 
       {/* Recent Activity */}
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your latest learning activities</CardDescription>
+        <CardHeader className="p-3 sm:p-4 lg:p-6">
+          <CardTitle className="text-base sm:text-lg lg:text-xl">Recent Activity</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Your latest learning activities</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3 sm:space-y-4">
+        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+          <div className="space-y-2 sm:space-y-3 lg:space-y-4">
             {recentActivity.length > 0 ? (
               recentActivity.map(activity => (
-                <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center space-x-3">
+                <div key={activity.id} className="flex items-center justify-between p-2 sm:p-3 bg-muted/50 rounded-lg gap-2">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                     {activity.type === 'course' ? (
-                      <Play className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
+                      <Play className="h-4 w-4 sm:h-5 sm:w-5 text-secondary flex-shrink-0" />
                     ) : (
-                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm sm:text-base truncate">{activity.title}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
+                      <p className="font-medium text-xs sm:text-sm lg:text-base truncate">{activity.title}</p>
+                      <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">
                         {activity.type === 'course' ? 'Course completed' : 'Quiz completed'} {formatTimeAgo(activity.completed_at)}
                       </p>
                       {activity.subject && (
-                        <Badge variant="outline" className="text-xs mt-1">{activity.subject}</Badge>
+                        <Badge variant="outline" className="text-[10px] sm:text-xs mt-1">{activity.subject}</Badge>
                       )}
                     </div>
                   </div>
-                  <Badge variant="secondary" className="text-xs sm:text-sm ml-2 flex-shrink-0">
+                  <Badge variant="secondary" className="text-[10px] sm:text-xs lg:text-sm flex-shrink-0">
                     {activity.type === 'course' 
                       ? `${Math.round(activity.progress_percentage)}%` 
                       : `${Math.round((activity.score / activity.total_questions) * 100)}%`
@@ -362,10 +362,10 @@ export const StudentDashboard = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No recent activity</p>
-                <p className="text-sm">Take a quiz to get started!</p>
+              <div className="text-center py-4 sm:py-6 text-muted-foreground">
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm sm:text-base">No recent activity</p>
+                <p className="text-xs sm:text-sm">Take a quiz to get started!</p>
               </div>
             )}
           </div>
