@@ -162,8 +162,44 @@
     @apply border-border;
   }
 
+  html {
+    /* Prevent iOS zoom on input focus */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
+    /* Improve touch response */
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent overscroll bounce */
+    overscroll-behavior: none;
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+
+  /* Touch-friendly minimum tap targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Allow smaller buttons explicitly */
+  .btn-sm, [data-size="sm"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .btn-xs {
+    min-height: 28px;
+    min-width: 28px;
   }
 
   /* Custom Education Animations */
@@ -213,7 +249,7 @@
 
   /* Hero Button Styles */
   .btn-hero {
-    @apply relative px-8 py-4 font-semibold text-white rounded-xl overflow-hidden;
+    @apply relative px-6 py-3 sm:px-8 sm:py-4 font-semibold text-white rounded-xl overflow-hidden;
     background: var(--gradient-primary);
     transition: var(--transition-smooth);
     box-shadow: var(--shadow-md);
@@ -241,7 +277,7 @@
 
   /* Learning Card Styles */
   .learning-card {
-    @apply bg-card border border-border rounded-xl p-6 transition-all duration-300;
+    @apply bg-card border border-border rounded-xl p-4 sm:p-6 transition-all duration-300;
     box-shadow: var(--shadow-sm);
   }
 
@@ -251,18 +287,90 @@
     transform: translateY(-4px);
   }
 
+  /* Responsive container */
+  .container-responsive {
+    @apply w-full px-4 sm:px-6 lg:px-8 mx-auto;
+    max-width: min(100% - 2rem, 1400px);
+  }
+
+  /* Responsive text utilities */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg lg:text-xl;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  .text-responsive-hero {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+  }
+
+  /* Responsive spacing utilities */
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 lg:gap-6;
+  }
+
+  .p-responsive {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
+  .py-responsive {
+    @apply py-3 sm:py-4 lg:py-6;
+  }
+
+  .px-responsive {
+    @apply px-3 sm:px-4 lg:px-6;
+  }
+
+  /* Responsive grid utilities */
+  .grid-responsive-cards {
+    @apply grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6;
+  }
+
   /* Status Indicators */
   .status-success {
-    @apply bg-success/10 text-success border border-success/20 px-3 py-1 rounded-full text-sm font-medium;
+    @apply bg-success/10 text-success border border-success/20 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium;
   }
 
   .status-learning {
-    @apply text-learning border border-learning/20 px-3 py-1 rounded-full text-sm font-medium;
+    @apply text-learning border border-learning/20 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium;
     background: hsl(var(--learning) / 0.1);
   }
 
   .status-achievement {
-    @apply text-achievement border border-achievement/20 px-3 py-1 rounded-full text-sm font-medium;
+    @apply text-achievement border border-achievement/20 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium;
     background: hsl(var(--achievement) / 0.1);
+  }
+
+  /* Foldable device support */
+  @media (min-width: 320px) and (max-width: 523px) {
+    /* Galaxy Fold closed state */
+    .fold-compact {
+      @apply text-sm p-2;
+    }
+  }
+
+  /* Landscape phone adjustments */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .landscape-compact {
+      @apply py-2;
+    }
   }
 }
