@@ -17,11 +17,30 @@ interface QuestionGradingData {
   maxMarks: number;
 }
 
-interface GradingResult {
+interface GrammarError {
+  type: 'spelling' | 'grammar' | 'punctuation';
+  original: string;
+  correction: string;
+  position?: number;
+}
+
+interface GrammarAnalysis {
+  originalText: string;
+  correctedText: string;
+  errors: GrammarError[];
+  grammarScore: number;
+}
+
+interface EnhancedGradingResult {
   questionId: string;
   marksAwarded: number;
   feedback: string;
   isCorrect: boolean;
+  grammarAnalysis: GrammarAnalysis | null;
+  keyPointsCovered: string[];
+  keyPointsMissing: string[];
+  semanticScore: number;
+  correctedAnswer: string | null;
 }
 
 serve(async (req) => {
@@ -69,9 +88,9 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Evaluating ${questions.length} subjective questions for attempt ${attemptId}`);
+    console.log(`Evaluating ${questions.length} subjective questions for attempt ${attemptId} with enhanced NLP`);
 
-    const results: GradingResult[] = [];
+    const results: EnhancedGradingResult[] = [];
 
     for (const q of questions) {
       if (!q.studentAnswer || q.studentAnswer.trim() === '') {
@@ -80,37 +99,55 @@ serve(async (req) => {
           marksAwarded: 0,
           feedback: 'No answer provided.',
           isCorrect: false,
+          grammarAnalysis: null,
+          keyPointsCovered: [],
+          keyPointsMissing: q.keyPoints || [],
+          semanticScore: 0,
+          correctedAnswer: null,
         });
         continue;
       }
 
-      const systemPrompt = `You are an expert academic evaluator. Your task is to grade a student's answer fairly and accurately.
+      const systemPrompt = `You are an expert academic evaluator with advanced NLP capabilities for grammar analysis and semantic understanding.
 
-GRADING RULES:
-1. Award partial marks based on the coverage of key points
-2. Be fair but rigorous in evaluation
-3. Provide constructive feedback
-4. Consider semantic correctness, not just exact wording
-5. For numerical answers, check if the final answer and units are correct
+EVALUATION CRITERIA:
+1. SEMANTIC ANALYSIS: Compare the meaning and intent of the student's answer with the expected answer. Focus on conceptual understanding, not exact wording.
+2. GRAMMAR & SPELLING CHECK: Identify all spelling mistakes, grammatical errors, and punctuation issues. Provide corrections.
+3. KEY POINTS COVERAGE: Check which required concepts/key points were addressed and which were missed.
+4. PARTIAL MARKS: Award proportional marks based on coverage of key points and accuracy.
+5. CONSTRUCTIVE FEEDBACK: Provide helpful feedback that guides improvement.
 
-RESPONSE FORMAT (JSON only):
+RESPONSE FORMAT (JSON only, no markdown):
 {
   "marksAwarded": <number between 0 and ${q.maxMarks}>,
-  "feedback": "<brief constructive feedback>",
-  "isCorrect": <true if full marks or close to full marks>
+  "feedback": "<constructive feedback explaining the grade, max 100 words>",
+  "isCorrect": <true if awarded 80%+ of marks>,
+  "grammarAnalysis": {
+    "originalText": "<first 200 chars of student's original text>",
+    "correctedText": "<grammar-corrected version of the text>",
+    "errors": [
+      {"type": "spelling", "original": "<misspelled word>", "correction": "<correct spelling>"},
+      {"type": "grammar", "original": "<grammatical error>", "correction": "<corrected form>"},
+      {"type": "punctuation", "original": "<punctuation error>", "correction": "<corrected form>"}
+    ],
+    "grammarScore": <0-100 score for grammar quality>
+  },
+  "keyPointsCovered": ["<key point 1 that was addressed>", "<key point 2>"],
+  "keyPointsMissing": ["<key point that was missed>"],
+  "semanticScore": <0-100 semantic similarity score>
 }`;
 
       let userPrompt = `QUESTION TYPE: ${q.questionType}
 MAX MARKS: ${q.maxMarks}
 
-STUDENT ANSWER:
-${q.studentAnswer}
+STUDENT'S ANSWER:
+"${q.studentAnswer}"
 
 `;
 
       if (q.sampleAnswer) {
-        userPrompt += `SAMPLE/CORRECT ANSWER:
-${q.sampleAnswer}
+        userPrompt += `EXPECTED/SAMPLE ANSWER:
+"${q.sampleAnswer}"
 
 `;
       }
@@ -129,7 +166,7 @@ ${q.evaluationGuidelines}
 `;
       }
 
-      userPrompt += `Evaluate the student's answer and return the JSON grading result.`;
+      userPrompt += `Evaluate the student's answer thoroughly including grammar analysis and semantic understanding. Return only valid JSON.`;
 
       try {
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -151,12 +188,16 @@ ${q.evaluationGuidelines}
           const errorText = await aiResponse.text();
           console.error(`AI evaluation failed for question ${q.questionId}:`, errorText);
           
-          // Fallback: give 0 marks with error feedback
           results.push({
             questionId: q.questionId,
             marksAwarded: 0,
             feedback: 'Could not evaluate answer automatically. Will require manual review.',
             isCorrect: false,
+            grammarAnalysis: null,
+            keyPointsCovered: [],
+            keyPointsMissing: q.keyPoints || [],
+            semanticScore: 0,
+            correctedAnswer: null,
           });
           continue;
         }
@@ -164,10 +205,8 @@ ${q.evaluationGuidelines}
         const aiData = await aiResponse.json();
         const content = aiData.choices?.[0]?.message?.content || '';
 
-        // Parse the AI response
-        let gradingResult: { marksAwarded: number; feedback: string; isCorrect: boolean };
+        let gradingResult: any;
         try {
-          // Clean up potential markdown code blocks
           let cleanContent = content.trim();
           if (cleanContent.startsWith('```json')) {
             cleanContent = cleanContent.slice(7);
@@ -187,18 +226,27 @@ ${q.evaluationGuidelines}
             marksAwarded: 0,
             feedback: 'Evaluation parsing failed. Requires manual review.',
             isCorrect: false,
+            grammarAnalysis: null,
+            keyPointsCovered: [],
+            keyPointsMissing: q.keyPoints || [],
+            semanticScore: 0,
+            correctedAnswer: null,
           });
           continue;
         }
 
-        // Ensure marks are within bounds
-        const marksAwarded = Math.min(Math.max(0, gradingResult.marksAwarded), q.maxMarks);
-
+        const marksAwarded = Math.min(Math.max(0, gradingResult.marksAwarded || 0), q.maxMarks);
+        
         results.push({
           questionId: q.questionId,
           marksAwarded,
           feedback: gradingResult.feedback || 'Evaluated by AI.',
           isCorrect: gradingResult.isCorrect || marksAwarded >= q.maxMarks * 0.8,
+          grammarAnalysis: gradingResult.grammarAnalysis || null,
+          keyPointsCovered: gradingResult.keyPointsCovered || [],
+          keyPointsMissing: gradingResult.keyPointsMissing || [],
+          semanticScore: gradingResult.semanticScore || 0,
+          correctedAnswer: gradingResult.grammarAnalysis?.correctedText || null,
         });
 
       } catch (aiError) {
@@ -208,11 +256,16 @@ ${q.evaluationGuidelines}
           marksAwarded: 0,
           feedback: 'Evaluation error. Requires manual review.',
           isCorrect: false,
+          grammarAnalysis: null,
+          keyPointsCovered: [],
+          keyPointsMissing: q.keyPoints || [],
+          semanticScore: 0,
+          correctedAnswer: null,
         });
       }
     }
 
-    // Update exam_responses with AI grades
+    // Update exam_responses with enhanced AI grades
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -226,6 +279,11 @@ ${q.evaluationGuidelines}
           feedback: result.feedback,
           is_correct: result.isCorrect,
           is_evaluated: true,
+          grammar_corrections: result.grammarAnalysis,
+          key_points_covered: result.keyPointsCovered,
+          key_points_missing: result.keyPointsMissing,
+          semantic_score: result.semanticScore,
+          corrected_answer: result.correctedAnswer,
         })
         .eq('attempt_id', attemptId)
         .eq('question_id', result.questionId);
@@ -261,7 +319,7 @@ ${q.evaluationGuidelines}
       })
       .eq('id', attemptId);
 
-    console.log(`Evaluation complete. Total score: ${totalScore}/${maxScore}`);
+    console.log(`Enhanced evaluation complete. Total score: ${totalScore}/${maxScore}`);
 
     return new Response(JSON.stringify({
       success: true,

@@ -4,15 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, CheckCircle, XCircle, Clock, Award, Download } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, Download, ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateResultsPDF } from "@/utils/examPdfGenerator";
+import AIEvaluationReview from "./AIEvaluationReview";
 
 interface ExamResultsProps {
   attemptId: string;
   onBack: () => void;
+}
+
+interface GrammarError {
+  type: 'spelling' | 'grammar' | 'punctuation';
+  original: string;
+  correction: string;
+}
+
+interface GrammarAnalysis {
+  originalText: string;
+  correctedText: string;
+  errors: GrammarError[];
+  grammarScore: number;
 }
 
 interface Response {
@@ -23,6 +38,11 @@ interface Response {
   marks_awarded: number;
   feedback: string;
   is_evaluated: boolean;
+  grammar_corrections: GrammarAnalysis | null;
+  key_points_covered: string[] | null;
+  key_points_missing: string[] | null;
+  semantic_score: number | null;
+  corrected_answer: string | null;
   question: {
     question_text: string;
     question_type: string;
@@ -36,6 +56,7 @@ interface Response {
 export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [attempt, setAttempt] = useState<{
     id: string;
     total_score: number;
@@ -58,7 +79,6 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
 
   const loadResults = async () => {
     try {
-      // Fetch attempt with exam details
       const { data: attemptData, error: attemptError } = await supabase
         .from('exam_attempts')
         .select(`
@@ -71,7 +91,6 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
       if (attemptError) throw attemptError;
       setAttempt(attemptData);
 
-      // Fetch responses with questions
       const { data: responsesData, error: responsesError } = await supabase
         .from('exam_responses')
         .select(`
@@ -88,13 +107,19 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
         .eq('attempt_id', attemptId);
 
       if (responsesError) throw responsesError;
-      setResponses((responsesData || []).map(r => ({
+      
+      const typedResponses = (responsesData || []).map(r => ({
         ...r,
+        grammar_corrections: r.grammar_corrections as unknown as GrammarAnalysis | null,
+        key_points_covered: r.key_points_covered as string[] | null,
+        key_points_missing: r.key_points_missing as string[] | null,
         question: {
           ...r.question,
           options: Array.isArray(r.question.options) ? r.question.options : null
         }
-      })) as Response[]);
+      })) as Response[];
+      
+      setResponses(typedResponses);
 
     } catch (error) {
       console.error("Error loading results:", error);
@@ -127,6 +152,18 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
     });
   };
 
+  const toggleQuestion = (id: string) => {
+    setExpandedQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   const getScoreColor = (percentage: number) => {
     if (percentage >= 80) return "text-success";
     if (percentage >= 60) return "text-warning";
@@ -140,6 +177,10 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
     if (percentage >= 60) return "C";
     if (percentage >= 50) return "D";
     return "F";
+  };
+
+  const isSubjectiveQuestion = (type: string) => {
+    return ['short_answer', 'long_answer'].includes(type);
   };
 
   if (loading) {
@@ -164,6 +205,7 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
   const correctCount = responses.filter(r => r.is_correct === true).length;
   const incorrectCount = responses.filter(r => r.is_correct === false).length;
   const pendingCount = responses.filter(r => r.is_correct === null).length;
+  const aiEvaluatedCount = responses.filter(r => r.semantic_score !== null).length;
 
   return (
     <div className="space-y-6">
@@ -208,7 +250,7 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
             className="h-3 mb-6"
           />
 
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="p-4 bg-success/10 rounded-lg">
               <CheckCircle className="h-6 w-6 mx-auto mb-2 text-success" />
               <div className="text-2xl font-bold text-success">{correctCount}</div>
@@ -224,12 +266,17 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
               <div className="text-2xl font-bold">{pendingCount}</div>
               <div className="text-sm text-muted-foreground">Pending</div>
             </div>
+            <div className="p-4 bg-primary/10 rounded-lg">
+              <Sparkles className="h-6 w-6 mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-bold text-primary">{aiEvaluatedCount}</div>
+              <div className="text-sm text-muted-foreground">AI Graded</div>
+            </div>
           </div>
 
           {pendingCount > 0 && (
             <div className="mt-4 p-4 bg-warning/10 rounded-lg text-center">
               <p className="text-sm text-warning">
-                {pendingCount} subjective question(s) are pending evaluation by your teacher.
+                {pendingCount} subjective question(s) are pending evaluation.
               </p>
             </div>
           )}
@@ -243,92 +290,138 @@ export default function ExamResults({ attemptId, onBack }: ExamResultsProps) {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px] pr-4">
-            <div className="space-y-6">
-              {responses.map((response, idx) => (
-                <div 
-                  key={response.id}
-                  className={cn(
-                    "p-4 rounded-lg border",
-                    response.is_correct === true && "border-success/30 bg-success/5",
-                    response.is_correct === false && "border-destructive/30 bg-destructive/5",
-                    response.is_correct === null && "border-muted bg-muted/20"
-                  )}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="font-medium">Question {idx + 1}</span>
-                    <div className="flex items-center gap-2">
-                      {response.is_correct === true && (
-                        <Badge className="bg-success/20 text-success">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Correct
-                        </Badge>
-                      )}
-                      {response.is_correct === false && (
-                        <Badge className="bg-destructive/20 text-destructive">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Incorrect
-                        </Badge>
-                      )}
-                      {response.is_correct === null && (
-                        <Badge variant="secondary">Pending</Badge>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        {response.marks_awarded}/{response.question.marks}
-                      </span>
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              {responses.map((response, idx) => {
+                const isSubjective = isSubjectiveQuestion(response.question.question_type);
+                const hasAIAnalysis = response.semantic_score !== null;
+                const isExpanded = expandedQuestions.has(response.id);
 
-                  <p className="mb-3">{response.question.question_text}</p>
-
-                  {response.question.options && (
-                    <div className="space-y-1 mb-3 ml-4">
-                      {response.question.options.map((opt, optIdx) => (
-                        <div 
-                          key={optIdx}
-                          className={cn(
-                            "text-sm",
-                            opt === response.question.correct_answer && "text-success font-medium",
-                            opt === response.answer && opt !== response.question.correct_answer && "text-destructive line-through"
-                          )}
-                        >
-                          {String.fromCharCode(65 + optIdx)}. {opt}
-                          {opt === response.question.correct_answer && " ✓"}
+                return (
+                  <Collapsible
+                    key={response.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleQuestion(response.id)}
+                  >
+                    <div 
+                      className={cn(
+                        "rounded-lg border",
+                        response.is_correct === true && "border-success/30 bg-success/5",
+                        response.is_correct === false && "border-destructive/30 bg-destructive/5",
+                        response.is_correct === null && "border-muted bg-muted/20"
+                      )}
+                    >
+                      <CollapsibleTrigger className="w-full">
+                        <div className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium">Q{idx + 1}</span>
+                            {response.is_correct === true && (
+                              <Badge className="bg-success/20 text-success">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Correct
+                              </Badge>
+                            )}
+                            {response.is_correct === false && (
+                              <Badge className="bg-destructive/20 text-destructive">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Incorrect
+                              </Badge>
+                            )}
+                            {response.is_correct === null && (
+                              <Badge variant="secondary">Pending</Badge>
+                            )}
+                            {hasAIAnalysis && (
+                              <Badge variant="outline" className="bg-primary/10">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                AI
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {response.marks_awarded}/{response.question.marks}
+                            </span>
+                            <ChevronDown className={cn(
+                              "h-4 w-4 transition-transform",
+                              isExpanded && "rotate-180"
+                            )} />
+                          </div>
                         </div>
-                      ))}
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-4">
+                          <p className="text-sm">{response.question.question_text}</p>
+
+                          {response.question.options && (
+                            <div className="space-y-1 ml-4">
+                              {response.question.options.map((opt, optIdx) => (
+                                <div 
+                                  key={optIdx}
+                                  className={cn(
+                                    "text-sm",
+                                    opt === response.question.correct_answer && "text-success font-medium",
+                                    opt === response.answer && opt !== response.question.correct_answer && "text-destructive line-through"
+                                  )}
+                                >
+                                  {String.fromCharCode(65 + optIdx)}. {opt}
+                                  {opt === response.question.correct_answer && " ✓"}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="text-sm space-y-1">
+                            <div>
+                              <span className="text-muted-foreground">Your answer: </span>
+                              <span className={response.is_correct ? "text-success" : "text-foreground"}>
+                                {response.answer || "(No answer)"}
+                              </span>
+                            </div>
+                            
+                            {response.is_correct === false && !isSubjective && (
+                              <div>
+                                <span className="text-muted-foreground">Correct answer: </span>
+                                <span className="text-success">{response.question.correct_answer}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* AI Evaluation Details for Subjective Questions */}
+                          {isSubjective && hasAIAnalysis && (
+                            <AIEvaluationReview
+                              studentAnswer={response.answer}
+                              correctAnswer={response.question.correct_answer}
+                              feedback={response.feedback}
+                              marksAwarded={response.marks_awarded}
+                              maxMarks={response.question.marks}
+                              grammarAnalysis={response.grammar_corrections}
+                              keyPointsCovered={response.key_points_covered || []}
+                              keyPointsMissing={response.key_points_missing || []}
+                              semanticScore={response.semantic_score || 0}
+                              correctedAnswer={response.corrected_answer || undefined}
+                            />
+                          )}
+
+                          {/* Standard feedback for non-AI evaluated */}
+                          {!hasAIAnalysis && response.feedback && (
+                            <div className="p-2 bg-primary/10 rounded">
+                              <span className="font-medium text-sm">Feedback: </span>
+                              <span className="text-sm">{response.feedback}</span>
+                            </div>
+                          )}
+
+                          {response.question.explanation && (
+                            <div className="p-2 bg-muted/50 rounded">
+                              <span className="font-medium text-sm">Explanation: </span>
+                              <span className="text-sm">{response.question.explanation}</span>
+                            </div>
+                          )}
+                        </div>
+                      </CollapsibleContent>
                     </div>
-                  )}
-
-                  <div className="text-sm space-y-1">
-                    <div>
-                      <span className="text-muted-foreground">Your answer: </span>
-                      <span className={response.is_correct ? "text-success" : "text-foreground"}>
-                        {response.answer || "(No answer)"}
-                      </span>
-                    </div>
-                    
-                    {response.is_correct === false && (
-                      <div>
-                        <span className="text-muted-foreground">Correct answer: </span>
-                        <span className="text-success">{response.question.correct_answer}</span>
-                      </div>
-                    )}
-
-                    {response.question.explanation && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded">
-                        <span className="font-medium">Explanation: </span>
-                        {response.question.explanation}
-                      </div>
-                    )}
-
-                    {response.feedback && (
-                      <div className="mt-2 p-2 bg-primary/10 rounded">
-                        <span className="font-medium">Teacher Feedback: </span>
-                        {response.feedback}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  </Collapsible>
+                );
+              })}
             </div>
           </ScrollArea>
         </CardContent>

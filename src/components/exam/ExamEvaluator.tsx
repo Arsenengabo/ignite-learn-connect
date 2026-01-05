@@ -6,10 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, CheckCircle, Clock, User } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle, Clock, User, Sparkles, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AIEvaluationReview from "./AIEvaluationReview";
+
+interface GrammarAnalysis {
+  originalText: string;
+  correctedText: string;
+  errors: Array<{ type: 'spelling' | 'grammar' | 'punctuation'; original: string; correction: string }>;
+  grammarScore: number;
+}
 
 interface Attempt {
   id: string;
@@ -33,12 +42,20 @@ interface Response {
   marks_awarded: number;
   feedback: string;
   is_evaluated: boolean;
+  grammar_corrections: GrammarAnalysis | null;
+  key_points_covered: string[] | null;
+  key_points_missing: string[] | null;
+  semantic_score: number | null;
+  corrected_answer: string | null;
   question: {
     question_text: string;
     question_type: string;
     options: unknown;
     correct_answer: string;
     marks: number;
+    sample_answer: string | null;
+    key_points: string[] | null;
+    evaluation_guidelines: string | null;
   };
 }
 
@@ -51,6 +68,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [aiEvaluating, setAiEvaluating] = useState(false);
   
   const [exam, setExam] = useState<{ id: string; title: string; total_marks: number } | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -64,7 +82,6 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
 
   const loadExamData = async () => {
     try {
-      // Fetch exam
       const { data: examData, error: examError } = await supabase
         .from('exams')
         .select('id, title, total_marks')
@@ -74,7 +91,6 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
       if (examError) throw examError;
       setExam(examData);
 
-      // Fetch attempts
       const { data: attemptsData, error: attemptsError } = await supabase
         .from('exam_attempts')
         .select('*')
@@ -108,15 +124,29 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
             question_type,
             options,
             correct_answer,
-            marks
+            marks,
+            sample_answer,
+            key_points,
+            evaluation_guidelines
           )
         `)
         .eq('attempt_id', attempt.id);
 
       if (error) throw error;
-      setResponses(data || []);
       
-      // Initialize grades from existing data
+      const typedResponses = (data || []).map(r => ({
+        ...r,
+        grammar_corrections: r.grammar_corrections as unknown as GrammarAnalysis | null,
+        key_points_covered: r.key_points_covered as string[] | null,
+        key_points_missing: r.key_points_missing as string[] | null,
+        question: {
+          ...r.question,
+          key_points: Array.isArray(r.question.key_points) ? r.question.key_points : null
+        }
+      })) as Response[];
+      
+      setResponses(typedResponses);
+      
       const initialGrades: Record<string, { marks: number; feedback: string }> = {};
       data?.forEach(r => {
         initialGrades[r.id] = {
@@ -134,6 +164,58 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
         description: "Failed to load student responses",
         variant: "destructive"
       });
+    }
+  };
+
+  const runAIEvaluation = async () => {
+    if (!selectedAttempt) return;
+    
+    setAiEvaluating(true);
+    try {
+      const subjectiveResponses = responses
+        .filter(r => ['short_answer', 'long_answer'].includes(r.question.question_type))
+        .map(r => ({
+          questionId: r.question_id,
+          studentAnswer: r.answer || "",
+          correctAnswer: r.question.correct_answer,
+          sampleAnswer: r.question.sample_answer,
+          keyPoints: r.question.key_points,
+          evaluationGuidelines: r.question.evaluation_guidelines,
+          questionType: r.question.question_type,
+          maxMarks: r.question.marks
+        }));
+
+      if (subjectiveResponses.length === 0) {
+        toast({
+          title: "No Subjective Questions",
+          description: "There are no open-ended questions to evaluate with AI."
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('evaluate-subjective', {
+        body: { attemptId: selectedAttempt.id, questions: subjectiveResponses }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "AI Evaluation Complete",
+        description: `Score: ${data.totalScore}/${data.maxScore}. Refresh to see detailed feedback.`
+      });
+
+      // Reload responses to get updated AI feedback
+      await loadAttemptResponses(selectedAttempt);
+
+    } catch (error) {
+      console.error("AI evaluation error:", error);
+      toast({
+        title: "AI Evaluation Failed",
+        description: "Could not complete AI evaluation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setAiEvaluating(false);
     }
   };
 
@@ -160,7 +242,6 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
           .eq('id', response.id);
       }
 
-      // Update attempt
       await supabase
         .from('exam_attempts')
         .update({
@@ -175,7 +256,6 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
         description: `Total score: ${totalScore}/${exam?.total_marks}`
       });
 
-      // Refresh data
       loadExamData();
       setSelectedAttempt(null);
       setResponses([]);
@@ -202,6 +282,18 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
     }));
   };
 
+  const applyAIGrade = (responseId: string, response: Response) => {
+    if (response.marks_awarded !== undefined) {
+      setGrades(prev => ({
+        ...prev,
+        [responseId]: {
+          marks: response.marks_awarded,
+          feedback: response.feedback || prev[responseId]?.feedback || ""
+        }
+      }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -211,23 +303,41 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
   }
 
   if (selectedAttempt) {
+    const hasSubjective = responses.some(r => ['short_answer', 'long_answer'].includes(r.question.question_type));
+    
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setSelectedAttempt(null)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Submissions
           </Button>
-          <Button onClick={saveGrades} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save Grades"}
-          </Button>
+          <div className="flex gap-2">
+            {hasSubjective && (
+              <Button 
+                variant="outline" 
+                onClick={runAIEvaluation} 
+                disabled={aiEvaluating}
+              >
+                {aiEvaluating ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                {aiEvaluating ? "Evaluating..." : "Run AI Evaluation"}
+              </Button>
+            )}
+            <Button onClick={saveGrades} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save Grades"}
+            </Button>
+          </div>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Evaluating Submission</CardTitle>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <span>Submitted: {new Date(selectedAttempt.submitted_at).toLocaleString()}</span>
               <span>Current Score: {selectedAttempt.total_score}/{exam?.total_marks}</span>
             </div>
@@ -238,6 +348,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
                 {responses.map((response, idx) => {
                   const isSubjective = ['short_answer', 'long_answer'].includes(response.question.question_type);
                   const grade = grades[response.id] || { marks: 0, feedback: "" };
+                  const hasAIAnalysis = response.semantic_score !== null;
                   
                   return (
                     <div 
@@ -249,9 +360,17 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
                     >
                       <div className="flex items-start justify-between mb-2">
                         <span className="font-medium">Question {idx + 1}</span>
-                        <Badge variant="outline">
-                          {response.question.question_type.replace('_', ' ')}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {response.question.question_type.replace('_', ' ')}
+                          </Badge>
+                          {hasAIAnalysis && (
+                            <Badge className="bg-primary/20 text-primary">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              AI Graded
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       <p className="mb-3">{response.question.question_text}</p>
@@ -268,26 +387,63 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* AI Analysis Section for Subjective Questions */}
+                      {isSubjective && hasAIAnalysis && (
+                        <div className="mb-4">
+                          <AIEvaluationReview
+                            studentAnswer={response.answer}
+                            correctAnswer={response.question.correct_answer}
+                            feedback={response.feedback}
+                            marksAwarded={response.marks_awarded}
+                            maxMarks={response.question.marks}
+                            grammarAnalysis={response.grammar_corrections}
+                            keyPointsCovered={response.key_points_covered || []}
+                            keyPointsMissing={response.key_points_missing || []}
+                            semanticScore={response.semantic_score || 0}
+                            correctedAnswer={response.corrected_answer || undefined}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => applyAIGrade(response.id, response)}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Accept AI Grade
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor={`marks-${response.id}`}>
                             Marks (max: {response.question.marks})
                           </Label>
-                          <Input
-                            id={`marks-${response.id}`}
-                            type="number"
-                            min={0}
-                            max={response.question.marks}
-                            value={grade.marks}
-                            onChange={(e) => updateGrade(
-                              response.id, 
-                              'marks', 
-                              Math.min(response.question.marks, Math.max(0, parseInt(e.target.value) || 0))
-                            )}
-                          />
+                          <div className="flex items-center gap-3">
+                            <Slider
+                              value={[grade.marks]}
+                              max={response.question.marks}
+                              step={0.5}
+                              onValueChange={(value) => updateGrade(response.id, 'marks', value[0])}
+                              className="flex-1"
+                            />
+                            <Input
+                              id={`marks-${response.id}`}
+                              type="number"
+                              min={0}
+                              max={response.question.marks}
+                              value={grade.marks}
+                              onChange={(e) => updateGrade(
+                                response.id, 
+                                'marks', 
+                                Math.min(response.question.marks, Math.max(0, parseFloat(e.target.value) || 0))
+                              )}
+                              className="w-20"
+                            />
+                          </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor={`feedback-${response.id}`}>Feedback (optional)</Label>
+                          <Label htmlFor={`feedback-${response.id}`}>Feedback</Label>
                           <Textarea
                             id={`feedback-${response.id}`}
                             value={grade.feedback}
@@ -330,7 +486,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
               {attempts.map(attempt => (
                 <div 
                   key={attempt.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors flex-wrap gap-4"
                 >
                   <div className="flex items-center gap-4">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
