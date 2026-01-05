@@ -259,10 +259,57 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
       const totalScore = evalResult?.total_score || 0;
       const hasSubjective = evalResult?.has_subjective || false;
 
+      // Auto-trigger AI evaluation for subjective questions
+      if (hasSubjective) {
+        toast({
+          title: "Processing Open Questions",
+          description: "AI is evaluating your written answers with grammar analysis...",
+        });
+
+        // Get subjective questions with their details for AI evaluation
+        const subjectiveQuestions = questions
+          .filter(q => ['short_answer', 'long_answer'].includes(q.question_type))
+          .map(q => ({
+            questionId: q.id,
+            studentAnswer: answers[q.id] || "",
+            correctAnswer: null,
+            sampleAnswer: null,
+            keyPoints: null,
+            evaluationGuidelines: null,
+            questionType: q.question_type,
+            maxMarks: q.marks
+          }));
+
+        if (subjectiveQuestions.length > 0) {
+          try {
+            const { data: aiResult, error: aiError } = await supabase.functions.invoke('evaluate-subjective', {
+              body: { attemptId, questions: subjectiveQuestions }
+            });
+
+            if (aiError) {
+              console.error("AI evaluation error:", aiError);
+              toast({
+                title: "AI Evaluation Pending",
+                description: "Subjective answers will be evaluated by AI shortly.",
+              });
+            } else {
+              toast({
+                title: autoSubmit ? "Time's Up!" : "Exam Submitted & AI Graded",
+                description: `Your score: ${aiResult?.totalScore || totalScore}/${exam?.total_marks}. AI has evaluated your written answers.`
+              });
+              onComplete(attemptId, aiResult?.totalScore || totalScore);
+              return;
+            }
+          } catch (aiErr) {
+            console.error("AI evaluation failed:", aiErr);
+          }
+        }
+      }
+
       toast({
         title: autoSubmit ? "Time's Up!" : "Exam Submitted",
         description: hasSubjective 
-          ? "Your exam has been submitted. Subjective answers will be evaluated by the teacher."
+          ? "Your exam has been submitted. Written answers are being evaluated."
           : `Your score: ${totalScore}/${exam?.total_marks}`
       });
 

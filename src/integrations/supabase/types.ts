@@ -431,37 +431,52 @@ export type Database = {
         Row: {
           answer: string | null
           attempt_id: string
+          corrected_answer: string | null
           created_at: string
           feedback: string | null
+          grammar_corrections: Json | null
           id: string
           is_correct: boolean | null
           is_evaluated: boolean | null
+          key_points_covered: string[] | null
+          key_points_missing: string[] | null
           marks_awarded: number | null
           question_id: string
+          semantic_score: number | null
           updated_at: string
         }
         Insert: {
           answer?: string | null
           attempt_id: string
+          corrected_answer?: string | null
           created_at?: string
           feedback?: string | null
+          grammar_corrections?: Json | null
           id?: string
           is_correct?: boolean | null
           is_evaluated?: boolean | null
+          key_points_covered?: string[] | null
+          key_points_missing?: string[] | null
           marks_awarded?: number | null
           question_id: string
+          semantic_score?: number | null
           updated_at?: string
         }
         Update: {
           answer?: string | null
           attempt_id?: string
+          corrected_answer?: string | null
           created_at?: string
           feedback?: string | null
+          grammar_corrections?: Json | null
           id?: string
           is_correct?: boolean | null
           is_evaluated?: boolean | null
+          key_points_covered?: string[] | null
+          key_points_missing?: string[] | null
           marks_awarded?: number | null
           question_id?: string
+          semantic_score?: number | null
           updated_at?: string
         }
         Relationships: [
