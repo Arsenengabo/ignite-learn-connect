@@ -12,28 +12,15 @@ import { Plus, Trash2, Loader2, FileText, Eye, Download } from "lucide-react";
 import ExamPreview from "./ExamPreview";
 import { generateExamPDF } from "@/utils/examPdfGenerator";
 
+type QuestionType = 'mcq' | 'true_false' | 'short_answer' | 'long_answer' | 'fill_blank' | 'calculation' | 'critical_thinking' | 'problem_solving' | 'mixed';
+
 interface ExamSection {
   id: string;
   title: string;
-  questionType: 'mcq' | 'true_false' | 'short_answer' | 'long_answer' | 'fill_blank';
+  questionType: QuestionType;
   questionCount: number;
   marksPerQuestion: number;
   instructions: string;
-}
-
-interface GeneratedQuestion {
-  question_text: string;
-  question_type: string;
-  options: string[] | null;
-  correct_answer: string;
-  explanation: string;
-  marks: number;
-}
-
-interface GeneratedSection {
-  title: string;
-  instructions: string;
-  questions: GeneratedQuestion[];
 }
 
 interface ExamCreatorProps {
@@ -47,7 +34,6 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
-  // Exam metadata
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
@@ -56,7 +42,6 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
   const [instructions, setInstructions] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   
-  // Sections
   const [sections, setSections] = useState<ExamSection[]>([
     {
       id: crypto.randomUUID(),
@@ -68,8 +53,8 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
     }
   ]);
   
-  // Generated content
-  const [generatedSections, setGeneratedSections] = useState<GeneratedSection[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [generatedData, setGeneratedData] = useState<any>(null);
 
   const addSection = () => {
     setSections([...sections, {
@@ -98,11 +83,7 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
 
   const generateExam = async () => {
     if (!subject.trim() || !topic.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide subject and topic for the exam.",
-        variant: "destructive"
-      });
+      toast({ title: "Missing Information", description: "Please provide subject and topic.", variant: "destructive" });
       return;
     }
 
@@ -129,40 +110,77 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
       if (error) throw error;
 
       if (data.sections) {
-        setGeneratedSections(data.sections);
-        toast({
-          title: "Exam Generated",
-          description: "Questions have been generated. Review and save when ready."
-        });
+        setGeneratedData(data);
+        toast({ title: "Exam Generated", description: "Questions have been generated with hierarchical structure, diagrams, and tables." });
       }
     } catch (error) {
       console.error("Error generating exam:", error);
-      toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate exam questions",
-        variant: "destructive"
-      });
+      toast({ title: "Generation Failed", description: error instanceof Error ? error.message : "Failed to generate exam", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Flatten hierarchical questions for saving to DB
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flattenQuestions = (questions: any[], sectionId: string, examId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flat: any[] = [];
+    let order = 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const walk = (items: any[], prefix: string) => {
+      for (const q of items) {
+        const num = prefix ? `${prefix}.${q.number}` : q.number?.toString() || '';
+        if (q.type === 'group' && q.subQuestions?.length) {
+          // Store group header as a question too for context
+          if (q.question) {
+            flat.push({
+              exam_id: examId,
+              section_id: sectionId,
+              question_text: q.question,
+              question_type: 'group_header',
+              options: null,
+              correct_answer: null,
+              explanation: null,
+              marks: 0,
+              order_index: order++,
+              sample_answer: null,
+              evaluation_guidelines: null,
+              key_points: q.diagram || q.table ? JSON.stringify({ diagram: q.diagram, table: q.table }) : null,
+            });
+          }
+          walk(q.subQuestions, num);
+        } else {
+          flat.push({
+            exam_id: examId,
+            section_id: sectionId,
+            question_text: q.question || q.question_text || '',
+            question_type: q.type || q.question_type || 'short_answer',
+            options: q.options || null,
+            correct_answer: q.correctAnswer || q.correct_answer || null,
+            explanation: q.explanation || q.workingSteps || null,
+            marks: q.marks || 1,
+            order_index: order++,
+            sample_answer: q.correctAnswer || q.correct_answer || null,
+            evaluation_guidelines: q.workingSteps || null,
+            key_points: (q.diagram || q.table) ? JSON.stringify({ diagram: q.diagram, table: q.table }) : null,
+          });
+        }
+      }
+    };
+
+    walk(questions, '');
+    return flat;
+  };
+
   const saveExam = async () => {
     if (!title.trim()) {
-      toast({
-        title: "Missing Title",
-        description: "Please provide a title for the exam.",
-        variant: "destructive"
-      });
+      toast({ title: "Missing Title", description: "Please provide a title.", variant: "destructive" });
       return;
     }
-
-    if (generatedSections.length === 0) {
-      toast({
-        title: "No Questions",
-        description: "Please generate questions first.",
-        variant: "destructive"
-      });
+    if (!generatedData?.sections?.length) {
+      toast({ title: "No Questions", description: "Please generate questions first.", variant: "destructive" });
       return;
     }
 
@@ -171,125 +189,106 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create exam
       const { data: exam, error: examError } = await supabase
         .from('exams')
         .insert({
-          teacher_id: user.id,
-          title,
-          subject,
-          description: topic,
-          difficulty_level: difficulty,
-          time_limit_minutes: timeLimit,
-          instructions,
-          total_marks: getTotalMarks(),
-          is_published: isPublished
+          teacher_id: user.id, title, subject, description: topic,
+          difficulty_level: difficulty, time_limit_minutes: timeLimit,
+          instructions, total_marks: getTotalMarks(), is_published: isPublished
         })
-        .select()
-        .single();
+        .select().single();
 
       if (examError) throw examError;
 
-      // Create sections and questions
-      let questionOrder = 0;
-      for (let sIdx = 0; sIdx < generatedSections.length; sIdx++) {
-        const genSection = generatedSections[sIdx];
+      for (let sIdx = 0; sIdx < generatedData.sections.length; sIdx++) {
+        const genSection = generatedData.sections[sIdx];
         const originalSection = sections[sIdx];
 
-        // Create section
         const { data: section, error: sectionError } = await supabase
           .from('exam_sections')
           .insert({
             exam_id: exam.id,
-            title: genSection.title,
-            instructions: genSection.instructions,
+            title: genSection.title || originalSection?.title || `Section ${sIdx + 1}`,
+            instructions: genSection.instructions || '',
             order_index: sIdx,
             marks_per_question: originalSection?.marksPerQuestion || 1
           })
-          .select()
-          .single();
+          .select().single();
 
         if (sectionError) throw sectionError;
 
-        // Create questions
-        for (const q of genSection.questions) {
-          const { error: qError } = await supabase
-            .from('exam_questions')
-            .insert({
-              exam_id: exam.id,
-              section_id: section.id,
-              question_text: q.question_text,
-              question_type: q.question_type,
-              options: q.options,
-              correct_answer: q.correct_answer,
-              explanation: q.explanation,
-              marks: q.marks,
-              order_index: questionOrder++
-            });
+        const questions = genSection.questions || [];
+        const flatQuestions = flattenQuestions(questions, section.id, exam.id);
 
+        if (flatQuestions.length > 0) {
+          const { error: qError } = await supabase.from('exam_questions').insert(flatQuestions);
           if (qError) throw qError;
         }
       }
 
-      toast({
-        title: "Exam Saved",
-        description: `${title} has been saved successfully.`
-      });
-
+      toast({ title: "Exam Saved", description: `${title} has been saved successfully.` });
       onExamCreated?.();
     } catch (error) {
       console.error("Error saving exam:", error);
-      toast({
-        title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save exam",
-        variant: "destructive"
-      });
+      toast({ title: "Save Failed", description: error instanceof Error ? error.message : "Failed to save exam", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleExportPDF = () => {
-    if (generatedSections.length === 0) {
-      toast({
-        title: "No Content",
-        description: "Generate questions first before exporting.",
-        variant: "destructive"
-      });
+    if (!generatedData?.sections?.length) {
+      toast({ title: "No Content", description: "Generate questions first.", variant: "destructive" });
       return;
     }
-
     generateExamPDF({
-      title: title || "Untitled Exam",
-      subject,
-      topic,
-      instructions,
-      timeLimit,
-      totalMarks: getTotalMarks(),
-      sections: generatedSections
+      title: title || "Untitled Exam", subject, topic, instructions, timeLimit,
+      totalMarks: getTotalMarks(), sections: generatedData.sections
     });
-
-    toast({
-      title: "PDF Downloaded",
-      description: "Exam has been exported as PDF."
-    });
+    toast({ title: "PDF Downloaded", description: "Exam has been exported as PDF." });
   };
 
-  if (showPreview && generatedSections.length > 0) {
+  if (showPreview && generatedData?.sections?.length) {
     return (
       <ExamPreview
-        title={title || "Untitled Exam"}
-        subject={subject}
-        topic={topic}
-        instructions={instructions}
-        timeLimit={timeLimit}
-        totalMarks={getTotalMarks()}
-        sections={generatedSections}
-        onBack={() => setShowPreview(false)}
-        onExport={handleExportPDF}
+        title={title || "Untitled Exam"} subject={subject} topic={topic}
+        instructions={instructions} timeLimit={timeLimit} totalMarks={getTotalMarks()}
+        sections={generatedData.sections}
+        onBack={() => setShowPreview(false)} onExport={handleExportPDF}
       />
     );
   }
+
+  const questionTypeLabels: Record<QuestionType, string> = {
+    mcq: "Multiple Choice",
+    true_false: "True/False",
+    short_answer: "Short Answer",
+    long_answer: "Long Answer",
+    fill_blank: "Fill in the Blank",
+    calculation: "Calculation",
+    critical_thinking: "Critical Thinking",
+    problem_solving: "Problem Solving",
+    mixed: "Mixed (All Types)",
+  };
+
+  const getTotalGeneratedQuestions = () => {
+    if (!generatedData?.sections) return 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let count = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const countQ = (items: any[]) => {
+      for (const q of items) {
+        if (q.type === 'group' && q.subQuestions?.length) {
+          countQ(q.subQuestions);
+        } else {
+          count++;
+        }
+      }
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    generatedData.sections.forEach((s: any) => countQ(s.questions || []));
+    return count;
+  };
 
   return (
     <div className="space-y-6">
@@ -307,41 +306,23 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Exam Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="title">Exam Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Mid-Term Mathematics Exam"
-              />
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Mid-Term Mathematics Exam" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="e.g., Mathematics"
-              />
+              <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g., Mathematics" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="topic">Topic/Chapter</Label>
-              <Input
-                id="topic"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g., Algebra and Quadratic Equations"
-              />
+              <Input id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g., Algebra and Quadratic Equations" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="difficulty">Difficulty Level</Label>
               <Select value={difficulty} onValueChange={(v: 'easy' | 'medium' | 'hard') => setDifficulty(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -351,22 +332,11 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
             </div>
             <div className="space-y-2">
               <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
-              <Input
-                id="timeLimit"
-                type="number"
-                value={timeLimit}
-                onChange={(e) => setTimeLimit(parseInt(e.target.value) || 60)}
-                min={5}
-                max={300}
-              />
+              <Input id="timeLimit" type="number" value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value) || 60)} min={5} max={300} />
             </div>
             <div className="space-y-2 flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Switch
-                  id="published"
-                  checked={isPublished}
-                  onCheckedChange={setIsPublished}
-                />
+                <Switch id="published" checked={isPublished} onCheckedChange={setIsPublished} />
                 <Label htmlFor="published">Publish immediately</Label>
               </div>
             </div>
@@ -374,16 +344,9 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
 
           <div className="space-y-2">
             <Label htmlFor="instructions">General Instructions</Label>
-            <Textarea
-              id="instructions"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Enter general instructions for the exam..."
-              rows={3}
-            />
+            <Textarea id="instructions" value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Enter general instructions for the exam..." rows={3} />
           </div>
 
-          {/* Sections */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-lg font-semibold">Exam Sections</Label>
@@ -398,12 +361,7 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Section {idx + 1}</span>
                     {sections.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSection(section.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => removeSection(section.id)} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -412,65 +370,32 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>Section Title</Label>
-                      <Input
-                        value={section.title}
-                        onChange={(e) => updateSection(section.id, { title: e.target.value })}
-                        placeholder="e.g., Section A"
-                      />
+                      <Input value={section.title} onChange={(e) => updateSection(section.id, { title: e.target.value })} placeholder="e.g., Section A" />
                     </div>
                     <div className="space-y-2">
                       <Label>Question Type</Label>
-                      <Select
-                        value={section.questionType}
-                        onValueChange={(v: ExamSection['questionType']) => 
-                          updateSection(section.id, { questionType: v })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={section.questionType} onValueChange={(v: QuestionType) => updateSection(section.id, { questionType: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="mcq">Multiple Choice</SelectItem>
-                          <SelectItem value="true_false">True/False</SelectItem>
-                          <SelectItem value="short_answer">Short Answer</SelectItem>
-                          <SelectItem value="long_answer">Long Answer</SelectItem>
-                          <SelectItem value="fill_blank">Fill in the Blank</SelectItem>
+                          {Object.entries(questionTypeLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Number of Questions</Label>
-                      <Input
-                        type="number"
-                        value={section.questionCount}
-                        onChange={(e) => updateSection(section.id, { 
-                          questionCount: parseInt(e.target.value) || 1 
-                        })}
-                        min={1}
-                        max={50}
-                      />
+                      <Input type="number" value={section.questionCount} onChange={(e) => updateSection(section.id, { questionCount: parseInt(e.target.value) || 1 })} min={1} max={50} />
                     </div>
                     <div className="space-y-2">
                       <Label>Marks per Question</Label>
-                      <Input
-                        type="number"
-                        value={section.marksPerQuestion}
-                        onChange={(e) => updateSection(section.id, { 
-                          marksPerQuestion: parseInt(e.target.value) || 1 
-                        })}
-                        min={1}
-                        max={20}
-                      />
+                      <Input type="number" value={section.marksPerQuestion} onChange={(e) => updateSection(section.id, { marksPerQuestion: parseInt(e.target.value) || 1 })} min={1} max={20} />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label>Section Instructions (optional)</Label>
-                    <Input
-                      value={section.instructions}
-                      onChange={(e) => updateSection(section.id, { instructions: e.target.value })}
-                      placeholder="e.g., Choose the correct answer"
-                    />
+                    <Input value={section.instructions} onChange={(e) => updateSection(section.id, { instructions: e.target.value })} placeholder="e.g., Choose the correct answer" />
                   </div>
 
                   <div className="text-sm text-muted-foreground">
@@ -486,13 +411,12 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
             </Button>
           </div>
 
-          {/* Generated Questions Preview */}
-          {generatedSections.length > 0 && (
+          {generatedData?.sections?.length > 0 && (
             <Card className="bg-success/5 border-success/20">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-medium text-success">
-                    ✓ {generatedSections.reduce((sum, s) => sum + s.questions.length, 0)} Questions Generated
+                    ✓ {getTotalGeneratedQuestions()} Questions Generated (with hierarchical structure)
                   </span>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
@@ -506,9 +430,10 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
                   </div>
                 </div>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  {generatedSections.map((section, idx) => (
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {generatedData.sections.map((section: any, idx: number) => (
                     <div key={idx}>
-                      {section.title}: {section.questions.length} questions
+                      {section.title}: {section.questions?.length || 0} top-level questions
                     </div>
                   ))}
                 </div>
@@ -516,38 +441,19 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
             </Card>
           )}
 
-          {/* Actions */}
           <div className="flex flex-wrap gap-4">
-            <Button
-              onClick={generateExam}
-              disabled={isGenerating || !subject.trim() || !topic.trim()}
-              className="flex-1 min-w-[200px]"
-            >
+            <Button onClick={generateExam} disabled={isGenerating || !subject.trim() || !topic.trim()} className="flex-1 min-w-[200px]">
               {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Questions...
-                </>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating Questions...</>
               ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate Questions
-                </>
+                <><FileText className="h-4 w-4 mr-2" />Generate Questions</>
               )}
             </Button>
             
-            {generatedSections.length > 0 && (
-              <Button
-                onClick={saveExam}
-                disabled={isSaving || !title.trim()}
-                variant="default"
-                className="flex-1 min-w-[200px]"
-              >
+            {generatedData?.sections?.length > 0 && (
+              <Button onClick={saveExam} disabled={isSaving || !title.trim()} variant="default" className="flex-1 min-w-[200px]">
                 {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
                 ) : (
                   "Save Exam"
                 )}
