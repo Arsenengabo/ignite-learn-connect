@@ -92,7 +92,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-muted-foreground">{String.fromCharCode(65 + i)})</span>
                   <span className={showAnswers && (q.correctAnswer === opt || q.correct_answer === opt || q.correctAnswer === i)
-                    ? "text-green-600 dark:text-green-400 font-medium" : "text-foreground"
+                    ? "text-primary font-medium" : "text-foreground"
                   }>{opt}</span>
                 </div>
               ))}
@@ -106,7 +106,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-muted-foreground">{String.fromCharCode(65 + i)})</span>
                   <span className={showAnswers && (q.correctAnswer || q.correct_answer || '').toLowerCase() === v.toLowerCase()
-                    ? "text-green-600 dark:text-green-400 font-medium" : "text-foreground"
+                    ? "text-primary font-medium" : "text-foreground"
                   }>{v}</span>
                 </div>
               ))}
@@ -117,7 +117,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
           {q.type === 'fill_blank' && (
             <div className="ml-4 mt-2">
               <div className="border-b-2 border-dashed border-muted-foreground w-48 h-6" />
-              {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm mt-1">Answer: {q.correctAnswer || q.correct_answer}</p>}
+              {showAnswers && <p className="text-primary text-sm mt-1">Answer: {q.correctAnswer || q.correct_answer}</p>}
             </div>
           )}
 
@@ -125,7 +125,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
           {(q.type === 'short_answer' || q.type === 'long_answer') && (
             <div className="ml-4 mt-2">
               <div className={`border border-dashed border-muted-foreground rounded p-2 ${q.type === 'long_answer' ? 'min-h-[100px]' : 'min-h-[50px]'}`}>
-                {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm">{q.correctAnswer || q.correct_answer}</p>}
+                {showAnswers && <p className="text-primary text-sm">{q.correctAnswer || q.correct_answer}</p>}
               </div>
             </div>
           )}
@@ -136,7 +136,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
               <div className="border border-dashed border-muted-foreground rounded p-2 min-h-[80px]">
                 {showAnswers && (
                   <div className="text-sm space-y-1">
-                    <p className="text-green-600 dark:text-green-400 font-medium">Answer: {q.correctAnswer || q.correct_answer}</p>
+                    <p className="text-primary font-medium">Answer: {q.correctAnswer || q.correct_answer}</p>
                     {q.workingSteps && <p className="text-muted-foreground whitespace-pre-wrap">Working: {q.workingSteps}</p>}
                   </div>
                 )}
@@ -148,7 +148,7 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
           {(q.type === 'critical_thinking' || q.type === 'problem_solving') && (
             <div className="ml-4 mt-2">
               <div className="border border-dashed border-muted-foreground rounded p-2 min-h-[100px]">
-                {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm">{q.correctAnswer || q.correct_answer || q.sampleAnswer}</p>}
+                {showAnswers && <p className="text-primary text-sm">{q.correctAnswer || q.correct_answer || q.sampleAnswer}</p>}
               </div>
             </div>
           )}
