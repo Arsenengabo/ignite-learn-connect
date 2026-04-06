@@ -2,22 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Clock, BookOpen } from "lucide-react";
+import { ArrowLeft, Download, Clock, BookOpen, Image, Table2 } from "lucide-react";
 
-interface Question {
-  question_text: string;
-  question_type: string;
-  options: string[] | null;
-  correct_answer: string;
-  explanation: string;
-  marks: number;
-}
-
-interface Section {
-  title: string;
-  instructions: string;
-  questions: Question[];
-}
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface ExamPreviewProps {
   title: string;
@@ -26,110 +13,184 @@ interface ExamPreviewProps {
   instructions: string;
   timeLimit: number;
   totalMarks: number;
-  sections: Section[];
+  sections: any[];
   onBack: () => void;
   onExport: () => void;
   showAnswers?: boolean;
 }
 
-export default function ExamPreview({
-  title,
-  subject,
-  topic,
-  instructions,
-  timeLimit,
-  totalMarks,
-  sections,
-  onBack,
-  onExport,
-  showAnswers = false
-}: ExamPreviewProps) {
-  let questionNumber = 0;
+function DiagramPlaceholder({ diagram }: { diagram: any }) {
+  if (!diagram) return null;
+  return (
+    <div className="my-3 border-2 border-dashed border-muted-foreground/40 rounded-lg p-4 bg-muted/20 flex items-center gap-3">
+      <Image className="h-8 w-8 text-muted-foreground/60 shrink-0" />
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">Diagram</p>
+        <p className="text-sm text-muted-foreground/80">{diagram.description}</p>
+      </div>
+    </div>
+  );
+}
 
-  const renderQuestion = (question: Question, index: number) => {
-    questionNumber++;
-    
-    return (
-      <div key={index} className="mb-6">
-        <div className="flex items-start gap-2 mb-2">
-          <span className="font-semibold text-foreground min-w-[2rem]">
-            {questionNumber}.
-          </span>
-          <div className="flex-1">
-            <p className="text-foreground mb-2">{question.question_text}</p>
-            
-            {question.question_type === 'mcq' && question.options && (
-              <div className="ml-4 space-y-1">
-                {question.options.map((option, optIdx) => (
-                  <div key={optIdx} className="flex items-center gap-2">
-                    <span className="text-muted-foreground">
-                      {String.fromCharCode(65 + optIdx)})
-                    </span>
-                    <span className={showAnswers && question.correct_answer === option 
-                      ? "text-success font-medium" 
-                      : "text-foreground"
-                    }>
-                      {option}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {question.question_type === 'true_false' && (
-              <div className="ml-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">A)</span>
-                  <span className={showAnswers && question.correct_answer.toLowerCase() === 'true' 
-                    ? "text-success font-medium" 
-                    : "text-foreground"
-                  }>True</span>
+function TableRenderer({ table }: { table: any }) {
+  if (!table?.headers?.length) return null;
+  return (
+    <div className="my-3 overflow-x-auto">
+      <div className="flex items-center gap-1 mb-1 text-xs text-muted-foreground">
+        <Table2 className="h-3 w-3" />
+        <span>Data Table</span>
+      </div>
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            {table.headers.map((h: string, i: number) => (
+              <th key={i} className="border border-border bg-muted/50 px-3 py-1.5 text-left font-medium text-foreground">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows?.map((row: string[], rIdx: number) => (
+            <tr key={rIdx}>
+              {row.map((cell: string, cIdx: number) => (
+                <td key={cIdx} className="border border-border px-3 py-1.5 text-foreground">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefix: string; showAnswers: boolean; depth?: number }) {
+  const isGroup = q.type === 'group' && q.subQuestions?.length;
+  const indent = depth > 0 ? `ml-${Math.min(depth * 4, 12)}` : '';
+  const questionText = q.question || q.question_text || '';
+
+  return (
+    <div className={`mb-4 ${indent}`}>
+      <div className="flex items-start gap-2">
+        <span className="font-semibold text-foreground min-w-[2rem] shrink-0">
+          {prefix}{depth === 0 ? '.' : ')'}
+        </span>
+        <div className="flex-1">
+          {questionText && (
+            <p className="text-foreground mb-1">{questionText}</p>
+          )}
+
+          {q.diagram && <DiagramPlaceholder diagram={q.diagram} />}
+          {q.table && <TableRenderer table={q.table} />}
+
+          {/* MCQ options */}
+          {q.type === 'mcq' && q.options && (
+            <div className="ml-4 space-y-1 mt-1">
+              {q.options.map((opt: string, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{String.fromCharCode(65 + i)})</span>
+                  <span className={showAnswers && (q.correctAnswer === opt || q.correct_answer === opt || q.correctAnswer === i)
+                    ? "text-green-600 dark:text-green-400 font-medium" : "text-foreground"
+                  }>{opt}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">B)</span>
-                  <span className={showAnswers && question.correct_answer.toLowerCase() === 'false' 
-                    ? "text-success font-medium" 
-                    : "text-foreground"
-                  }>False</span>
+              ))}
+            </div>
+          )}
+
+          {/* True/False */}
+          {q.type === 'true_false' && (
+            <div className="ml-4 space-y-1 mt-1">
+              {['True', 'False'].map((v, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{String.fromCharCode(65 + i)})</span>
+                  <span className={showAnswers && (q.correctAnswer || q.correct_answer || '').toLowerCase() === v.toLowerCase()
+                    ? "text-green-600 dark:text-green-400 font-medium" : "text-foreground"
+                  }>{v}</span>
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Fill blank */}
+          {q.type === 'fill_blank' && (
+            <div className="ml-4 mt-2">
+              <div className="border-b-2 border-dashed border-muted-foreground w-48 h-6" />
+              {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm mt-1">Answer: {q.correctAnswer || q.correct_answer}</p>}
+            </div>
+          )}
+
+          {/* Short / Long answer */}
+          {(q.type === 'short_answer' || q.type === 'long_answer') && (
+            <div className="ml-4 mt-2">
+              <div className={`border border-dashed border-muted-foreground rounded p-2 ${q.type === 'long_answer' ? 'min-h-[100px]' : 'min-h-[50px]'}`}>
+                {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm">{q.correctAnswer || q.correct_answer}</p>}
               </div>
-            )}
-            
-            {question.question_type === 'fill_blank' && (
-              <div className="ml-4 mt-2">
-                <div className="border-b-2 border-dashed border-muted-foreground w-48 h-6" />
+            </div>
+          )}
+
+          {/* Calculation */}
+          {q.type === 'calculation' && (
+            <div className="ml-4 mt-2">
+              <div className="border border-dashed border-muted-foreground rounded p-2 min-h-[80px]">
                 {showAnswers && (
-                  <p className="text-success text-sm mt-1">Answer: {question.correct_answer}</p>
+                  <div className="text-sm space-y-1">
+                    <p className="text-green-600 dark:text-green-400 font-medium">Answer: {q.correctAnswer || q.correct_answer}</p>
+                    {q.workingSteps && <p className="text-muted-foreground whitespace-pre-wrap">Working: {q.workingSteps}</p>}
+                  </div>
                 )}
               </div>
-            )}
-            
-            {(question.question_type === 'short_answer' || question.question_type === 'long_answer') && (
-              <div className="ml-4 mt-2">
-                <div className={`border border-dashed border-muted-foreground rounded p-2 ${
-                  question.question_type === 'long_answer' ? 'min-h-[100px]' : 'min-h-[50px]'
-                }`}>
-                  {showAnswers && (
-                    <p className="text-success text-sm">{question.correct_answer}</p>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="text-right text-sm text-muted-foreground mt-1">
-              [{question.marks} mark{question.marks > 1 ? 's' : ''}]
             </div>
-            
-            {showAnswers && question.explanation && (
-              <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
-                <span className="font-medium">Explanation:</span> {question.explanation}
+          )}
+
+          {/* Critical thinking / Problem solving */}
+          {(q.type === 'critical_thinking' || q.type === 'problem_solving') && (
+            <div className="ml-4 mt-2">
+              <div className="border border-dashed border-muted-foreground rounded p-2 min-h-[100px]">
+                {showAnswers && <p className="text-green-600 dark:text-green-400 text-sm">{q.correctAnswer || q.correct_answer || q.sampleAnswer}</p>}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Marks */}
+          {q.marks > 0 && (
+            <div className="text-right text-sm text-muted-foreground mt-1">
+              [{q.marks} mark{q.marks > 1 ? 's' : ''}]
+            </div>
+          )}
+
+          {/* Explanation */}
+          {showAnswers && (q.explanation || q.workingSteps) && (
+            <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
+              <span className="font-medium">Explanation:</span> {q.explanation || q.workingSteps}
+            </div>
+          )}
+
+          {/* Sub-questions */}
+          {isGroup && (
+            <div className="mt-3">
+              {q.subQuestions.map((sub: any, i: number) => {
+                const subPrefix = depth === 0
+                  ? String.fromCharCode(97 + i) // a, b, c
+                  : (depth === 1 ? ['i', 'ii', 'iii', 'iv', 'v', 'vi'][i] || `${i + 1}` : `${i + 1}`);
+                return (
+                  <QuestionRenderer key={i} q={sub} prefix={sub.number || subPrefix} showAnswers={showAnswers} depth={depth + 1} />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+}
+
+export default function ExamPreview({
+  title, subject, topic, instructions, timeLimit, totalMarks, sections,
+  onBack, onExport, showAnswers = false
+}: ExamPreviewProps) {
+  let questionNumber = 0;
 
   return (
     <div className="space-y-4">
@@ -169,16 +230,30 @@ export default function ExamPreview({
           )}
 
           <ScrollArea className="h-[600px] pr-4">
-            {sections.map((section, sIdx) => (
+            {sections.map((section: any, sIdx: number) => (
               <div key={sIdx} className="mb-8">
                 <div className="bg-primary/10 p-3 rounded-lg mb-4">
                   <h2 className="font-bold text-lg">{section.title}</h2>
                   {section.instructions && (
                     <p className="text-sm text-muted-foreground mt-1">{section.instructions}</p>
                   )}
+                  {section.totalMarks && (
+                    <p className="text-sm text-muted-foreground">Total: {section.totalMarks} marks</p>
+                  )}
                 </div>
 
-                {section.questions.map((q, qIdx) => renderQuestion(q, qIdx))}
+                {(section.questions || []).map((q: any, qIdx: number) => {
+                  questionNumber++;
+                  return (
+                    <QuestionRenderer
+                      key={qIdx}
+                      q={q}
+                      prefix={q.number?.toString() || questionNumber.toString()}
+                      showAnswers={showAnswers}
+                      depth={0}
+                    />
+                  );
+                })}
 
                 {sIdx < sections.length - 1 && <Separator className="my-6" />}
               </div>
