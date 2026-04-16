@@ -492,6 +492,29 @@ export const AIQuestionGenerator = () => {
           addText(`Q${q.number}. [${q.marks} marks]`, 11, true);
           addText(q.question, 11);
 
+          // Embed diagram image if available
+          if (q.diagram?.image_url) {
+            try {
+              const imgW = 120, imgH = 90;
+              const x = (pageWidth - imgW) / 2;
+              if (yPos + imgH > doc.internal.pageSize.getHeight() - 20) {
+                doc.addPage();
+                yPos = 20;
+              }
+              doc.addImage(q.diagram.image_url, "PNG", x, yPos, imgW, imgH);
+              yPos += imgH + 4;
+            } catch (e) {
+              console.error("Failed to embed diagram in PDF", e);
+            }
+          }
+
+          // Diagram-labeling answer lines
+          if (q.type === 'diagram_labeling' && q.diagram?.labels) {
+            q.diagram.labels.forEach(l => {
+              addText(`${l} → ____________________________________`, 10);
+            });
+          }
+
           if (q.options && q.options.length > 0) {
             q.options.forEach((opt, i) => {
               addText(`   ${String.fromCharCode(65 + i)}) ${opt}`, 10);
