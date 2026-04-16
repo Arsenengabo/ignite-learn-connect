@@ -10,11 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2, Upload, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2, Upload, ExternalLink, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { Json } from "@/integrations/supabase/types";
+import { DiagramQuestionGenerator } from "./DiagramQuestionGenerator";
 
 interface SectionQuestion {
   type: "mcq" | "short_answer" | "long_answer" | "true_false";
@@ -525,7 +526,23 @@ export const AIQuestionGenerator = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="exam" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2 max-w-xl">
+        <TabsTrigger value="exam">
+          <Sparkles className="w-4 h-4 mr-2" />
+          AI Exam Generator
+        </TabsTrigger>
+        <TabsTrigger value="diagram">
+          <ImageIcon className="w-4 h-4 mr-2" />
+          Diagram Questions
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="diagram" className="space-y-6">
+        <DiagramQuestionGenerator />
+      </TabsContent>
+
+      <TabsContent value="exam" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
