@@ -411,6 +411,14 @@ serve(async (req) => {
       const raw = await callLovableAI(prompts.systemPrompt, prompts.userPrompt);
       const exam = tryParseExamJson(raw);
 
+      // Render colorful diagrams for any question that includes a diagram object
+      const includeDiagrams = format.includeDiagrams !== false; // default true
+      const colorful = format.colorfulDiagrams !== false; // default true
+      if (includeDiagrams) {
+        const apiKey = Deno.env.get("LOVABLE_API_KEY");
+        if (apiKey) await attachDiagramImages(exam, colorful, apiKey);
+      }
+
       return new Response(JSON.stringify({ exam, onlineExamReady }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
