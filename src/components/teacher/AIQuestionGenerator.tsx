@@ -635,6 +635,38 @@ export const AIQuestionGenerator = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="incl-diagrams" className="flex items-center gap-2 cursor-pointer">
+                  <ImageIcon className="w-4 h-4 text-primary" />
+                  Include diagrams in exam
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  AI auto-renders labeled diagrams when relevant (biology, physics, geometry…).
+                </p>
+              </div>
+              <Switch id="incl-diagrams" checked={includeDiagrams} onCheckedChange={setIncludeDiagrams} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="color-diagrams" className="flex items-center gap-2 cursor-pointer">
+                  <Palette className="w-4 h-4 text-primary" />
+                  Colorful diagrams
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use educational colors (e.g. arteries red, veins blue) instead of B&amp;W.
+                </p>
+              </div>
+              <Switch
+                id="color-diagrams"
+                checked={colorfulDiagrams}
+                onCheckedChange={setColorfulDiagrams}
+                disabled={!includeDiagrams}
+              />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="instructions">Instructions (one per line)</Label>
             <Textarea
