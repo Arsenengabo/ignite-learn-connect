@@ -108,7 +108,7 @@ Required Output Format (Strict JSON Only):
     "totalMarks": number,
     "questions": [{
       "number": number,
-      "type": "mcq" | "short_answer" | "long_answer" | "true_false",
+      "type": "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling",
       "question": "string",
       "marks": number,
       "options": ["string"] | null,
@@ -116,10 +116,23 @@ Required Output Format (Strict JSON Only):
       "explanation": "string",
       "sampleAnswer": "string",
       "evaluationGuidelines": "string",
-      "keyPoints": ["string"]
+      "keyPoints": ["string"],
+      "diagram": null | {
+        "type": "generated",
+        "description": "detailed visual description of WHAT to draw (for an image model)",
+        "labels": ["A","B","C","D","E","F"],
+        "colorful": true
+      },
+      "answer_key": null | { "A": "name", "B": "name", ... }
     }]
   }]
-}`;
+}
+
+DIAGRAM RULES:
+- For diagram_labeling questions, you MUST include both "diagram" and "answer_key" with one entry per label.
+- The diagram description must be detailed enough for an image model to render the structure accurately (anatomy, apparatus, circuit, geographic feature, geometry, etc.).
+- Use 4-8 labels (uppercase A, B, C…). The "labels" array must match the keys of "answer_key".
+- The question text should instruct: "Study the diagram below and identify the labeled parts A, B, C…".`;
 
   const systemPrompt = `${basePrompt}
 ${outputFormat}
