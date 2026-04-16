@@ -21,6 +21,25 @@ interface ExamPreviewProps {
 
 function DiagramPlaceholder({ diagram }: { diagram: any }) {
   if (!diagram) return null;
+
+  // If an actual image was generated, render it inline
+  if (diagram.image_url) {
+    return (
+      <div className="my-3 rounded-lg border bg-background p-3 flex flex-col items-center">
+        <img
+          src={diagram.image_url}
+          alt={diagram.description || 'Exam diagram'}
+          className="max-h-[420px] w-auto object-contain rounded"
+        />
+        {Array.isArray(diagram.labels) && diagram.labels.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Labels: {diagram.labels.join(', ')}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="my-3 border-2 border-dashed border-muted-foreground/40 rounded-lg p-4 bg-muted/20 flex items-center gap-3">
       <Image className="h-8 w-8 text-muted-foreground/60 shrink-0" />
