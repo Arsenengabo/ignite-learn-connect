@@ -218,7 +218,9 @@ export const AIQuestionGenerator = () => {
         totalMarks: calculateTotalMarks(),
         difficulty,
         instructions: instructions.split("\n").filter(Boolean),
-        sections
+        sections,
+        includeDiagrams,
+        colorfulDiagrams,
       };
 
       const { data, error } = await supabase.functions.invoke('ai-question-generator', {
