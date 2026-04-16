@@ -172,6 +172,24 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
             </div>
           )}
 
+          {/* Diagram labeling — answer lines for each label */}
+          {q.type === 'diagram_labeling' && (
+            <div className="ml-4 mt-2 space-y-1">
+              {(q.diagram?.labels || ['A', 'B', 'C', 'D', 'E', 'F']).map((label: string) => (
+                <div key={label} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-foreground w-6">{label} →</span>
+                  {showAnswers ? (
+                    <span className="text-primary font-medium">
+                      {q.answer_key?.[label] || q.answerKey?.[label] || '—'}
+                    </span>
+                  ) : (
+                    <span className="border-b border-muted-foreground flex-1 h-5" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Marks */}
           {q.marks > 0 && (
             <div className="text-right text-sm text-muted-foreground mt-1">
