@@ -535,7 +535,8 @@ export const AIQuestionGenerator = () => {
       mcq: "Multiple Choice",
       short_answer: "Short Answer",
       long_answer: "Long Answer",
-      true_false: "True/False"
+      true_false: "True/False",
+      diagram_labeling: "Diagram Labeling",
     };
     return labels[type] || type;
   };
