@@ -10,7 +10,7 @@ const corsHeaders = {
 interface ExamSection {
   name: string;
   questions: {
-    type: "mcq" | "short_answer" | "long_answer" | "true_false";
+    type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
     count: number;
     marksEach: number;
   }[];
@@ -25,6 +25,8 @@ interface ExamFormat {
   difficulty: "easy" | "medium" | "hard" | "mixed";
   instructions: string[];
   sections: ExamSection[];
+  includeDiagrams?: boolean;
+  colorfulDiagrams?: boolean;
 }
 
 function buildExamPrompt(format: ExamFormat, onlineExamReady: boolean = false): string {
