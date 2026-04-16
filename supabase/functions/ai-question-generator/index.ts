@@ -10,7 +10,7 @@ const corsHeaders = {
 interface ExamSection {
   name: string;
   questions: {
-    type: "mcq" | "short_answer" | "long_answer" | "true_false";
+    type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
     count: number;
     marksEach: number;
   }[];
@@ -25,6 +25,8 @@ interface ExamFormat {
   difficulty: "easy" | "medium" | "hard" | "mixed";
   instructions: string[];
   sections: ExamSection[];
+  includeDiagrams?: boolean;
+  colorfulDiagrams?: boolean;
 }
 
 function buildExamPrompt(format: ExamFormat, onlineExamReady: boolean = false): string {
@@ -106,7 +108,7 @@ Required Output Format (Strict JSON Only):
     "totalMarks": number,
     "questions": [{
       "number": number,
-      "type": "mcq" | "short_answer" | "long_answer" | "true_false",
+      "type": "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling",
       "question": "string",
       "marks": number,
       "options": ["string"] | null,
@@ -114,10 +116,23 @@ Required Output Format (Strict JSON Only):
       "explanation": "string",
       "sampleAnswer": "string",
       "evaluationGuidelines": "string",
-      "keyPoints": ["string"]
+      "keyPoints": ["string"],
+      "diagram": null | {
+        "type": "generated",
+        "description": "detailed visual description of WHAT to draw (for an image model)",
+        "labels": ["A","B","C","D","E","F"],
+        "colorful": true
+      },
+      "answer_key": null | { "A": "name", "B": "name", ... }
     }]
   }]
-}`;
+}
+
+DIAGRAM RULES:
+- For diagram_labeling questions, you MUST include both "diagram" and "answer_key" with one entry per label.
+- The diagram description must be detailed enough for an image model to render the structure accurately (anatomy, apparatus, circuit, geographic feature, geometry, etc.).
+- Use 4-8 labels (uppercase A, B, C…). The "labels" array must match the keys of "answer_key".
+- The question text should instruct: "Study the diagram below and identify the labeled parts A, B, C…".`;
 
   const systemPrompt = `${basePrompt}
 ${outputFormat}
@@ -259,6 +274,90 @@ function tryParseExamJson(text: string) {
   throw new Error("Failed to parse exam JSON from AI response");
 }
 
+async function generateColoredDiagram(
+  description: string,
+  labels: string[] | undefined,
+  colorful: boolean,
+  apiKey: string,
+): Promise<string | null> {
+  try {
+    const labelList = (labels && labels.length > 0)
+      ? labels.join(", ")
+      : Array.from({ length: 6 }, (_, i) => String.fromCharCode(65 + i)).join(", ");
+
+    const colorRule = colorful
+      ? `Use clean educational COLORS to distinguish parts (e.g. anatomical conventions: arteries red, veins blue; biology organelles distinct pastel colors). Soft, print-friendly colors with good contrast on a white background.`
+      : `Pure black-and-white line art on a white background.`;
+
+    const prompt = `Generate a clean, scientifically accurate educational exam diagram.
+
+SUBJECT OF DIAGRAM:
+${description}
+
+REQUIREMENTS:
+- Secondary school exam standard, suitable for printing on A4 paper
+- ${colorRule}
+- Simple, clear, readable lines and shapes
+- NO decorative elements
+- Show ONLY the essential structures relevant to the topic
+- DO NOT write the original anatomical/structural names on the diagram
+- Instead, place CLEAR alphabetical label markers exactly: ${labelList}
+- Each marker is a bold capital letter inside a small white circle with a thin straight line pointing to the corresponding structure
+- Markers must NOT overlap and must remain readable after printing
+- Layout centered and balanced for an A4 exam page`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Diagram image generation failed:", res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
+  } catch (e) {
+    console.error("Diagram image generation exception:", e);
+    return null;
+  }
+}
+
+async function attachDiagramImages(examData: any, colorful: boolean, apiKey: string) {
+  const tasks: Array<{ node: any; promise: Promise<string | null> }> = [];
+  const walk = (node: any) => {
+    if (!node || typeof node !== "object") return;
+    if (node.diagram && typeof node.diagram === "object" && node.diagram.description) {
+      if (!Array.isArray(node.diagram.labels) || node.diagram.labels.length === 0) {
+        node.diagram.labels = ["A", "B", "C", "D", "E", "F"];
+      }
+      const useColor = node.diagram.colorful !== false && colorful;
+      tasks.push({
+        node: node.diagram,
+        promise: generateColoredDiagram(node.diagram.description, node.diagram.labels, useColor, apiKey),
+      });
+    }
+    if (Array.isArray(node.subQuestions)) node.subQuestions.forEach(walk);
+    if (Array.isArray(node.questions)) node.questions.forEach(walk);
+    if (Array.isArray(node.sections)) node.sections.forEach(walk);
+    if (node.studentView) walk(node.studentView);
+  };
+  walk(examData);
+
+  if (tasks.length === 0) return;
+  console.log(`Rendering ${tasks.length} diagram image(s) (colorful=${colorful})…`);
+  const results = await Promise.all(tasks.map(t => t.promise));
+  results.forEach((url, i) => { if (url) tasks[i].node.image_url = url; });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -311,6 +410,14 @@ serve(async (req) => {
       
       const raw = await callLovableAI(prompts.systemPrompt, prompts.userPrompt);
       const exam = tryParseExamJson(raw);
+
+      // Render colorful diagrams for any question that includes a diagram object
+      const includeDiagrams = format.includeDiagrams !== false; // default true
+      const colorful = format.colorfulDiagrams !== false; // default true
+      if (includeDiagrams) {
+        const apiKey = Deno.env.get("LOVABLE_API_KEY");
+        if (apiKey) await attachDiagramImages(exam, colorful, apiKey);
+      }
 
       return new Response(JSON.stringify({ exam, onlineExamReady }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

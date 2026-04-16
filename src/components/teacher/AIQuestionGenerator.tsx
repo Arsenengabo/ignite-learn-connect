@@ -10,7 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2, Upload, ExternalLink, ImageIcon } from "lucide-react";
+import { Plus, Trash2, Sparkles, Download, Eye, FileText, ClipboardList, Key, Loader2, Monitor, Flag, Clock, CheckCircle2, Upload, ExternalLink, ImageIcon, Palette } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -18,7 +19,7 @@ import { Json } from "@/integrations/supabase/types";
 import { DiagramQuestionGenerator } from "./DiagramQuestionGenerator";
 
 interface SectionQuestion {
-  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
   count: number;
   marksEach: number;
 }
@@ -28,9 +29,17 @@ interface ExamSection {
   questions: SectionQuestion[];
 }
 
+interface DiagramSpec {
+  type?: string;
+  description?: string;
+  labels?: string[];
+  colorful?: boolean;
+  image_url?: string;
+}
+
 interface GeneratedQuestion {
   number: number;
-  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
   question: string;
   marks: number;
   options?: string[] | null;
@@ -39,6 +48,8 @@ interface GeneratedQuestion {
   sampleAnswer?: string;
   evaluationGuidelines?: string;
   keyPoints?: string[];
+  diagram?: DiagramSpec | null;
+  answer_key?: Record<string, string> | null;
 }
 
 interface GeneratedSection {
@@ -137,6 +148,8 @@ export const AIQuestionGenerator = () => {
   const [savedExamId, setSavedExamId] = useState<string | null>(null);
   const [generationMode, setGenerationMode] = useState<"standard" | "online">("standard");
   const [previewQuestion, setPreviewQuestion] = useState(0);
+  const [includeDiagrams, setIncludeDiagrams] = useState(true);
+  const [colorfulDiagrams, setColorfulDiagrams] = useState(true);
 
   const addSection = () => {
     setSections([...sections, {
@@ -205,7 +218,9 @@ export const AIQuestionGenerator = () => {
         totalMarks: calculateTotalMarks(),
         difficulty,
         instructions: instructions.split("\n").filter(Boolean),
-        sections
+        sections,
+        includeDiagrams,
+        colorfulDiagrams,
       };
 
       const { data, error } = await supabase.functions.invoke('ai-question-generator', {
@@ -477,6 +492,29 @@ export const AIQuestionGenerator = () => {
           addText(`Q${q.number}. [${q.marks} marks]`, 11, true);
           addText(q.question, 11);
 
+          // Embed diagram image if available
+          if (q.diagram?.image_url) {
+            try {
+              const imgW = 120, imgH = 90;
+              const x = (pageWidth - imgW) / 2;
+              if (yPos + imgH > doc.internal.pageSize.getHeight() - 20) {
+                doc.addPage();
+                yPos = 20;
+              }
+              doc.addImage(q.diagram.image_url, "PNG", x, yPos, imgW, imgH);
+              yPos += imgH + 4;
+            } catch (e) {
+              console.error("Failed to embed diagram in PDF", e);
+            }
+          }
+
+          // Diagram-labeling answer lines
+          if (q.type === 'diagram_labeling' && q.diagram?.labels) {
+            q.diagram.labels.forEach(l => {
+              addText(`${l} → ____________________________________`, 10);
+            });
+          }
+
           if (q.options && q.options.length > 0) {
             q.options.forEach((opt, i) => {
               addText(`   ${String.fromCharCode(65 + i)}) ${opt}`, 10);
@@ -520,7 +558,8 @@ export const AIQuestionGenerator = () => {
       mcq: "Multiple Choice",
       short_answer: "Short Answer",
       long_answer: "Long Answer",
-      true_false: "True/False"
+      true_false: "True/False",
+      diagram_labeling: "Diagram Labeling",
     };
     return labels[type] || type;
   };
@@ -620,6 +659,38 @@ export const AIQuestionGenerator = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="incl-diagrams" className="flex items-center gap-2 cursor-pointer">
+                  <ImageIcon className="w-4 h-4 text-primary" />
+                  Include diagrams in exam
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  AI auto-renders labeled diagrams when relevant (biology, physics, geometry…).
+                </p>
+              </div>
+              <Switch id="incl-diagrams" checked={includeDiagrams} onCheckedChange={setIncludeDiagrams} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="color-diagrams" className="flex items-center gap-2 cursor-pointer">
+                  <Palette className="w-4 h-4 text-primary" />
+                  Colorful diagrams
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use educational colors (e.g. arteries red, veins blue) instead of B&amp;W.
+                </p>
+              </div>
+              <Switch
+                id="color-diagrams"
+                checked={colorfulDiagrams}
+                onCheckedChange={setColorfulDiagrams}
+                disabled={!includeDiagrams}
+              />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="instructions">Instructions (one per line)</Label>
             <Textarea
@@ -706,6 +777,7 @@ export const AIQuestionGenerator = () => {
                                 <SelectItem value="true_false">True/False</SelectItem>
                                 <SelectItem value="short_answer">Short Answer</SelectItem>
                                 <SelectItem value="long_answer">Long Answer</SelectItem>
+                                <SelectItem value="diagram_labeling">Diagram Labeling</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -864,6 +936,31 @@ export const AIQuestionGenerator = () => {
 
                           <p className="font-medium mb-3">{q.question}</p>
 
+                          {q.diagram?.image_url && (
+                            <div className="my-3 rounded-lg border bg-background p-3 flex flex-col items-center">
+                              <img
+                                src={q.diagram.image_url}
+                                alt={q.diagram.description || 'Exam diagram'}
+                                className="max-h-[360px] w-auto object-contain rounded"
+                              />
+                              {Array.isArray(q.diagram.labels) && q.diagram.labels.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Labels: {q.diagram.labels.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {q.type === 'diagram_labeling' && q.answer_key && (
+                            <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                              {Object.entries(q.answer_key).map(([k, v]) => (
+                                <div key={k} className="flex items-center gap-2 p-2 rounded bg-muted">
+                                  <Badge variant="outline">{k}</Badge>
+                                  <span className="text-foreground">{v as string}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {q.options && q.options.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mb-3">
                               {q.options.map((opt, optIndex) => (

@@ -20,6 +20,101 @@ interface ExamFormat {
   difficulty: 'easy' | 'medium' | 'hard';
   sections: ExamSection[];
   generalInstructions?: string;
+  includeDiagrams?: boolean;
+  colorfulDiagrams?: boolean;
+}
+
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+async function generateColoredDiagram(
+  description: string,
+  labels: string[] | undefined,
+  colorful: boolean,
+  apiKey: string,
+): Promise<string | null> {
+  try {
+    const labelList = (labels && labels.length > 0)
+      ? labels.join(", ")
+      : Array.from({ length: 6 }, (_, i) => String.fromCharCode(65 + i)).join(", ");
+
+    const colorRule = colorful
+      ? `Use clean educational COLORS to distinguish parts (e.g. anatomical conventions: arteries red, veins blue; biology organelles distinct pastel colors). Use soft, print-friendly colors with good contrast. White background.`
+      : `Pure black-and-white line art on a white background.`;
+
+    const prompt = `Generate a clean, scientifically accurate educational exam diagram.
+
+SUBJECT OF DIAGRAM:
+${description}
+
+REQUIREMENTS:
+- Secondary school exam standard, suitable for printing on A4 paper
+- ${colorRule}
+- Simple, clear, readable lines and shapes
+- NO decorative elements
+- Show ONLY the essential structures relevant to the topic
+- DO NOT write the original anatomical/structural names on the diagram
+- Instead, place CLEAR alphabetical label markers exactly: ${labelList}
+- Each marker is a bold capital letter inside a small white circle with a thin straight line pointing to the corresponding structure
+- Markers must NOT overlap and must remain readable after printing
+- Layout centered and balanced for an A4 exam page`;
+
+    const res = await fetch(LOVABLE_AI_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Diagram image generation failed:", res.status, await res.text());
+      return null;
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
+  } catch (e) {
+    console.error("Diagram image generation exception:", e);
+    return null;
+  }
+}
+
+// Recursively walk the question tree, collect diagrams that need rendering,
+// generate their images in parallel, then attach image_url + labels back.
+async function attachDiagramImages(examData: any, colorful: boolean, apiKey: string) {
+  const tasks: Array<{ node: any; promise: Promise<string | null> }> = [];
+
+  const walk = (node: any) => {
+    if (!node || typeof node !== "object") return;
+    if (node.diagram && typeof node.diagram === "object" && node.diagram.description) {
+      // Ensure label list exists
+      if (!Array.isArray(node.diagram.labels) || node.diagram.labels.length === 0) {
+        node.diagram.labels = ["A", "B", "C", "D", "E", "F"];
+      }
+      const useColor = node.diagram.colorful !== false && colorful;
+      tasks.push({
+        node: node.diagram,
+        promise: generateColoredDiagram(node.diagram.description, node.diagram.labels, useColor, apiKey),
+      });
+    }
+    if (Array.isArray(node.subQuestions)) node.subQuestions.forEach(walk);
+    if (Array.isArray(node.questions)) node.questions.forEach(walk);
+    if (Array.isArray(node.sections)) node.sections.forEach(walk);
+  };
+  walk(examData);
+
+  if (tasks.length === 0) return;
+  console.log(`Rendering ${tasks.length} diagram image(s) in parallel (colorful=${colorful})…`);
+
+  const results = await Promise.all(tasks.map(t => t.promise));
+  results.forEach((url, i) => {
+    if (url) tasks[i].node.image_url = url;
+  });
 }
 
 serve(async (req) => {
@@ -54,7 +149,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    console.log(`Generating exam for ${examFormat.subject}: ${examFormat.topic}`);
+    const includeDiagrams = examFormat.includeDiagrams !== false; // default true
+    const colorful = examFormat.colorfulDiagrams !== false; // default true
+
+    console.log(`Generating exam for ${examFormat.subject}: ${examFormat.topic} (diagrams=${includeDiagrams}, colorful=${colorful})`);
+
+    const diagramRule = includeDiagrams
+      ? `Use diagrams when they GENUINELY help: anatomy, biology structures, physics apparatus / circuits, chemistry setups, geography maps, geometry, graphs, processes. Whenever you include a diagram-labeling question, you MUST attach a "diagram" object on that question.`
+      : `Do NOT add any diagram objects.`;
 
     const systemPrompt = `You are an expert exam creator that generates high-quality, structured exams matching real national exam standards.
 
@@ -77,18 +179,23 @@ QUESTION TYPES:
 - calculation: Must include numerical data, correctAnswer, and workingSteps
 - critical_thinking: Require reasoning, not recall. Use scenarios or case-based prompts
 - problem_solving: Multi-step reasoning, may include table or diagram support
+- diagram_labeling: Diagram-based labeling — students identify the labeled parts (A, B, C…). Provide the answer_key for each label.
 
 STRUCTURE REQUIREMENTS:
 - Use main questions (1, 2, 3...)
 - Include sub-questions: a, b, c and i, ii, iii where necessary
 - Group related questions under a parent question with type "group"
 
-DIAGRAM FORMAT (include when explaining processes, showing graphs, labeling structures):
+DIAGRAM FORMAT (${diagramRule})
 "diagram": {
   "type": "generated",
-  "description": "detailed description of what the diagram should show"
+  "description": "detailed visual description of WHAT to draw (the structure / apparatus / process), enough for an image model to render it accurately",
+  "labels": ["A","B","C","D","E","F"],
+  "colorful": true
 }
-IMPORTANT: Do NOT leave diagram null if the question references a diagram. Description must be detailed enough to render later.
+For diagram_labeling questions ALSO include:
+"answer_key": { "A": "name of structure A", "B": "name of structure B", ... }
+The question text should instruct: "Study the diagram below and identify the labeled parts A, B, C…"
 
 TABLE FORMAT (include for data presentation, comparisons, experimental results):
 "table": {
@@ -130,46 +237,22 @@ OUTPUT FORMAT (STRICT JSON ONLY):
               "options": ["A", "B", "C", "D"],
               "correctAnswer": "A",
               "explanation": "Why",
-              "marks": 1,
-              "diagram": null,
-              "table": null
+              "marks": 1
             },
             {
               "number": "b",
-              "type": "calculation",
-              "question": "Calculate...",
-              "correctAnswer": "42 m/s",
-              "workingSteps": "v = u + at = ...",
-              "marks": 5,
-              "diagram": null,
-              "table": null
-            },
-            {
-              "number": "c",
-              "type": "group",
-              "question": null,
-              "subQuestions": [
-                {
-                  "number": "i",
-                  "type": "short_answer",
-                  "question": "Define...",
-                  "correctAnswer": "...",
-                  "marks": 2
-                }
-              ]
+              "type": "diagram_labeling",
+              "question": "Study the diagram and identify labeled parts A–F.",
+              "diagram": {
+                "type": "generated",
+                "description": "Cross-section of the human heart showing the four chambers, major vessels and septum",
+                "labels": ["A","B","C","D","E","F"],
+                "colorful": true
+              },
+              "answer_key": {"A":"Right atrium","B":"Left atrium","C":"Right ventricle","D":"Left ventricle","E":"Aorta","F":"Septum"},
+              "marks": 6
             }
           ]
-        },
-        {
-          "number": "2",
-          "type": "mcq",
-          "question": "Standalone question",
-          "options": ["A", "B", "C", "D"],
-          "correctAnswer": "B",
-          "explanation": "Because...",
-          "marks": 1,
-          "diagram": null,
-          "table": null
         }
       ]
     }
@@ -178,7 +261,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
 
 VALIDATION before returning:
 - Ensure proper hierarchy (Q → a → i)
-- Ensure diagrams/tables used where relevant
+- ${includeDiagrams ? 'Include at least one diagram_labeling question if the topic supports it (biology, physics, chemistry, geography, geometry)' : 'No diagrams'}
 - Ensure all requested question types are represented
 - Ensure total marks match what's requested
 - Return ONLY valid JSON, no markdown, no explanations`;
@@ -193,7 +276,8 @@ VALIDATION before returning:
         calculation: 'Calculation questions with working steps',
         critical_thinking: 'Critical thinking / scenario-based questions',
         problem_solving: 'Multi-step problem solving questions',
-        mixed: 'A mix of all question types (mcq, true_false, fill_blank, short_answer, long_answer, calculation, critical_thinking, problem_solving)',
+        diagram_labeling: 'Diagram labeling questions (A-F markers, students name each part)',
+        mixed: 'A mix of all question types (mcq, true_false, fill_blank, short_answer, long_answer, calculation, critical_thinking, problem_solving' + (includeDiagrams ? ', diagram_labeling' : '') + ')',
       };
       const typeDesc = typeDescMap[section.questionType] || section.questionType;
       return `Section ${idx + 1}: "${section.title}"
@@ -215,12 +299,13 @@ ${examFormat.generalInstructions ? `General Instructions: ${examFormat.generalIn
 ${sectionPrompts}
 
 Use hierarchical question structure (groups with sub-questions a, b, c, i, ii) where appropriate.
-Include diagrams and tables where they enhance question quality.
+${includeDiagrams ? 'Include diagrams (with proper "diagram" objects) where they enhance question quality.' : 'Do NOT include any diagrams.'}
+Include tables where they enhance question quality.
 Generate exactly the specified number of questions for each section.
 Ensure academic accuracy, appropriate difficulty, and logical progression from easy to hard.
 Return ONLY the JSON object.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -272,6 +357,11 @@ Return ONLY the JSON object.`;
     } catch (parseError) {
       console.error("Parse error:", parseError, "Content:", content.substring(0, 500));
       throw new Error("Failed to parse exam data from AI response");
+    }
+
+    // Render diagram images in parallel and attach to the tree
+    if (includeDiagrams) {
+      await attachDiagramImages(examData, colorful, LOVABLE_API_KEY);
     }
 
     console.log("Successfully generated exam with", examData.sections?.length, "sections");

@@ -21,6 +21,25 @@ interface ExamPreviewProps {
 
 function DiagramPlaceholder({ diagram }: { diagram: any }) {
   if (!diagram) return null;
+
+  // If an actual image was generated, render it inline
+  if (diagram.image_url) {
+    return (
+      <div className="my-3 rounded-lg border bg-background p-3 flex flex-col items-center">
+        <img
+          src={diagram.image_url}
+          alt={diagram.description || 'Exam diagram'}
+          className="max-h-[420px] w-auto object-contain rounded"
+        />
+        {Array.isArray(diagram.labels) && diagram.labels.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Labels: {diagram.labels.join(', ')}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="my-3 border-2 border-dashed border-muted-foreground/40 rounded-lg p-4 bg-muted/20 flex items-center gap-3">
       <Image className="h-8 w-8 text-muted-foreground/60 shrink-0" />
@@ -150,6 +169,24 @@ function QuestionRenderer({ q, prefix, showAnswers, depth = 0 }: { q: any; prefi
               <div className="border border-dashed border-muted-foreground rounded p-2 min-h-[100px]">
                 {showAnswers && <p className="text-primary text-sm">{q.correctAnswer || q.correct_answer || q.sampleAnswer}</p>}
               </div>
+            </div>
+          )}
+
+          {/* Diagram labeling — answer lines for each label */}
+          {q.type === 'diagram_labeling' && (
+            <div className="ml-4 mt-2 space-y-1">
+              {(q.diagram?.labels || ['A', 'B', 'C', 'D', 'E', 'F']).map((label: string) => (
+                <div key={label} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-foreground w-6">{label} →</span>
+                  {showAnswers ? (
+                    <span className="text-primary font-medium">
+                      {q.answer_key?.[label] || q.answerKey?.[label] || '—'}
+                    </span>
+                  ) : (
+                    <span className="border-b border-muted-foreground flex-1 h-5" />
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
