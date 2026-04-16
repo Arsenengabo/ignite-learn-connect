@@ -148,6 +148,8 @@ export const AIQuestionGenerator = () => {
   const [savedExamId, setSavedExamId] = useState<string | null>(null);
   const [generationMode, setGenerationMode] = useState<"standard" | "online">("standard");
   const [previewQuestion, setPreviewQuestion] = useState(0);
+  const [includeDiagrams, setIncludeDiagrams] = useState(true);
+  const [colorfulDiagrams, setColorfulDiagrams] = useState(true);
 
   const addSection = () => {
     setSections([...sections, {
