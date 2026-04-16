@@ -18,7 +18,7 @@ import { Json } from "@/integrations/supabase/types";
 import { DiagramQuestionGenerator } from "./DiagramQuestionGenerator";
 
 interface SectionQuestion {
-  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
   count: number;
   marksEach: number;
 }
@@ -28,9 +28,17 @@ interface ExamSection {
   questions: SectionQuestion[];
 }
 
+interface DiagramSpec {
+  type?: string;
+  description?: string;
+  labels?: string[];
+  colorful?: boolean;
+  image_url?: string;
+}
+
 interface GeneratedQuestion {
   number: number;
-  type: "mcq" | "short_answer" | "long_answer" | "true_false";
+  type: "mcq" | "short_answer" | "long_answer" | "true_false" | "diagram_labeling";
   question: string;
   marks: number;
   options?: string[] | null;
@@ -39,6 +47,8 @@ interface GeneratedQuestion {
   sampleAnswer?: string;
   evaluationGuidelines?: string;
   keyPoints?: string[];
+  diagram?: DiagramSpec | null;
+  answer_key?: Record<string, string> | null;
 }
 
 interface GeneratedSection {
