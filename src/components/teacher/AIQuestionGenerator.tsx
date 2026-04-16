@@ -1127,6 +1127,8 @@ export const AIQuestionGenerator = () => {
           </CardContent>
         </Card>
       )}
-    </div>
+      </TabsContent>
+    </Tabs>
+
   );
 };
