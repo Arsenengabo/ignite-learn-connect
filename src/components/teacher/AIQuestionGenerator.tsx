@@ -912,6 +912,31 @@ export const AIQuestionGenerator = () => {
 
                           <p className="font-medium mb-3">{q.question}</p>
 
+                          {q.diagram?.image_url && (
+                            <div className="my-3 rounded-lg border bg-background p-3 flex flex-col items-center">
+                              <img
+                                src={q.diagram.image_url}
+                                alt={q.diagram.description || 'Exam diagram'}
+                                className="max-h-[360px] w-auto object-contain rounded"
+                              />
+                              {Array.isArray(q.diagram.labels) && q.diagram.labels.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Labels: {q.diagram.labels.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {q.type === 'diagram_labeling' && q.answer_key && (
+                            <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                              {Object.entries(q.answer_key).map(([k, v]) => (
+                                <div key={k} className="flex items-center gap-2 p-2 rounded bg-muted">
+                                  <Badge variant="outline">{k}</Badge>
+                                  <span className="text-foreground">{v as string}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {q.options && q.options.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mb-3">
                               {q.options.map((opt, optIndex) => (
