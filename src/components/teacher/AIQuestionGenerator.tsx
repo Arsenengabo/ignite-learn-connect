@@ -721,6 +721,7 @@ export const AIQuestionGenerator = () => {
                                 <SelectItem value="true_false">True/False</SelectItem>
                                 <SelectItem value="short_answer">Short Answer</SelectItem>
                                 <SelectItem value="long_answer">Long Answer</SelectItem>
+                                <SelectItem value="diagram_labeling">Diagram Labeling</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
