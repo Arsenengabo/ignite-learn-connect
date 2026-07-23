@@ -69,4 +69,16 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          tensorflow: ['@tensorflow/tfjs', '@tensorflow-models/face-detection'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+          vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1500,
+  },
 }));

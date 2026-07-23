@@ -1,11 +1,20 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { StudentDashboard } from "./StudentDashboard";
-import TeacherDashboard from "./TeacherDashboard";
 import { LandingPage } from "./LandingPage";
+
+const StudentDashboard = lazy(() =>
+  import("./StudentDashboard").then((m) => ({ default: m.StudentDashboard }))
+);
+const TeacherDashboard = lazy(() => import("./TeacherDashboard"));
+
+const DashboardFallback = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400" />
+  </div>
+);
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -105,11 +114,9 @@ const Index = () => {
 
   return (
     <AppLayout user={user} userProfile={profileWithRole}>
-      {userRole === 'teacher' ? (
-        <TeacherDashboard />
-      ) : (
-        <StudentDashboard />
-      )}
+      <Suspense fallback={<DashboardFallback />}>
+        {userRole === 'teacher' ? <TeacherDashboard /> : <StudentDashboard />}
+      </Suspense>
     </AppLayout>
   );
 };
