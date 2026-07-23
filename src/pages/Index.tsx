@@ -114,11 +114,9 @@ const Index = () => {
 
   return (
     <AppLayout user={user} userProfile={profileWithRole}>
-      {userRole === 'teacher' ? (
-        <TeacherDashboard />
-      ) : (
-        <StudentDashboard />
-      )}
+      <Suspense fallback={<DashboardFallback />}>
+        {userRole === 'teacher' ? <TeacherDashboard /> : <StudentDashboard />}
+      </Suspense>
     </AppLayout>
   );
 };
