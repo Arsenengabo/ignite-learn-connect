@@ -23,15 +23,19 @@ interface CourseBrowserProps {
   onStartCourse: (courseId: string) => void;
 }
 
+const PAGE_SIZE = 24;
+
 export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchCourses();
-    
-    // Set up real-time subscription
+    fetchCourses(0, true);
+
     const channel = supabase
       .channel('course-changes')
       .on(
@@ -42,7 +46,7 @@ export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => 
           table: 'courses'
         },
         () => {
-          fetchCourses();
+          fetchCourses(0, true);
         }
       )
       .subscribe();
@@ -52,13 +56,18 @@ export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => 
     };
   }, []);
 
-  const fetchCourses = async () => {
+  const fetchCourses = async (pageIndex = 0, reset = false) => {
     try {
+      if (pageIndex > 0) setLoadingMore(true);
+      const from = pageIndex * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('courses')
-        .select('*')
+        .select('id,title,description,subject,difficulty_level,duration_weeks,price,thumbnail_url,is_premium')
         .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         toast({
@@ -69,13 +78,20 @@ export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => 
         return;
       }
 
-      setCourses(data || []);
+      const pageData = data || [];
+      setHasMore(pageData.length === PAGE_SIZE);
+      setCourses(prev => reset ? pageData : [...prev, ...pageData]);
+      setPage(pageIndex);
     } catch (error) {
       console.error('Error fetching courses:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  const loadMore = () => fetchCourses(page + 1, false);
+
 
   const handleEnrollCourse = (courseId: string) => {
     onStartCourse(courseId);
@@ -201,6 +217,15 @@ export const CourseBrowser = ({ onBack, onStartCourse }: CourseBrowserProps) => 
           </Card>
         ))}
       </div>
+
+      {hasMore && courses.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
 
       {courses.length === 0 && (
         <div className="text-center py-12">

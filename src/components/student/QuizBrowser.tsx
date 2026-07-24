@@ -24,19 +24,24 @@ interface QuizBrowserProps {
   onStartQuiz: (quizId: string) => void;
 }
 
+const PAGE_SIZE = 24;
+
 export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchQuizzes();
-    
-    // Set up real-time subscription
+    fetchQuizzes(0, true);
+
+    // Realtime: refresh first page only on quiz changes to avoid heavy reloads
     const channel = supabase
       .channel('quiz-changes')
       .on(
@@ -47,7 +52,7 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
           table: 'quizzes'
         },
         () => {
-          fetchQuizzes();
+          fetchQuizzes(0, true);
         }
       )
       .subscribe();
@@ -61,13 +66,18 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
     filterQuizzes();
   }, [quizzes, searchTerm, subjectFilter, difficultyFilter]);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = async (pageIndex = 0, reset = false) => {
     try {
+      if (pageIndex > 0) setLoadingMore(true);
+      const from = pageIndex * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('quizzes')
-        .select('*')
+        .select('id,title,description,subject,difficulty_level,total_questions,time_limit,is_premium')
         .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         toast({
@@ -78,13 +88,18 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
         return;
       }
 
-      setQuizzes(data || []);
+      const pageData = data || [];
+      setHasMore(pageData.length === PAGE_SIZE);
+      setQuizzes(prev => reset ? pageData : [...prev, ...pageData]);
+      setPage(pageIndex);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
 
   const filterQuizzes = () => {
     let filtered = quizzes;
@@ -246,6 +261,15 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
           </Card>
         ))}
       </div>
+
+      {hasMore && !searchTerm && subjectFilter === "all" && difficultyFilter === "all" && filteredQuizzes.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" onClick={() => fetchQuizzes(page + 1, false)} disabled={loadingMore}>
+            {loadingMore ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
 
           {filteredQuizzes.length === 0 && (
         <div className="text-center py-12">

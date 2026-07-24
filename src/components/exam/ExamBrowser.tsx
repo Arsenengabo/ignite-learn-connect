@@ -34,52 +34,67 @@ interface ExamBrowserProps {
   onBack?: () => void;
 }
 
+const PAGE_SIZE = 24;
+
 export default function ExamBrowser({ onBack }: ExamBrowserProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [exams, setExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<Record<string, Attempt>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [activeExamId, setActiveExamId] = useState<string | null>(null);
   const [viewingResultsId, setViewingResultsId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    loadExams();
+    loadExams(0, true);
   }, []);
 
-  const loadExams = async () => {
+  const loadExams = async (pageIndex = 0, reset = false) => {
     try {
+      if (pageIndex > 0) setLoadingMore(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch published exams
+      const from = pageIndex * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      // Fetch a page of published exams (only fields the card needs)
       const { data: examsData, error: examsError } = await supabase
         .from('exams')
-        .select('*')
+        .select('id,title,subject,description,difficulty_level,time_limit_minutes,total_marks,created_at')
         .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (examsError) throw examsError;
-      setExams(examsData || []);
+      const pageExams = examsData || [];
+      setHasMore(pageExams.length === PAGE_SIZE);
+      setExams(prev => reset ? pageExams : [...prev, ...pageExams]);
+      setPage(pageIndex);
 
-      // Fetch user's attempts
-      const { data: attemptsData, error: attemptsError } = await supabase
-        .from('exam_attempts')
-        .select('*')
-        .eq('student_id', user.id);
+      // Fetch attempts only for the exams currently loaded
+      const examIds = (reset ? pageExams : [...exams, ...pageExams]).map(e => e.id);
+      if (examIds.length > 0) {
+        const { data: attemptsData, error: attemptsError } = await supabase
+          .from('exam_attempts')
+          .select('id,exam_id,status,total_score,percentage,submitted_at,created_at')
+          .eq('student_id', user.id)
+          .in('exam_id', examIds);
 
-      if (attemptsError) throw attemptsError;
+        if (attemptsError) throw attemptsError;
 
-      // Map attempts by exam_id (latest attempt for each exam)
-      const attemptsMap: Record<string, Attempt> = {};
-      attemptsData?.forEach(attempt => {
-        if (!attemptsMap[attempt.exam_id] || 
-            new Date(attempt.created_at) > new Date(attemptsMap[attempt.exam_id].created_at)) {
-          attemptsMap[attempt.exam_id] = attempt;
-        }
-      });
-      setAttempts(attemptsMap);
-
+        const attemptsMap: Record<string, Attempt> = {};
+        attemptsData?.forEach(attempt => {
+          if (!attemptsMap[attempt.exam_id] ||
+              new Date(attempt.created_at) > new Date(attemptsMap[attempt.exam_id].created_at)) {
+            attemptsMap[attempt.exam_id] = attempt;
+          }
+        });
+        setAttempts(attemptsMap);
+      }
     } catch (error) {
       console.error("Error loading exams:", error);
       toast({
@@ -89,14 +104,16 @@ export default function ExamBrowser({ onBack }: ExamBrowserProps) {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   const handleExamComplete = (attemptId: string, score: number) => {
     setActiveExamId(null);
     setViewingResultsId(attemptId);
-    loadExams(); // Refresh attempts
+    loadExams(0, true); // Refresh attempts
   };
+
 
   const filteredExams = exams.filter(exam => 
     exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -268,6 +285,19 @@ export default function ExamBrowser({ onBack }: ExamBrowserProps) {
           })}
         </div>
       )}
+
+      {hasMore && !searchQuery && filteredExams.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={() => loadExams(page + 1, false)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
     </div>
   );
 }
