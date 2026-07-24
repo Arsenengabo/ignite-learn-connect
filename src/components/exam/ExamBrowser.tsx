@@ -285,6 +285,19 @@ export default function ExamBrowser({ onBack }: ExamBrowserProps) {
           })}
         </div>
       )}
+
+      {hasMore && !searchQuery && filteredExams.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={() => loadExams(page + 1, false)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
     </div>
   );
 }
