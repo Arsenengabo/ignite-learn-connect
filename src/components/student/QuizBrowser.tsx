@@ -262,6 +262,15 @@ export const QuizBrowser = ({ onBack, onStartQuiz }: QuizBrowserProps) => {
         ))}
       </div>
 
+      {hasMore && !searchTerm && subjectFilter === "all" && difficultyFilter === "all" && filteredQuizzes.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" onClick={() => fetchQuizzes(page + 1, false)} disabled={loadingMore}>
+            {loadingMore ? "Loading..." : "Load more"}
+          </Button>
+        </div>
+      )}
+
+
           {filteredQuizzes.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
