@@ -38,11 +38,12 @@ export const TeacherChat = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedChannel) {
-      loadMessages(selectedChannel.id);
-      subscribeToMessages(selectedChannel.id);
-    }
+    if (!selectedChannel) return;
+    loadMessages(selectedChannel.id);
+    const cleanup = subscribeToMessages(selectedChannel.id);
+    return cleanup;
   }, [selectedChannel]);
+
 
   useEffect(() => {
     scrollToBottom();
