@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase, GraduationCap, School, MapPin } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase, GraduationCap, School, MapPin, Users, Building2, KeyRound, ShieldCheck } from "lucide-react";
 import { rwandaProvinces, rwandaDistricts, educationLevels, subjects, type Province } from "@/data/rwandaLocations";
 import { getSchoolsByLocation } from "@/data/rwandaSchools";
 import { cn } from "@/lib/utils";
 
-type Role = "student" | "teacher" | "other";
+type Role = "student" | "teacher" | "mentor" | "school_admin";
 
 interface SignUpFormData {
   // Step 1 - Role
@@ -37,9 +37,14 @@ interface SignUpFormData {
   subjectsTaught: string[];
   educationLevelTaught: string;
   
-  // Other specific
+  // Mentor / School admin specific
   organizationName: string;
   roleDescription: string;
+
+  // School portal access
+  schoolCode: string;
+  joinMode: "school" | "independent";
+  verifiedSchoolName: string;
 }
 
 const initialFormData: SignUpFormData = {
@@ -57,6 +62,9 @@ const initialFormData: SignUpFormData = {
   educationLevelTaught: "",
   organizationName: "",
   roleDescription: "",
+  schoolCode: "",
+  joinMode: "school",
+  verifiedSchoolName: "",
 };
 
 const steps = [
@@ -94,18 +102,34 @@ export const SignUpWizard = () => {
           formData.password === formData.confirmPassword
         );
       case 3:
-        if (formData.role === "student" || formData.role === "teacher") {
+        if (formData.role === "teacher") {
+          // Teachers may only join through their school portal
+          return (
+            formData.verifiedSchoolName !== "" &&
+            formData.educationLevelTaught !== ""
+          );
+        }
+        if (formData.role === "student") {
+          if (formData.joinMode === "school") {
+            return formData.verifiedSchoolName !== "" && formData.educationLevel !== "";
+          }
           return (
             formData.province !== "" &&
             formData.district !== "" &&
-            formData.schoolName !== "" &&
             formData.educationLevel !== ""
           );
         }
-        if (formData.role === "other") {
+        if (formData.role === "mentor") {
           return (
-            formData.organizationName.trim() !== "" &&
-            formData.roleDescription.trim() !== ""
+            formData.roleDescription.trim() !== "" &&
+            formData.subjectsTaught.length > 0
+          );
+        }
+        if (formData.role === "school_admin") {
+          return (
+            formData.schoolName.trim() !== "" &&
+            formData.province !== "" &&
+            formData.district !== ""
           );
         }
         return false;
@@ -141,10 +165,14 @@ export const SignUpWizard = () => {
       };
 
       if (formData.role === "student" || formData.role === "teacher") {
-        metadata.school_name = formData.schoolName;
+        metadata.school_name = formData.verifiedSchoolName || formData.schoolName;
         metadata.province = formData.province;
         metadata.district = formData.district;
         metadata.education_level = formData.educationLevel;
+        metadata.join_mode = formData.role === "teacher" ? "school" : formData.joinMode;
+        if (formData.schoolCode.trim() !== "") {
+          metadata.school_code = formData.schoolCode.trim().toUpperCase();
+        }
       }
 
       if (formData.role === "student" && formData.combinationDepartment) {
@@ -156,9 +184,18 @@ export const SignUpWizard = () => {
         metadata.education_level_taught = formData.educationLevelTaught;
       }
 
-      if (formData.role === "other") {
+      if (formData.role === "mentor") {
+        metadata.subjects_taught = JSON.stringify(formData.subjectsTaught);
         metadata.organization_name = formData.organizationName;
         metadata.role_description = formData.roleDescription;
+      }
+
+      if (formData.role === "school_admin") {
+        metadata.school_name = formData.schoolName;
+        metadata.province = formData.province;
+        metadata.district = formData.district;
+        metadata.organization_name = formData.schoolName;
+        metadata.role_description = "School Administrator";
       }
 
       const { error } = await supabase.auth.signUp({
@@ -316,20 +353,26 @@ const RoleSelectionStep = ({
     {
       id: "student" as Role,
       title: "Student",
-      description: "I'm here to learn and take courses",
+      description: "Join with your school code, or learn independently with a mentor",
       icon: GraduationCap,
     },
     {
       id: "teacher" as Role,
       title: "Teacher",
-      description: "I create and manage courses",
+      description: "Enter through your school portal using the school access code",
       icon: BookOpen,
     },
     {
-      id: "other" as Role,
-      title: "Other",
-      description: "Parent, administrator, or other role",
-      icon: Briefcase,
+      id: "mentor" as Role,
+      title: "Mentor",
+      description: "Teach independently — no school required. Students enroll with you",
+      icon: Users,
+    },
+    {
+      id: "school_admin" as Role,
+      title: "School Admin",
+      description: "Register your school and manage its teachers and students",
+      icon: Building2,
     },
   ];
 
@@ -467,36 +510,122 @@ const RoleSpecificStep = ({
   availableSchools: { name: string; district: string; province: string }[];
   onSubjectToggle: (subject: string) => void;
 }) => {
-  if (formData.role === "other") {
+  if (formData.role === "mentor") {
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold">Tell Us About Yourself</h3>
-          <p className="text-sm text-muted-foreground">Share your organization and role</p>
+          <h3 className="text-lg font-semibold">Mentor Profile</h3>
+          <p className="text-sm text-muted-foreground">
+            Mentors work independently — no school portal needed
+          </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="organizationName">Organization/Institution Name</Label>
+            <Label>Areas of Expertise</Label>
+            <div className="flex flex-wrap gap-2 p-3 border rounded-lg max-h-40 overflow-y-auto">
+              {subjects.map((subject) => (
+                <button
+                  key={subject}
+                  type="button"
+                  onClick={() => onSubjectToggle(subject)}
+                  className={cn(
+                    "px-3 py-1 text-sm rounded-full transition-all min-h-[36px]",
+                    formData.subjectsTaught.includes(subject)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {subject}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organizationName">Organization (Optional)</Label>
             <Input
               id="organizationName"
-              placeholder="Enter organization name"
+              placeholder="Independent, tutoring centre, NGO..."
               value={formData.organizationName}
               onChange={(e) => updateFormData("organizationName", e.target.value)}
-              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="roleDescription">Role Description</Label>
+            <Label htmlFor="roleDescription">Short Bio</Label>
             <Textarea
               id="roleDescription"
-              placeholder="Describe your role (e.g., Parent, School Administrator, Education Officer)"
+              placeholder="Tell students what you mentor in and your experience"
               value={formData.roleDescription}
               onChange={(e) => updateFormData("roleDescription", e.target.value)}
               rows={3}
               required
             />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (formData.role === "school_admin") {
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-semibold">Your School</h3>
+          <p className="text-sm text-muted-foreground">
+            We'll create your school portal and generate an access code after sign in
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="schoolName">School Name</Label>
+          <Input
+            id="schoolName"
+            placeholder="e.g., Groupe Scolaire Musanze"
+            value={formData.schoolName}
+            onChange={(e) => updateFormData("schoolName", e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Province</Label>
+            <Select
+              value={formData.province}
+              onValueChange={(value) => {
+                updateFormData("province", value);
+                updateFormData("district", "");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select province" />
+              </SelectTrigger>
+              <SelectContent>
+                {rwandaProvinces.map((province) => (
+                  <SelectItem key={province} value={province}>{province}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>District</Label>
+            <Select
+              value={formData.district}
+              onValueChange={(value) => updateFormData("district", value)}
+              disabled={!formData.province}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select district" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDistricts.map((district) => (
+                  <SelectItem key={district} value={district}>{district}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -512,6 +641,9 @@ const RoleSpecificStep = ({
         </h3>
         <p className="text-sm text-muted-foreground">Tell us about your school and education</p>
       </div>
+
+      <SchoolAccessSection formData={formData} updateFormData={updateFormData} />
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -757,26 +889,150 @@ const ReviewStep = ({ formData }: { formData: SignUpFormData }) => {
           </div>
         )}
 
-        {/* Other role info */}
-        {formData.role === "other" && (
+        {/* Mentor / School admin info */}
+        {(formData.role === "mentor" || formData.role === "school_admin") && (
           <div className="p-3 bg-muted/50 rounded-lg space-y-2">
             <div className="flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Organization</span>
+              <span className="text-xs text-muted-foreground">
+                {formData.role === "mentor" ? "Mentor Profile" : "School"}
+              </span>
             </div>
             <div className="text-sm space-y-2">
               <div>
-                <p className="text-xs text-muted-foreground">Organization Name</p>
-                <p className="font-medium">{formData.organizationName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === "mentor" ? "Organization" : "School Name"}
+                </p>
+                <p className="font-medium">
+                  {formData.role === "mentor"
+                    ? formData.organizationName || "Independent"
+                    : formData.schoolName}
+                </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Role Description</p>
-                <p className="font-medium">{formData.roleDescription}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === "mentor" ? "Bio" : "Location"}
+                </p>
+                <p className="font-medium">
+                  {formData.role === "mentor"
+                    ? formData.roleDescription
+                    : `${formData.district}, ${formData.province}`}
+                </p>
               </div>
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// School portal access: teachers must enter via a school code, students may choose
+const SchoolAccessSection = ({
+  formData,
+  updateFormData,
+}: {
+  formData: SignUpFormData;
+  updateFormData: (field: keyof SignUpFormData, value: any) => void;
+}) => {
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isTeacher = formData.role === "teacher";
+
+  const verifyCode = async () => {
+    const code = formData.schoolCode.trim().toUpperCase();
+    if (code.length < 4) {
+      setError("Enter the access code given by your school");
+      return;
+    }
+    setChecking(true);
+    setError(null);
+    const { data, error: rpcError } = await supabase.rpc("lookup_school_by_code", { _code: code });
+    setChecking(false);
+
+    if (rpcError || !data || data.length === 0) {
+      updateFormData("verifiedSchoolName", "");
+      setError("No school found with this code. Please check with your school administrator.");
+      return;
+    }
+
+    const school = data[0];
+    updateFormData("verifiedSchoolName", school.name);
+    updateFormData("schoolName", school.name);
+    if (school.province) updateFormData("province", school.province);
+    if (school.district) updateFormData("district", school.district);
+  };
+
+  return (
+    <div className="space-y-4 mb-4">
+      {!isTeacher && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => updateFormData("joinMode", "school")}
+            className={cn(
+              "p-3 rounded-lg border-2 text-left min-h-[44px] transition-all",
+              formData.joinMode === "school" ? "border-primary bg-primary/5" : "border-border"
+            )}
+          >
+            <p className="font-medium text-sm">Join my school</p>
+            <p className="text-xs text-muted-foreground">I have a school access code</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              updateFormData("joinMode", "independent");
+              updateFormData("schoolCode", "");
+              updateFormData("verifiedSchoolName", "");
+            }}
+            className={cn(
+              "p-3 rounded-lg border-2 text-left min-h-[44px] transition-all",
+              formData.joinMode === "independent" ? "border-primary bg-primary/5" : "border-border"
+            )}
+          >
+            <p className="font-medium text-sm">Learn independently</p>
+            <p className="text-xs text-muted-foreground">Request enrollment with a mentor later</p>
+          </button>
+        </div>
+      )}
+
+      {(isTeacher || formData.joinMode === "school") && (
+        <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+          <Label htmlFor="schoolCode" className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4" />
+            School Access Code {isTeacher && <span className="text-destructive">*</span>}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="schoolCode"
+              placeholder="e.g., ILC-4K7Q2"
+              value={formData.schoolCode}
+              onChange={(e) => {
+                updateFormData("schoolCode", e.target.value.toUpperCase());
+                updateFormData("verifiedSchoolName", "");
+                setError(null);
+              }}
+              className="uppercase"
+            />
+            <Button type="button" variant="outline" onClick={verifyCode} disabled={checking}>
+              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+            </Button>
+          </div>
+          {formData.verifiedSchoolName && (
+            <p className="text-sm text-primary flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              {formData.verifiedSchoolName}
+            </p>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {isTeacher && !formData.verifiedSchoolName && (
+            <p className="text-xs text-muted-foreground">
+              Teachers must join through their school portal. Ask your school administrator for the
+              code, or sign up as a Mentor to teach independently.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -642,6 +642,39 @@ export type Database = {
           },
         ]
       }
+      mentor_enrollments: {
+        Row: {
+          created_at: string
+          id: string
+          mentor_id: string
+          message: string
+          responded_at: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentor_id: string
+          message?: string
+          responded_at?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          message?: string
+          responded_at?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -900,6 +933,95 @@ export type Database = {
           },
         ]
       }
+      school_members: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          member_role: string
+          school_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          member_role: string
+          school_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          member_role?: string
+          school_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_members_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          contact_email: string
+          created_at: string
+          created_by: string
+          district: string
+          education_levels: string[]
+          id: string
+          is_active: boolean
+          join_code: string
+          name: string
+          phone: string
+          province: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string
+          created_at?: string
+          created_by: string
+          district?: string
+          education_levels?: string[]
+          id?: string
+          is_active?: boolean
+          join_code: string
+          name: string
+          phone?: string
+          province?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string
+          created_at?: string
+          created_by?: string
+          district?: string
+          education_levels?: string[]
+          id?: string
+          is_active?: boolean
+          join_code?: string
+          name?: string
+          phone?: string
+          province?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -986,6 +1108,7 @@ export type Database = {
         Args: { p_attempt_id: string; p_responses: Json }
         Returns: Json
       }
+      generate_school_code: { Args: never; Returns: string }
       get_exam_questions_for_student: {
         Args: { _exam_id: string }
         Returns: {
@@ -1014,6 +1137,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_school: { Args: { _user_id: string }; Returns: string }
       has_completed_exam: {
         Args: { exam_id_param: string; user_id_param?: string }
         Returns: boolean
@@ -1024,6 +1148,38 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      is_approved_school_member: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_school_admin: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      join_school_by_code: {
+        Args: { _code: string; _member_role: string }
+        Returns: Json
+      }
+      lookup_school_by_code: {
+        Args: { _code: string }
+        Returns: {
+          district: string
+          id: string
+          name: string
+          province: string
+        }[]
+      }
+      register_school: {
+        Args: {
+          _contact_email: string
+          _district: string
+          _education_levels: string[]
+          _name: string
+          _phone: string
+          _province: string
+        }
+        Returns: Json
       }
       submit_quiz_responses: {
         Args: { _responses: Json; _session_id: string }
