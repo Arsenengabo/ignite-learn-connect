@@ -11,7 +11,7 @@ import { rwandaProvinces, rwandaDistricts, educationLevels, subjects, type Provi
 import { getSchoolsByLocation } from "@/data/rwandaSchools";
 import { cn } from "@/lib/utils";
 
-type Role = "student" | "teacher" | "other";
+type Role = "student" | "teacher" | "mentor" | "school_admin";
 
 interface SignUpFormData {
   // Step 1 - Role
@@ -37,9 +37,14 @@ interface SignUpFormData {
   subjectsTaught: string[];
   educationLevelTaught: string;
   
-  // Other specific
+  // Mentor / School admin specific
   organizationName: string;
   roleDescription: string;
+
+  // School portal access
+  schoolCode: string;
+  joinMode: "school" | "independent";
+  verifiedSchoolName: string;
 }
 
 const initialFormData: SignUpFormData = {
@@ -57,6 +62,9 @@ const initialFormData: SignUpFormData = {
   educationLevelTaught: "",
   organizationName: "",
   roleDescription: "",
+  schoolCode: "",
+  joinMode: "school",
+  verifiedSchoolName: "",
 };
 
 const steps = [
@@ -94,18 +102,34 @@ export const SignUpWizard = () => {
           formData.password === formData.confirmPassword
         );
       case 3:
-        if (formData.role === "student" || formData.role === "teacher") {
+        if (formData.role === "teacher") {
+          // Teachers may only join through their school portal
+          return (
+            formData.verifiedSchoolName !== "" &&
+            formData.educationLevelTaught !== ""
+          );
+        }
+        if (formData.role === "student") {
+          if (formData.joinMode === "school") {
+            return formData.verifiedSchoolName !== "" && formData.educationLevel !== "";
+          }
           return (
             formData.province !== "" &&
             formData.district !== "" &&
-            formData.schoolName !== "" &&
             formData.educationLevel !== ""
           );
         }
-        if (formData.role === "other") {
+        if (formData.role === "mentor") {
           return (
-            formData.organizationName.trim() !== "" &&
-            formData.roleDescription.trim() !== ""
+            formData.roleDescription.trim() !== "" &&
+            formData.subjectsTaught.length > 0
+          );
+        }
+        if (formData.role === "school_admin") {
+          return (
+            formData.schoolName.trim() !== "" &&
+            formData.province !== "" &&
+            formData.district !== ""
           );
         }
         return false;
