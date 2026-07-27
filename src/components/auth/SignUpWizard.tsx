@@ -926,3 +926,113 @@ const ReviewStep = ({ formData }: { formData: SignUpFormData }) => {
     </div>
   );
 };
+
+// School portal access: teachers must enter via a school code, students may choose
+const SchoolAccessSection = ({
+  formData,
+  updateFormData,
+}: {
+  formData: SignUpFormData;
+  updateFormData: (field: keyof SignUpFormData, value: any) => void;
+}) => {
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isTeacher = formData.role === "teacher";
+
+  const verifyCode = async () => {
+    const code = formData.schoolCode.trim().toUpperCase();
+    if (code.length < 4) {
+      setError("Enter the access code given by your school");
+      return;
+    }
+    setChecking(true);
+    setError(null);
+    const { data, error: rpcError } = await supabase.rpc("lookup_school_by_code", { _code: code });
+    setChecking(false);
+
+    if (rpcError || !data || data.length === 0) {
+      updateFormData("verifiedSchoolName", "");
+      setError("No school found with this code. Please check with your school administrator.");
+      return;
+    }
+
+    const school = data[0];
+    updateFormData("verifiedSchoolName", school.name);
+    updateFormData("schoolName", school.name);
+    if (school.province) updateFormData("province", school.province);
+    if (school.district) updateFormData("district", school.district);
+  };
+
+  return (
+    <div className="space-y-4 mb-4">
+      {!isTeacher && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => updateFormData("joinMode", "school")}
+            className={cn(
+              "p-3 rounded-lg border-2 text-left min-h-[44px] transition-all",
+              formData.joinMode === "school" ? "border-primary bg-primary/5" : "border-border"
+            )}
+          >
+            <p className="font-medium text-sm">Join my school</p>
+            <p className="text-xs text-muted-foreground">I have a school access code</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              updateFormData("joinMode", "independent");
+              updateFormData("schoolCode", "");
+              updateFormData("verifiedSchoolName", "");
+            }}
+            className={cn(
+              "p-3 rounded-lg border-2 text-left min-h-[44px] transition-all",
+              formData.joinMode === "independent" ? "border-primary bg-primary/5" : "border-border"
+            )}
+          >
+            <p className="font-medium text-sm">Learn independently</p>
+            <p className="text-xs text-muted-foreground">Request enrollment with a mentor later</p>
+          </button>
+        </div>
+      )}
+
+      {(isTeacher || formData.joinMode === "school") && (
+        <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+          <Label htmlFor="schoolCode" className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4" />
+            School Access Code {isTeacher && <span className="text-destructive">*</span>}
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="schoolCode"
+              placeholder="e.g., ILC-4K7Q2"
+              value={formData.schoolCode}
+              onChange={(e) => {
+                updateFormData("schoolCode", e.target.value.toUpperCase());
+                updateFormData("verifiedSchoolName", "");
+                setError(null);
+              }}
+              className="uppercase"
+            />
+            <Button type="button" variant="outline" onClick={verifyCode} disabled={checking}>
+              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+            </Button>
+          </div>
+          {formData.verifiedSchoolName && (
+            <p className="text-sm text-primary flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              {formData.verifiedSchoolName}
+            </p>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {isTeacher && !formData.verifiedSchoolName && (
+            <p className="text-xs text-muted-foreground">
+              Teachers must join through their school portal. Ask your school administrator for the
+              code, or sign up as a Mentor to teach independently.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
