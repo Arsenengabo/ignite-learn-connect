@@ -353,20 +353,26 @@ const RoleSelectionStep = ({
     {
       id: "student" as Role,
       title: "Student",
-      description: "I'm here to learn and take courses",
+      description: "Join with your school code, or learn independently with a mentor",
       icon: GraduationCap,
     },
     {
       id: "teacher" as Role,
       title: "Teacher",
-      description: "I create and manage courses",
+      description: "Enter through your school portal using the school access code",
       icon: BookOpen,
     },
     {
-      id: "other" as Role,
-      title: "Other",
-      description: "Parent, administrator, or other role",
-      icon: Briefcase,
+      id: "mentor" as Role,
+      title: "Mentor",
+      description: "Teach independently — no school required. Students enroll with you",
+      icon: Users,
+    },
+    {
+      id: "school_admin" as Role,
+      title: "School Admin",
+      description: "Register your school and manage its teachers and students",
+      icon: Building2,
     },
   ];
 
@@ -504,36 +510,122 @@ const RoleSpecificStep = ({
   availableSchools: { name: string; district: string; province: string }[];
   onSubjectToggle: (subject: string) => void;
 }) => {
-  if (formData.role === "other") {
+  if (formData.role === "mentor") {
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold">Tell Us About Yourself</h3>
-          <p className="text-sm text-muted-foreground">Share your organization and role</p>
+          <h3 className="text-lg font-semibold">Mentor Profile</h3>
+          <p className="text-sm text-muted-foreground">
+            Mentors work independently — no school portal needed
+          </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="organizationName">Organization/Institution Name</Label>
+            <Label>Areas of Expertise</Label>
+            <div className="flex flex-wrap gap-2 p-3 border rounded-lg max-h-40 overflow-y-auto">
+              {subjects.map((subject) => (
+                <button
+                  key={subject}
+                  type="button"
+                  onClick={() => onSubjectToggle(subject)}
+                  className={cn(
+                    "px-3 py-1 text-sm rounded-full transition-all min-h-[36px]",
+                    formData.subjectsTaught.includes(subject)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {subject}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organizationName">Organization (Optional)</Label>
             <Input
               id="organizationName"
-              placeholder="Enter organization name"
+              placeholder="Independent, tutoring centre, NGO..."
               value={formData.organizationName}
               onChange={(e) => updateFormData("organizationName", e.target.value)}
-              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="roleDescription">Role Description</Label>
+            <Label htmlFor="roleDescription">Short Bio</Label>
             <Textarea
               id="roleDescription"
-              placeholder="Describe your role (e.g., Parent, School Administrator, Education Officer)"
+              placeholder="Tell students what you mentor in and your experience"
               value={formData.roleDescription}
               onChange={(e) => updateFormData("roleDescription", e.target.value)}
               rows={3}
               required
             />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (formData.role === "school_admin") {
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-semibold">Your School</h3>
+          <p className="text-sm text-muted-foreground">
+            We'll create your school portal and generate an access code after sign in
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="schoolName">School Name</Label>
+          <Input
+            id="schoolName"
+            placeholder="e.g., Groupe Scolaire Musanze"
+            value={formData.schoolName}
+            onChange={(e) => updateFormData("schoolName", e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Province</Label>
+            <Select
+              value={formData.province}
+              onValueChange={(value) => {
+                updateFormData("province", value);
+                updateFormData("district", "");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select province" />
+              </SelectTrigger>
+              <SelectContent>
+                {rwandaProvinces.map((province) => (
+                  <SelectItem key={province} value={province}>{province}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>District</Label>
+            <Select
+              value={formData.district}
+              onValueChange={(value) => updateFormData("district", value)}
+              disabled={!formData.province}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select district" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDistricts.map((district) => (
+                  <SelectItem key={district} value={district}>{district}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -549,6 +641,9 @@ const RoleSpecificStep = ({
         </h3>
         <p className="text-sm text-muted-foreground">Tell us about your school and education</p>
       </div>
+
+      <SchoolAccessSection formData={formData} updateFormData={updateFormData} />
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
