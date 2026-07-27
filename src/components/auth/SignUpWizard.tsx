@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase, GraduationCap, School, MapPin } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase, GraduationCap, School, MapPin, Users, Building2, KeyRound, ShieldCheck } from "lucide-react";
 import { rwandaProvinces, rwandaDistricts, educationLevels, subjects, type Province } from "@/data/rwandaLocations";
 import { getSchoolsByLocation } from "@/data/rwandaSchools";
 import { cn } from "@/lib/utils";
@@ -889,21 +889,35 @@ const ReviewStep = ({ formData }: { formData: SignUpFormData }) => {
           </div>
         )}
 
-        {/* Other role info */}
-        {formData.role === "other" && (
+        {/* Mentor / School admin info */}
+        {(formData.role === "mentor" || formData.role === "school_admin") && (
           <div className="p-3 bg-muted/50 rounded-lg space-y-2">
             <div className="flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Organization</span>
+              <span className="text-xs text-muted-foreground">
+                {formData.role === "mentor" ? "Mentor Profile" : "School"}
+              </span>
             </div>
             <div className="text-sm space-y-2">
               <div>
-                <p className="text-xs text-muted-foreground">Organization Name</p>
-                <p className="font-medium">{formData.organizationName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === "mentor" ? "Organization" : "School Name"}
+                </p>
+                <p className="font-medium">
+                  {formData.role === "mentor"
+                    ? formData.organizationName || "Independent"
+                    : formData.schoolName}
+                </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Role Description</p>
-                <p className="font-medium">{formData.roleDescription}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === "mentor" ? "Bio" : "Location"}
+                </p>
+                <p className="font-medium">
+                  {formData.role === "mentor"
+                    ? formData.roleDescription
+                    : `${formData.district}, ${formData.province}`}
+                </p>
               </div>
             </div>
           </div>
