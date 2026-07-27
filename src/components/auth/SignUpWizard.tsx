@@ -165,10 +165,14 @@ export const SignUpWizard = () => {
       };
 
       if (formData.role === "student" || formData.role === "teacher") {
-        metadata.school_name = formData.schoolName;
+        metadata.school_name = formData.verifiedSchoolName || formData.schoolName;
         metadata.province = formData.province;
         metadata.district = formData.district;
         metadata.education_level = formData.educationLevel;
+        metadata.join_mode = formData.role === "teacher" ? "school" : formData.joinMode;
+        if (formData.schoolCode.trim() !== "") {
+          metadata.school_code = formData.schoolCode.trim().toUpperCase();
+        }
       }
 
       if (formData.role === "student" && formData.combinationDepartment) {
@@ -180,9 +184,18 @@ export const SignUpWizard = () => {
         metadata.education_level_taught = formData.educationLevelTaught;
       }
 
-      if (formData.role === "other") {
+      if (formData.role === "mentor") {
+        metadata.subjects_taught = JSON.stringify(formData.subjectsTaught);
         metadata.organization_name = formData.organizationName;
         metadata.role_description = formData.roleDescription;
+      }
+
+      if (formData.role === "school_admin") {
+        metadata.school_name = formData.schoolName;
+        metadata.province = formData.province;
+        metadata.district = formData.district;
+        metadata.organization_name = formData.schoolName;
+        metadata.role_description = "School Administrator";
       }
 
       const { error } = await supabase.auth.signUp({
