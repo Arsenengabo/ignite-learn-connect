@@ -1,14 +1,21 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LandingPage } from "./LandingPage";
+import { PendingApproval } from "@/components/school/PendingApproval";
 
 const StudentDashboard = lazy(() =>
   import("./StudentDashboard").then((m) => ({ default: m.StudentDashboard }))
 );
 const TeacherDashboard = lazy(() => import("./TeacherDashboard"));
+const MentorDashboard = lazy(() => import("./MentorDashboard"));
+const SchoolAdminDashboard = lazy(() =>
+  import("@/components/school/SchoolAdminDashboard").then((m) => ({
+    default: m.SchoolAdminDashboard,
+  }))
+);
 
 const DashboardFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center">
