@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Star, FileText } from "lucide-react";
+import { BookOpen, Trophy, MessageSquare, Play, Star, FileText, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizBrowser } from "@/components/student/QuizBrowser";
 import { QuizTaker } from "@/components/student/QuizTaker";
@@ -10,9 +10,10 @@ import { CompetitionBrowser } from "@/components/student/CompetitionBrowser";
 import { CourseBrowser } from "@/components/student/CourseBrowser";
 import { CourseViewer } from "@/components/student/CourseViewer";
 import ExamBrowser from "@/components/exam/ExamBrowser";
+import { MentorDirectory } from "@/components/student/MentorDirectory";
 
 export const StudentDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing' | 'exams'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing' | 'exams' | 'mentors'>('dashboard');
   const [selectedQuizId, setSelectedQuizId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [stats, setStats] = useState({
@@ -183,6 +184,17 @@ export const StudentDashboard = () => {
   if (currentView === 'exams') {
     return <ExamBrowser onBack={() => setCurrentView('dashboard')} />;
   }
+
+  if (currentView === 'mentors') {
+    return (
+      <div className="space-y-4">
+        <Button variant="outline" onClick={() => setCurrentView('dashboard')} className="min-h-[44px]">
+          Back to Dashboard
+        </Button>
+        <MentorDirectory />
+      </div>
+    );
+  }
   return <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-subtle rounded-lg p-3 sm:p-4 lg:p-6 text-white">
@@ -291,6 +303,23 @@ export const StudentDashboard = () => {
           </CardContent>
         </Card>
 
+        <Card className="transition-shadow cursor-pointer active:scale-[0.99]" onClick={() => setCurrentView('mentors')}>
+          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Find a Mentor</CardTitle>
+            </div>
+            <CardDescription className="text-xs sm:text-sm line-clamp-2">
+              Request enrollment with an independent mentor
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={(e) => { e.stopPropagation(); setCurrentView('mentors'); }}>
+              Browse Mentors
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
           <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
             <div className="flex items-center space-x-2">
@@ -307,6 +336,7 @@ export const StudentDashboard = () => {
             </Button>
           </CardContent>
         </Card>
+
 
         <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
           <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
