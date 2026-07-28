@@ -138,11 +138,28 @@ const Index = () => {
   // Create a profile object with role for AppLayout
   const profileWithRole = { ...userProfile, role: userRole };
 
+  // Teachers may only work inside an approved school portal
+  const teacherBlocked = userRole === 'teacher' && membership?.status !== 'approved';
+
+  const renderDashboard = () => {
+    if (teacherBlocked) {
+      return (
+        <PendingApproval
+          role="teacher"
+          hasMembership={!!membership}
+          onRefresh={refreshUserData}
+        />
+      );
+    }
+    if (userRole === 'school_admin') return <SchoolAdminDashboard userProfile={userProfile} />;
+    if (userRole === 'mentor') return <MentorDashboard />;
+    if (userRole === 'teacher') return <TeacherDashboard />;
+    return <StudentDashboard />;
+  };
+
   return (
     <AppLayout user={user} userProfile={profileWithRole}>
-      <Suspense fallback={<DashboardFallback />}>
-        {userRole === 'teacher' ? <TeacherDashboard /> : <StudentDashboard />}
-      </Suspense>
+      <Suspense fallback={<DashboardFallback />}>{renderDashboard()}</Suspense>
     </AppLayout>
   );
 };
