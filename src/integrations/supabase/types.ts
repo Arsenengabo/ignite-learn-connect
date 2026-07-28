@@ -1121,6 +1121,17 @@ export type Database = {
           section_id: string
         }[]
       }
+      get_mentor_enrollment_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          status: string
+          student_id: string
+          student_name: string
+        }[]
+      }
       get_quiz_questions_for_student: {
         Args: { _quiz_id: string }
         Returns: {
@@ -1130,6 +1141,18 @@ export type Database = {
           points: number
           question_text: string
           question_type: string
+        }[]
+      }
+      get_school_roster: {
+        Args: { _school_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          member_id: string
+          member_role: string
+          status: string
+          user_id: string
         }[]
       }
       get_user_display_name: { Args: { _user_id: string }; Returns: string }
@@ -1161,6 +1184,18 @@ export type Database = {
         Args: { _code: string; _member_role: string }
         Returns: Json
       }
+      list_mentors: {
+        Args: never
+        Returns: {
+          district: string
+          full_name: string
+          organization_name: string
+          province: string
+          role_description: string
+          subjects_taught: string[]
+          user_id: string
+        }[]
+      }
       lookup_school_by_code: {
         Args: { _code: string }
         Returns: {
@@ -1179,6 +1214,14 @@ export type Database = {
           _phone: string
           _province: string
         }
+        Returns: Json
+      }
+      respond_mentor_enrollment: {
+        Args: { _enrollment_id: string; _status: string }
+        Returns: Json
+      }
+      set_school_member_status: {
+        Args: { _member_id: string; _status: string }
         Returns: Json
       }
       submit_quiz_responses: {
