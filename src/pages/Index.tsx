@@ -28,6 +28,7 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [membership, setMembership] = useState<{ status: string; school_id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
 
@@ -87,12 +88,23 @@ const Index = () => {
         .eq('user_id', userId)
         .single();
 
-      if (roleError) {
-        console.error('Error fetching role:', roleError);
-        // Fallback to profile role if user_roles doesn't have entry
-        setUserRole(profileData?.role || 'student');
+      const resolvedRole = roleError
+        ? profileData?.role || 'student'
+        : roleData?.role || 'student';
+      setUserRole(resolvedRole);
+
+      // School membership gate (teachers must enter via a school portal)
+      if (resolvedRole === 'teacher' || resolvedRole === 'student') {
+        const { data: memberData } = await supabase
+          .from('school_members')
+          .select('status, school_id')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setMembership(memberData ?? null);
       } else {
-        setUserRole(roleData?.role || 'student');
+        setMembership(null);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -100,6 +112,13 @@ const Index = () => {
       setLoading(false);
     }
   };
+
+  const refreshUserData = useCallback(() => {
+    if (user?.id) {
+      setLoading(true);
+      fetchUserData(user.id);
+    }
+  }, [user?.id]);
 
   if (loading) {
     return (
