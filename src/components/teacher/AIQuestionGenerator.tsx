@@ -257,6 +257,32 @@ export const AIQuestionGenerator = () => {
     }
   };
 
+  const toInt = (v: unknown, fallback = 0) => {
+    const n = typeof v === "number" ? v : parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const togglePublish = async (publish: boolean) => {
+    if (!savedExamId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('exams')
+        .update({ is_published: publish })
+        .eq('id', savedExamId);
+      if (error) throw error;
+      setIsPublished(publish);
+      toast.success(publish
+        ? "Exam is now live. Students can take it in Online Exams."
+        : "Exam unpublished. Students can no longer see it.");
+    } catch (error: any) {
+      console.error('Error updating publish state:', error);
+      toast.error(error.message || "Failed to update publish state.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveToDatabase = async (publish: boolean = false) => {
     const examToSave = generationMode === "online" ? onlineExam : null;
     const standardExamToSave = generationMode === "standard" ? generatedExam : null;
@@ -269,7 +295,7 @@ export const AIQuestionGenerator = () => {
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error("You must be signed in as a teacher to publish an exam.");
 
       // Determine exam data source
       const examData = examToSave ? {
@@ -295,10 +321,11 @@ export const AIQuestionGenerator = () => {
         .from('exams')
         .insert({
           teacher_id: user.id,
-          title: examData.name,
-          subject: examData.subject,
-          total_marks: examData.totalMarks,
-          time_limit_minutes: examData.duration,
+          title: examData.name || "Untitled Exam",
+          subject: examData.subject || "General",
+          description: `${examData.subject || ""} exam generated with AI`.trim(),
+          total_marks: toInt(examData.totalMarks, 100),
+          time_limit_minutes: toInt(examData.duration, 60),
           instructions: examData.instructions,
           difficulty_level: difficulty,
           is_published: publish,
@@ -308,57 +335,61 @@ export const AIQuestionGenerator = () => {
 
       if (examError) throw examError;
 
+      let questionCount = 0;
+
       // Create sections and questions
       if (examToSave) {
         // Online exam format
-        for (const section of examData.sections as OnlineExamSection[]) {
+        const onlineSections = examData.sections as OnlineExamSection[];
+        for (let sIndex = 0; sIndex < onlineSections.length; sIndex++) {
+          const section = onlineSections[sIndex];
           const { data: sectionData, error: sectionError } = await supabase
             .from('exam_sections')
             .insert({
               exam_id: exam.id,
-              title: section.name,
-              order_index: section.order,
+              title: section.name || `Section ${sIndex + 1}`,
+              order_index: toInt(section.order, sIndex),
             })
             .select()
             .single();
 
           if (sectionError) throw sectionError;
 
-          // Insert questions for this section
-          for (const q of section.questions) {
-            // Find grading data for this question
+          const rows = (section.questions || []).map((q, qIndex) => {
             const grading = (examData.gradingData as GradingQuestion[])?.find(g => g.id === q.id);
+            return {
+              exam_id: exam.id,
+              section_id: sectionData.id,
+              question_text: q.questionText,
+              question_type: q.type,
+              options: (q.options ?? null) as Json,
+              marks: toInt(q.marks, 1),
+              order_index: toInt(q.number, qIndex + 1),
+              correct_answer: grading?.correctAnswer || null,
+              explanation: grading?.explanation || null,
+              sample_answer: grading?.sampleAnswer || null,
+              key_points: (grading?.keyPoints ?? null) as Json,
+              evaluation_guidelines: grading?.evaluationGuidelines || null,
+            };
+          });
 
-            const { error: questionError } = await supabase
-              .from('exam_questions')
-              .insert({
-                exam_id: exam.id,
-                section_id: sectionData.id,
-                question_text: q.questionText,
-                question_type: q.type,
-                options: q.options as Json,
-                marks: q.marks,
-                order_index: q.number,
-                correct_answer: grading?.correctAnswer || null,
-                explanation: grading?.explanation || null,
-                sample_answer: grading?.sampleAnswer || null,
-                key_points: grading?.keyPoints as Json || null,
-                evaluation_guidelines: grading?.evaluationGuidelines || null,
-              });
-
+          if (rows.length > 0) {
+            const { error: questionError } = await supabase.from('exam_questions').insert(rows);
             if (questionError) throw questionError;
+            questionCount += rows.length;
           }
         }
       } else {
         // Standard exam format
-        for (let sIndex = 0; sIndex < (examData.sections as GeneratedSection[]).length; sIndex++) {
-          const section = (examData.sections as GeneratedSection[])[sIndex];
+        const stdSections = examData.sections as GeneratedSection[];
+        for (let sIndex = 0; sIndex < stdSections.length; sIndex++) {
+          const section = stdSections[sIndex];
           
           const { data: sectionData, error: sectionError } = await supabase
             .from('exam_sections')
             .insert({
               exam_id: exam.id,
-              title: section.name,
+              title: section.name || `Section ${sIndex + 1}`,
               order_index: sIndex,
             })
             .select()
@@ -366,43 +397,48 @@ export const AIQuestionGenerator = () => {
 
           if (sectionError) throw sectionError;
 
-          // Insert questions
-          for (const q of section.questions) {
-            const { error: questionError } = await supabase
-              .from('exam_questions')
-              .insert({
-                exam_id: exam.id,
-                section_id: sectionData.id,
-                question_text: q.question,
-                question_type: q.type,
-                options: q.options as Json,
-                marks: q.marks,
-                order_index: q.number,
-                correct_answer: q.correctAnswer || null,
-                explanation: q.explanation || null,
-                sample_answer: q.sampleAnswer || null,
-                key_points: q.keyPoints as Json || null,
-                evaluation_guidelines: q.evaluationGuidelines || null,
-              });
+          const rows = (section.questions || []).map((q, qIndex) => ({
+            exam_id: exam.id,
+            section_id: sectionData.id,
+            question_text: q.question,
+            question_type: q.type,
+            options: (q.options ?? null) as Json,
+            marks: toInt(q.marks, 1),
+            order_index: toInt(q.number, qIndex + 1),
+            correct_answer: q.correctAnswer || null,
+            explanation: q.explanation || null,
+            sample_answer: q.sampleAnswer || null,
+            key_points: (q.keyPoints ?? null) as Json,
+            evaluation_guidelines: q.evaluationGuidelines || null,
+          }));
 
+          if (rows.length > 0) {
+            const { error: questionError } = await supabase.from('exam_questions').insert(rows);
             if (questionError) throw questionError;
+            questionCount += rows.length;
           }
         }
       }
 
+      if (questionCount === 0) {
+        throw new Error("No questions were saved. Regenerate the exam and try again.");
+      }
+
       setSavedExamId(exam.id);
+      setIsPublished(publish);
       toast.success(publish 
-        ? "Exam saved and published! Students can now take it online." 
-        : "Exam saved as draft. You can publish it from the Exam Manager."
+        ? `Published! ${questionCount} questions are live for students in Online Exams.`
+        : `Saved as draft with ${questionCount} questions. Publish it any time.`
       );
 
     } catch (error: any) {
       console.error('Error saving exam:', error);
-      toast.error(error.message || "Failed to save exam. Please try again.");
+      toast.error(error.message || error.details || "Failed to save exam. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const exportOnlineExamJSON = () => {
     if (!onlineExam) return;
