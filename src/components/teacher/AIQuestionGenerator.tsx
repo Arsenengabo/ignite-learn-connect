@@ -1121,10 +1121,21 @@ export const AIQuestionGenerator = () => {
                     </Button>
                   </>
                 ) : (
-                  <Badge variant="default" className="gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Saved to Database
-                  </Badge>
+                  <>
+                    <Badge variant={isPublished ? "default" : "secondary"} className="gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {isPublished ? "Live for students" : "Saved as draft"}
+                    </Badge>
+                    <Button
+                      variant={isPublished ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => togglePublish(!isPublished)}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                      {isPublished ? "Unpublish" : "Publish for Online"}
+                    </Button>
+                  </>
                 )}
                 <Button variant="outline" size="sm" onClick={exportOnlineExamJSON}>
                   <Download className="w-4 h-4 mr-2" />
