@@ -146,6 +146,7 @@ export const AIQuestionGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedExamId, setSavedExamId] = useState<string | null>(null);
+  const [isPublished, setIsPublished] = useState(false);
   const [generationMode, setGenerationMode] = useState<"standard" | "online">("standard");
   const [previewQuestion, setPreviewQuestion] = useState(0);
   const [includeDiagrams, setIncludeDiagrams] = useState(true);
