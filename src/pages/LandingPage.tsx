@@ -290,6 +290,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   <CardContent className="p-6">
                     <div className={`w-12 h-12 rounded-lg ${c.bg} flex items-center justify-center mb-4 ${c.bgHover} transition-all duration-300 group-hover:scale-110 group-hover:rotate-3`}>
                       <f.icon className={`w-6 h-6 ${c.text}`} />
+                    </div>
                     <h3 className="text-xl font-semibold text-foreground mb-3">{f.title}</h3>
                     <p className="text-muted-foreground">{f.desc}</p>
                   </CardContent>
