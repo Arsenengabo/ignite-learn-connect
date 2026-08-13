@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Users, Plus, ScanLine, ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { QuizBuilder } from "@/components/teacher/QuizBuilder";
 import { RecentQuizzes } from "@/components/teacher/RecentQuizzes";
 import { CompetitionCreator } from "@/components/teacher/CompetitionCreator";
@@ -12,11 +10,35 @@ import { CourseManager } from "@/components/teacher/CourseManager";
 import { AIQuestionGenerator } from "@/components/teacher/AIQuestionGenerator";
 import { MCQScanner } from "@/components/teacher/MCQScanner";
 import { AnswerSheetGenerator } from "@/components/teacher/AnswerSheetGenerator";
+import { TeacherHome } from "@/components/teacher/TeacherHome";
+import { ClassAnalytics } from "@/components/teacher/ClassAnalytics";
+import { useOptionalAppNav } from "@/contexts/AppNavContext";
 
-const TeacherDashboard = () => {
+/** Bottom-nav tab -> dashboard view */
+const TAB_TO_VIEW: Record<string, string | null> = {
+  home: null,
+  classes: "course-manager",
+  exams: "exams",
+  analytics: "analytics",
+  profile: null,
+};
+
+const TeacherDashboard = ({ userProfile }: { userProfile?: any }) => {
+  const nav = useOptionalAppNav();
   const [activeView, setActiveView] = useState<string | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
   const [editingCourse, setEditingCourse] = useState<any>(null);
+
+  const activeTab = nav?.activeTab;
+  const isTeacherView = nav ? nav.viewRole !== "student" : true;
+
+  useEffect(() => {
+    if (!activeTab || !isTeacherView) return;
+    if (activeTab in TAB_TO_VIEW) {
+      setActiveView(TAB_TO_VIEW[activeTab]);
+    }
+  }, [activeTab, isTeacherView]);
+
 
   const handleEditQuiz = (quiz: any) => {
     setEditingQuiz(quiz);
