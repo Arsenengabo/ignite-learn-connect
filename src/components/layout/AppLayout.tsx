@@ -88,8 +88,10 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
               </p>
             </div>
           </div>
-
+          <div className="flex items-center gap-2">
+          <RoleViewToggle />
           <DropdownMenu>
+
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full flex-shrink-0">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
