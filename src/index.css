@@ -85,6 +85,40 @@
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+
+    /* ===== ILC (Ignite Learn Connect) brand token system =====
+       Additive: these live alongside the existing theme tokens. */
+    --ilc-navy-hsl: 207 53% 11%;
+    --ilc-navy-mid-hsl: 210 48% 15%;
+    --ilc-navy-light-hsl: 212 46% 21%;
+    --ilc-amber-hsl: 38 91% 55%;
+    --ilc-teal-hsl: 175 100% 38%;
+    --ilc-coral-hsl: 6 100% 68%;
+    --ilc-success-hsl: 142 71% 45%;
+    --ilc-text-hsl: 225 100% 97%;
+    --ilc-text-muted-hsl: 219 22% 63%;
+
+    --ilc-navy: hsl(var(--ilc-navy-hsl));
+    --ilc-navy-mid: hsl(var(--ilc-navy-mid-hsl));
+    --ilc-navy-light: hsl(var(--ilc-navy-light-hsl));
+    --ilc-amber: hsl(var(--ilc-amber-hsl));
+    --ilc-teal: hsl(var(--ilc-teal-hsl));
+    --ilc-coral: hsl(var(--ilc-coral-hsl));
+    --ilc-success: hsl(var(--ilc-success-hsl));
+    --ilc-text: hsl(var(--ilc-text-hsl));
+    --ilc-text-muted: hsl(var(--ilc-text-muted-hsl));
+
+    --ilc-amber-glow: hsl(var(--ilc-amber-hsl) / 0.12);
+    --ilc-teal-glow: hsl(var(--ilc-teal-hsl) / 0.12);
+    --ilc-coral-glow: hsl(var(--ilc-coral-hsl) / 0.12);
+    --ilc-success-glow: hsl(var(--ilc-success-hsl) / 0.12);
+
+    --ilc-hairline: hsl(var(--ilc-text-hsl) / 0.1);
+    --ilc-hairline-soft: hsl(var(--ilc-text-hsl) / 0.08);
+    --ilc-radius-card: 12px;
+    --ilc-radius-hero: 18px;
+    --ilc-gradient-hero: linear-gradient(160deg, var(--ilc-navy-mid), var(--ilc-navy-light));
+    --ilc-gradient-ai: linear-gradient(90deg, var(--ilc-amber-glow), var(--ilc-teal-glow));
   }
 
   .dark {
