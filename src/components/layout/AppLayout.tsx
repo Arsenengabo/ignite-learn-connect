@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -7,6 +7,44 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Settings, User, MapPin, School, BookOpen } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
+import { AppNavProvider, NavRole, useAppNav } from "@/contexts/AppNavContext";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { cn } from "@/lib/utils";
+
+const RoleViewToggle = () => {
+  const { accountRole, viewRole, setViewRole, canToggleRole } = useAppNav();
+  if (!canToggleRole) return null;
+
+  const options: { id: NavRole; label: string }[] = [
+    { id: accountRole, label: accountRole === "school_admin" ? "Admin" : "Teacher" },
+    { id: "student", label: "Student" },
+  ];
+
+  return (
+    <div
+      className="hidden sm:flex items-center gap-0.5 rounded-full border p-0.5"
+      role="group"
+      aria-label="Switch dashboard view"
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => setViewRole(option.id)}
+          className={cn(
+            "rounded-full px-3 text-xs font-medium transition-colors btn-sm",
+            viewRole === option.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 
 interface AppLayoutProps {
   children: ReactNode;
