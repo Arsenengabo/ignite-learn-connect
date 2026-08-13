@@ -128,6 +128,19 @@ export default {
     			'accordion-up': 'accordion-up 0.2s ease-out'
     		},
     		fontFamily: {
+    			display: [
+    				'DM Sans',
+    				'Inter',
+    				'ui-sans-serif',
+    				'system-ui',
+    				'sans-serif'
+    			],
+    			num: [
+    				'JetBrains Mono',
+    				'Space Mono',
+    				'ui-monospace',
+    				'monospace'
+    			],
     			sans: [
     				'Inter',
     				'ui-sans-serif',
