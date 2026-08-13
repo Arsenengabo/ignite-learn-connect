@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -83,6 +85,40 @@
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+
+    /* ===== ILC (Ignite Learn Connect) brand token system =====
+       Additive: these live alongside the existing theme tokens. */
+    --ilc-navy-hsl: 207 53% 11%;
+    --ilc-navy-mid-hsl: 210 48% 15%;
+    --ilc-navy-light-hsl: 212 46% 21%;
+    --ilc-amber-hsl: 38 91% 55%;
+    --ilc-teal-hsl: 175 100% 38%;
+    --ilc-coral-hsl: 6 100% 68%;
+    --ilc-success-hsl: 142 71% 45%;
+    --ilc-text-hsl: 225 100% 97%;
+    --ilc-text-muted-hsl: 219 22% 63%;
+
+    --ilc-navy: hsl(var(--ilc-navy-hsl));
+    --ilc-navy-mid: hsl(var(--ilc-navy-mid-hsl));
+    --ilc-navy-light: hsl(var(--ilc-navy-light-hsl));
+    --ilc-amber: hsl(var(--ilc-amber-hsl));
+    --ilc-teal: hsl(var(--ilc-teal-hsl));
+    --ilc-coral: hsl(var(--ilc-coral-hsl));
+    --ilc-success: hsl(var(--ilc-success-hsl));
+    --ilc-text: hsl(var(--ilc-text-hsl));
+    --ilc-text-muted: hsl(var(--ilc-text-muted-hsl));
+
+    --ilc-amber-glow: hsl(var(--ilc-amber-hsl) / 0.12);
+    --ilc-teal-glow: hsl(var(--ilc-teal-hsl) / 0.12);
+    --ilc-coral-glow: hsl(var(--ilc-coral-hsl) / 0.12);
+    --ilc-success-glow: hsl(var(--ilc-success-hsl) / 0.12);
+
+    --ilc-hairline: hsl(var(--ilc-text-hsl) / 0.1);
+    --ilc-hairline-soft: hsl(var(--ilc-text-hsl) / 0.08);
+    --ilc-radius-card: 12px;
+    --ilc-radius-hero: 18px;
+    --ilc-gradient-hero: linear-gradient(160deg, var(--ilc-navy-mid), var(--ilc-navy-light));
+    --ilc-gradient-ai: linear-gradient(90deg, var(--ilc-amber-glow), var(--ilc-teal-glow));
   }
 
   .dark {
@@ -201,6 +237,25 @@
     min-height: 28px;
     min-width: 28px;
   }
+
+  /* ILC accessibility: reduced motion + amber focus ring */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  .ilc-scope :focus-visible,
+  .ilc-surface :focus-visible {
+    outline: 2px solid var(--ilc-amber);
+    outline-offset: 2px;
+  }
+
 
   /* Custom Education Animations */
   @keyframes float {
@@ -373,4 +428,110 @@
       @apply py-2;
     }
   }
+}
+/* ===== ILC design system components (additive) ===== */
+@layer components {
+  /* Surface wrapper: opts a subtree into the ILC look */
+  .ilc-surface {
+    background: var(--ilc-navy);
+    color: var(--ilc-text);
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .ilc-num {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Cards */
+  .ilc-card {
+    background: var(--ilc-navy-mid);
+    border: 1px solid var(--ilc-hairline);
+    border-radius: var(--ilc-radius-card);
+    padding: 14px;
+  }
+
+  .ilc-card-hero {
+    background: var(--ilc-gradient-hero);
+    border: 1px solid var(--ilc-hairline);
+    border-radius: var(--ilc-radius-hero);
+    padding: 16px;
+  }
+
+  /* Buttons */
+  .ilc-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors;
+    min-height: 44px;
+  }
+
+  .ilc-btn-primary {
+    background: var(--ilc-amber);
+    color: var(--ilc-navy);
+  }
+  .ilc-btn-primary:hover { filter: brightness(1.06); }
+
+  .ilc-btn-secondary {
+    background: var(--ilc-teal);
+    color: var(--ilc-navy);
+  }
+  .ilc-btn-secondary:hover { filter: brightness(1.06); }
+
+  .ilc-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--ilc-text-muted);
+    color: var(--ilc-text);
+  }
+  .ilc-btn-ghost:hover { border-color: var(--ilc-amber); }
+
+  .ilc-btn-danger {
+    background: var(--ilc-coral);
+    color: var(--ilc-navy);
+  }
+
+  /* Badges / pills */
+  .ilc-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+  .ilc-badge-success { background: var(--ilc-success-glow); color: var(--ilc-success); }
+  .ilc-badge-warning { background: var(--ilc-amber-glow); color: var(--ilc-amber); }
+  .ilc-badge-danger  { background: var(--ilc-coral-glow); color: var(--ilc-coral); }
+  .ilc-badge-info    { background: var(--ilc-teal-glow); color: var(--ilc-teal); }
+
+  /* AI assistant pill */
+  .ilc-ai-pill {
+    @apply flex w-full items-center gap-2.5 px-3 text-sm;
+    min-height: 44px;
+    background: var(--ilc-gradient-ai);
+    border: 1px solid hsl(var(--ilc-amber-hsl) / 0.2);
+    border-radius: 8px;
+    color: var(--ilc-text);
+  }
+
+  .ilc-dot-pulse {
+    @apply inline-block h-2 w-2 rounded-full;
+    background: var(--ilc-amber);
+    animation: ilc-pulse 1.6s ease-in-out infinite;
+  }
+  .ilc-dot-pulse-coral { background: var(--ilc-coral); }
+  .ilc-dot-pulse-teal { background: var(--ilc-teal); }
+
+  @keyframes ilc-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(1.35); }
+  }
+
+  /* List rows */
+  .ilc-row {
+    @apply flex w-full items-center gap-3 text-left;
+    min-height: 48px;
+    border-bottom: 1px solid var(--ilc-hairline-soft);
+  }
+
+  .ilc-icon-box {
+    @apply flex shrink-0 items-center justify-center rounded-lg;
+    width: 38px;
+    height: 38px;
+  }
+
+  .ilc-muted { color: var(--ilc-text-muted); }
 }

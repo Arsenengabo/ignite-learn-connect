@@ -153,7 +153,7 @@ const Index = () => {
     }
     if (userRole === 'school_admin') return <SchoolAdminDashboard userProfile={userProfile} />;
     if (userRole === 'mentor') return <MentorDashboard />;
-    if (userRole === 'teacher') return <TeacherDashboard />;
+    if (userRole === 'teacher') return <TeacherDashboard userProfile={userProfile} />;
     return <StudentDashboard />;
   };
 

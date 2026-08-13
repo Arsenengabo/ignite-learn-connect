@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -7,6 +7,44 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Settings, User, MapPin, School, BookOpen } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
+import { AppNavProvider, NavRole, useAppNav } from "@/contexts/AppNavContext";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { cn } from "@/lib/utils";
+
+const RoleViewToggle = () => {
+  const { accountRole, viewRole, setViewRole, canToggleRole } = useAppNav();
+  if (!canToggleRole) return null;
+
+  const options: { id: NavRole; label: string }[] = [
+    { id: accountRole, label: accountRole === "school_admin" ? "Admin" : "Teacher" },
+    { id: "student", label: "Student" },
+  ];
+
+  return (
+    <div
+      className="hidden sm:flex items-center gap-0.5 rounded-full border p-0.5"
+      role="group"
+      aria-label="Switch dashboard view"
+    >
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => setViewRole(option.id)}
+          className={cn(
+            "rounded-full px-3 text-xs font-medium transition-colors btn-sm",
+            viewRole === option.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -35,7 +73,9 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
   };
 
   return (
+    <AppNavProvider accountRole={(userProfile?.role as NavRole) || "student"}>
     <div className="min-h-screen bg-background safe-area-inset">
+
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
@@ -48,8 +88,10 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
               </p>
             </div>
           </div>
-
+          <div className="flex items-center gap-2">
+          <RoleViewToggle />
           <DropdownMenu>
+
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full flex-shrink-0">
                 <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
@@ -128,13 +170,17 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+      <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-28 lg:pb-6">
         {children}
       </main>
+
+      <BottomNav />
     </div>
+    </AppNavProvider>
   );
 };
