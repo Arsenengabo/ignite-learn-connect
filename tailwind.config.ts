@@ -33,6 +33,17 @@ export default {
     	},
     	extend: {
     		colors: {
+    			ilc: {
+    				navy: 'hsl(var(--ilc-navy-hsl))',
+    				'navy-mid': 'hsl(var(--ilc-navy-mid-hsl))',
+    				'navy-light': 'hsl(var(--ilc-navy-light-hsl))',
+    				amber: 'hsl(var(--ilc-amber-hsl))',
+    				teal: 'hsl(var(--ilc-teal-hsl))',
+    				coral: 'hsl(var(--ilc-coral-hsl))',
+    				success: 'hsl(var(--ilc-success-hsl))',
+    				text: 'hsl(var(--ilc-text-hsl))',
+    				'text-muted': 'hsl(var(--ilc-text-muted-hsl))'
+    			},
     			border: 'hsl(var(--border))',
     			input: 'hsl(var(--input))',
     			ring: 'hsl(var(--ring))',
