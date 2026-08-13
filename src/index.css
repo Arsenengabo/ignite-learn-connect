@@ -238,6 +238,25 @@
     min-width: 28px;
   }
 
+  /* ILC accessibility: reduced motion + amber focus ring */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  .ilc-scope :focus-visible,
+  .ilc-surface :focus-visible {
+    outline: 2px solid var(--ilc-amber);
+    outline-offset: 2px;
+  }
+
+
   /* Custom Education Animations */
   @keyframes float {
     0%, 100% { transform: translateY(0px) rotate(0deg); }
