@@ -96,6 +96,53 @@ export type Database = {
           },
         ]
       }
+      competition_entries: {
+        Row: {
+          competition_id: string
+          correct_answers: number
+          created_at: string
+          finished_at: string | null
+          id: string
+          joined_at: string
+          score: number
+          student_id: string
+          time_taken_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          competition_id: string
+          correct_answers?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          joined_at?: string
+          score?: number
+          student_id: string
+          time_taken_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          competition_id?: string
+          correct_answers?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          joined_at?: string
+          score?: number
+          student_id?: string
+          time_taken_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_entries_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitions: {
         Row: {
           created_at: string
@@ -549,6 +596,8 @@ export type Database = {
       }
       exams: {
         Row: {
+          assigned_class: string | null
+          closes_at: string | null
           created_at: string
           description: string | null
           difficulty_level: string | null
@@ -556,6 +605,8 @@ export type Database = {
           instructions: string | null
           is_premium: boolean | null
           is_published: boolean | null
+          opens_at: string | null
+          proctoring_settings: Json
           subject: string | null
           teacher_id: string
           time_limit_minutes: number | null
@@ -564,6 +615,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_class?: string | null
+          closes_at?: string | null
           created_at?: string
           description?: string | null
           difficulty_level?: string | null
@@ -571,6 +624,8 @@ export type Database = {
           instructions?: string | null
           is_premium?: boolean | null
           is_published?: boolean | null
+          opens_at?: string | null
+          proctoring_settings?: Json
           subject?: string | null
           teacher_id: string
           time_limit_minutes?: number | null
@@ -579,6 +634,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_class?: string | null
+          closes_at?: string | null
           created_at?: string
           description?: string | null
           difficulty_level?: string | null
@@ -586,6 +643,8 @@ export type Database = {
           instructions?: string | null
           is_premium?: boolean | null
           is_published?: boolean | null
+          opens_at?: string | null
+          proctoring_settings?: Json
           subject?: string | null
           teacher_id?: string
           time_limit_minutes?: number | null
@@ -1043,6 +1102,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_active_date: string | null
+          longest_streak: number
+          total_active_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number
+          total_active_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number
+          total_active_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       exam_questions_student_view: {
@@ -1227,6 +1319,25 @@ export type Database = {
       submit_quiz_responses: {
         Args: { _responses: Json; _session_id: string }
         Returns: Json
+      }
+      touch_user_streak: {
+        Args: never
+        Returns: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_active_date: string | null
+          longest_streak: number
+          total_active_days: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_streaks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
