@@ -41,6 +41,15 @@ export const StudentDashboard = ({ userProfile }: { userProfile?: any }) => {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
+  const activeTab = nav?.activeTab;
+  useEffect(() => {
+    if (activeTab && activeTab in TAB_TO_VIEW) {
+      setCurrentView(TAB_TO_VIEW[activeTab]);
+    }
+  }, [activeTab]);
+
+
+
   useEffect(() => {
     fetchDashboardData();
     
