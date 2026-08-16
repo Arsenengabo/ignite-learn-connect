@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Trophy, MessageSquare, Play, Star, FileText, Users } from "lucide-react";
+import { BookOpen, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizBrowser } from "@/components/student/QuizBrowser";
 import { QuizTaker } from "@/components/student/QuizTaker";
@@ -11,11 +11,28 @@ import { CourseBrowser } from "@/components/student/CourseBrowser";
 import { CourseViewer } from "@/components/student/CourseViewer";
 import ExamBrowser from "@/components/exam/ExamBrowser";
 import { MentorDirectory } from "@/components/student/MentorDirectory";
+import { StudentHome } from "@/components/student/StudentHome";
+import { useOptionalAppNav } from "@/contexts/AppNavContext";
 
-export const StudentDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions' | 'courses' | 'course-viewing' | 'exams' | 'mentors'>('dashboard');
+type StudentView =
+  | 'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions'
+  | 'courses' | 'course-viewing' | 'exams' | 'mentors';
+
+/** Bottom-nav tab -> student view */
+const TAB_TO_VIEW: Record<string, StudentView> = {
+  home: 'dashboard',
+  learn: 'courses',
+  exams: 'exams',
+  mentors: 'mentors',
+  profile: 'dashboard',
+};
+
+export const StudentDashboard = ({ userProfile }: { userProfile?: any }) => {
+  const nav = useOptionalAppNav();
+  const [currentView, setCurrentView] = useState<StudentView>('dashboard');
   const [selectedQuizId, setSelectedQuizId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+
   const [stats, setStats] = useState({
     quizzesTaken: 0,
     competitions: 0,
