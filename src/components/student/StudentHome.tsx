@@ -5,7 +5,6 @@ import {
   CalendarClock,
   ChevronRight,
   Flame,
-  MessageSquare,
   Play,
   Star,
   Trophy,
@@ -31,7 +30,6 @@ const ACTIONS = [
   { id: "courses", label: "Continue learning", hint: "Your enrolled courses", icon: Play, tone: "var(--ilc-teal)", glow: "var(--ilc-teal-glow)" },
   { id: "competitions", label: "Competitions", hint: "Compete and climb the board", icon: Trophy, tone: "var(--ilc-coral)", glow: "var(--ilc-coral-glow)" },
   { id: "mentors", label: "Find a mentor", hint: "Request one-to-one guidance", icon: Users, tone: "var(--ilc-amber)", glow: "var(--ilc-amber-glow)" },
-  { id: "chat", label: "Student chat", hint: "Talk with other learners", icon: MessageSquare, tone: "var(--ilc-text-muted)", glow: "hsl(var(--ilc-text-hsl) / 0.06)" },
 ];
 
 export const StudentHome = ({ userProfile, stats, onNavigate }: StudentHomeProps) => {

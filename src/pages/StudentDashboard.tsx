@@ -195,166 +195,13 @@ export const StudentDashboard = () => {
       </div>
     );
   }
-  return <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-subtle rounded-lg p-3 sm:p-4 lg:p-6 text-white">
-        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2 text-indigo-500">Welcome back, Student! 🎓</h2>
-        <p className="text-xs sm:text-sm lg:text-base text-indigo-400">Ready to continue your learning journey?</p>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
-        <Card>
-          <CardContent className="p-3 sm:p-4 lg:pt-6">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Quizzes Taken</p>
-                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.quizzesTaken}</p>
-              </div>
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-primary flex-shrink-0" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4 lg:pt-6">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Competitions</p>
-                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.competitions}</p>
-              </div>
-              <Trophy className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-accent flex-shrink-0" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4 lg:pt-6">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Courses</p>
-                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.courses}</p>
-              </div>
-              <Play className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-secondary flex-shrink-0" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4 lg:pt-6">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] xs:text-xs sm:text-sm font-medium text-muted-foreground truncate">Avg Score</p>
-                <p className="text-base sm:text-lg lg:text-2xl font-bold">{stats.avgScore}%</p>
-              </div>
-              <Star className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-primary flex-shrink-0" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Features */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Take Quizzes</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Test your knowledge with interactive quizzes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('quizzes')}>
-              Browse Quizzes
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Online Exams</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Take exams created by your teachers
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('exams')}>
-              Browse Exams
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-accent flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Competitions</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Join study competitions and win prizes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('competitions')}>
-              Join Competition
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-shadow cursor-pointer active:scale-[0.99]" onClick={() => setCurrentView('mentors')}>
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Find a Mentor</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Request enrollment with an independent mentor
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={(e) => { e.stopPropagation(); setCurrentView('mentors'); }}>
-              Browse Mentors
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-secondary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Student Chat</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Connect with students from other schools
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button variant="secondary" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10">
-              Start Chatting
-            </Button>
-          </CardContent>
-        </Card>
-
-
-        <Card className="hover:shadow-elegant transition-shadow cursor-pointer">
-          <CardHeader className="p-3 sm:p-4 lg:p-6 pb-2 sm:pb-3">
-            <div className="flex items-center space-x-2">
-              <Play className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base lg:text-xl truncate">Online Courses</CardTitle>
-            </div>
-            <CardDescription className="text-xs sm:text-sm line-clamp-2">
-              Access teacher-created course content
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-            <Button variant="outline" className="w-full text-xs sm:text-sm lg:text-base h-9 sm:h-10" onClick={() => setCurrentView('courses')}>
-              Browse Courses
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+  return (
+    <div className="space-y-4">
+      <StudentHome
+        userProfile={userProfile}
+        stats={stats}
+        onNavigate={(view) => setCurrentView(view as any)}
+      />
 
       {/* Recent Activity */}
       <Card>
@@ -384,8 +231,8 @@ export const StudentDashboard = () => {
                     </div>
                   </div>
                   <Badge variant="secondary" className="text-[10px] sm:text-xs lg:text-sm flex-shrink-0">
-                    {activity.type === 'course' 
-                      ? `${Math.round(activity.progress_percentage)}%` 
+                    {activity.type === 'course'
+                      ? `${Math.round(activity.progress_percentage)}%`
                       : `${Math.round((activity.score / activity.total_questions) * 100)}%`
                     }
                   </Badge>
@@ -401,5 +248,6 @@ export const StudentDashboard = () => {
           </div>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
