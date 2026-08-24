@@ -5,6 +5,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LandingPage } from "./LandingPage";
 import { PendingApproval } from "@/components/school/PendingApproval";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const StudentDashboard = lazy(() =>
   import("./StudentDashboard").then((m) => ({ default: m.StudentDashboard }))
@@ -154,7 +155,11 @@ const Index = () => {
     if (userRole === 'school_admin') return <SchoolAdminDashboard userProfile={userProfile} />;
     if (userRole === 'mentor') return <MentorDashboard />;
     if (userRole === 'teacher') return <TeacherDashboard />;
-    return <StudentDashboard />;
+    return (
+      <AuthProvider user={user} session={session} loading={loading}>
+        <StudentDashboard userProfile={userProfile} />
+      </AuthProvider>
+    );
   };
 
   return (
