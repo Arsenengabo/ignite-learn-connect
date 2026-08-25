@@ -46,6 +46,10 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
+        // Take control immediately so users never get stuck on a stale build
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
