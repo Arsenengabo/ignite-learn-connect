@@ -12,17 +12,19 @@ import { CourseViewer } from "@/components/student/CourseViewer";
 import ExamBrowser from "@/components/exam/ExamBrowser";
 import { MentorDirectory } from "@/components/student/MentorDirectory";
 import { StudentHome } from "@/components/student/StudentHome";
+import { StudentChat } from "@/components/student/StudentChat";
 import { useOptionalAppNav } from "@/contexts/AppNavContext";
 
 type StudentView =
   | 'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions'
-  | 'courses' | 'course-viewing' | 'exams' | 'mentors';
+  | 'courses' | 'course-viewing' | 'exams' | 'mentors' | 'chat';
 
 /** Bottom-nav tab -> student view */
 const TAB_TO_VIEW: Record<string, StudentView> = {
   home: 'dashboard',
   learn: 'courses',
   exams: 'exams',
+  chat: 'chat',
   mentors: 'mentors',
   profile: 'dashboard',
 };
@@ -209,6 +211,10 @@ export const StudentDashboard = ({ userProfile }: { userProfile?: any }) => {
 
   if (currentView === 'exams') {
     return <ExamBrowser onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'chat') {
+    return <StudentChat />;
   }
 
   if (currentView === 'mentors') {

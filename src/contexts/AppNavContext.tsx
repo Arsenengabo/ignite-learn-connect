@@ -6,6 +6,7 @@ import {
   GraduationCap,
   Home,
   LucideIcon,
+  MessageSquare,
   Trophy,
   User,
   Users,
