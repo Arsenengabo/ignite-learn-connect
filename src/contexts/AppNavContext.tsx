@@ -23,8 +23,8 @@ const STUDENT_TABS: NavTab[] = [
   { id: "home", label: "Home", icon: Home },
   { id: "learn", label: "Learn", icon: BookOpen },
   { id: "exams", label: "Exams", icon: FileText },
+  { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "mentors", label: "Mentors", icon: Users },
-  { id: "profile", label: "Profile", icon: User },
 ];
 
 const TEACHER_TABS: NavTab[] = [
