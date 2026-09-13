@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Hash, MessageSquare, Send, Users } from "lucide-react";
 import { ChatMessageSchema, getValidationError } from "@/lib/validations";
+import { DirectMessages } from "./DirectMessages";
 
 interface ChatMessage {
   id: string;
@@ -27,6 +28,7 @@ export const StudentChat = () => {
   const [draft, setDraft] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<"rooms" | "direct">("rooms");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
