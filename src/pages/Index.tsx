@@ -28,6 +28,26 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [schoolId, setSchoolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userProfile?.school_name) {
+      setSchoolId(null);
+      return;
+    }
+
+  // profiles.school_name is free text, schools.id is the real UUID our
+  // chat RLS needs — resolved by name-match since profiles has no direct
+  // school_id foreign key.
+    supabase
+      .from('schools')
+      .select('id')
+      .eq('name', userProfile.school_name)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSchoolId(data?.id ?? null);
+      });
+  }, [userProfile?.school_name]);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [membership, setMembership] = useState<{ status: string; school_id: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -154,12 +174,8 @@ const Index = () => {
     }
     if (userRole === 'school_admin') return <SchoolAdminDashboard userProfile={userProfile} />;
     if (userRole === 'mentor') return <MentorDashboard />;
-    if (userRole === 'teacher') return <TeacherDashboard />;
-    return (
-      <AuthProvider user={user} session={session} loading={loading}>
-        <StudentDashboard userProfile={userProfile} />
-      </AuthProvider>
-    );
+    if (userRole === 'teacher') return <TeacherDashboard userProfile={userProfile} />; 
+    return ( <AuthProvider user={user} session={session} loading={loading} schoolId={schoolId}> <StudentDashboard userProfile={userProfile} /> </AuthProvider> );
   };
 
   return (
