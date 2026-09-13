@@ -164,6 +164,33 @@ export const StudentChat = () => {
         </div>
       </header>
 
+      <div className="flex gap-2">
+        {([
+          { id: "rooms", label: "Rooms" },
+          { id: "direct", label: "Direct messages" },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setMode(t.id)}
+            className="ilc-badge"
+            style={{
+              background: mode === t.id ? "var(--ilc-teal-glow)" : "transparent",
+              color: mode === t.id ? "var(--ilc-teal)" : "var(--ilc-text-muted)",
+              border: "1px solid var(--ilc-hairline)",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "direct" ? (
+        <DirectMessages />
+      ) : (
+        <>
+
+
       {/* Channel chips */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {channels.map((c) => {
@@ -259,6 +286,8 @@ export const StudentChat = () => {
           </>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 };
