@@ -560,6 +560,68 @@ export type Database = {
           },
         ]
       }
+      dm_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          updated_at: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          updated_at?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          updated_at?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
       exam_attempts: {
         Row: {
           created_at: string
@@ -1740,6 +1802,10 @@ export type Database = {
         Args: { _chat_id: string; _user_id: string }
         Returns: boolean
       }
+      is_dm_participant: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_same_school: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
@@ -1751,6 +1817,17 @@ export type Database = {
       join_school_by_code: {
         Args: { _code: string; _member_role: string }
         Returns: Json
+      }
+      list_direct_chats: {
+        Args: never
+        Returns: {
+          last_message: string
+          last_message_at: string
+          other_name: string
+          other_school: string
+          other_user_id: string
+          thread_id: string
+        }[]
       }
       list_mentors: {
         Args: never
@@ -1796,10 +1873,21 @@ export type Database = {
         Args: { _enrollment_id: string; _status: string }
         Returns: Json
       }
+      search_students: {
+        Args: { _query?: string; _same_school_only?: boolean }
+        Returns: {
+          district: string
+          full_name: string
+          province: string
+          school_name: string
+          user_id: string
+        }[]
+      }
       set_school_member_status: {
         Args: { _member_id: string; _status: string }
         Returns: Json
       }
+      start_direct_chat: { Args: { _other_user_id: string }; Returns: string }
       submit_quiz_responses: {
         Args: { _responses: Json; _session_id: string }
         Returns: Json
