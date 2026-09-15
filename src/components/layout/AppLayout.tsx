@@ -9,6 +9,7 @@ import logo from "@/assets/logo.png";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { AppNavProvider, NavRole, useAppNav } from "@/contexts/AppNavContext";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { DesktopNav } from "@/components/layout/DesktopNav";
 import { cn } from "@/lib/utils";
 
 const RoleViewToggle = () => {
@@ -174,8 +175,10 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
         </div>
       </header>
 
+      <DesktopNav />
+
       {/* Main Content */}
-      <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-28 lg:pb-6">
+      <main className="container mx-auto px-3 py-4 pb-28 sm:px-4 sm:py-6 lg:px-6 lg:pb-6">
         {children}
       </main>
 
