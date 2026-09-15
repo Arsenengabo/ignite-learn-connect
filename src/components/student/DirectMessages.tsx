@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, School, Search, Send, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ThreadRow {
   thread_id: string;
@@ -181,27 +182,73 @@ export const DirectMessages = () => {
   // --- Conversation view ---
   if (active) {
     return (
-      <section className="ilc-card flex h-[60vh] min-h-[380px] flex-col">
+      <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside
+          className="ilc-card hidden h-[calc(100dvh-17rem)] min-h-[420px] max-h-[760px] flex-col lg:flex"
+          aria-label="Conversations"
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setFinding(true)}
+            className="mb-3 min-h-[44px] gap-2 rounded-lg text-sm font-semibold"
+            style={{ background: "var(--ilc-teal)", color: "#04201E" }}
+          >
+            <UserPlus className="h-4 w-4" />
+            New conversation
+          </Button>
+          <div className="flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1">
+            {threads.map((thread) => {
+              const selected = thread.thread_id === active.thread_id;
+              return (
+                <Button
+                  key={thread.thread_id}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setMessages([]);
+                    setActive(thread);
+                  }}
+                  aria-current={selected ? "true" : undefined}
+                  className="h-auto min-h-[64px] w-full justify-start rounded-lg border px-3 py-2 text-left"
+                  style={{
+                    borderColor: selected ? "var(--ilc-teal)" : "var(--ilc-hairline)",
+                    background: selected ? "var(--ilc-teal-glow)" : "transparent",
+                  }}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{thread.other_name}</span>
+                    <span className="mt-0.5 block truncate text-xs ilc-muted">
+                      {thread.last_message || thread.other_school || "Start chatting"}
+                    </span>
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </aside>
+      <section className="ilc-card flex h-[calc(100dvh-16rem)] min-h-[420px] max-h-[760px] flex-col sm:h-[65vh] lg:h-[calc(100dvh-17rem)]">
         <div
           className="mb-3 flex items-center gap-2 border-b pb-2"
           style={{ borderColor: "var(--ilc-hairline)" }}
         >
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActive(null)}
             aria-label="Back to conversations"
-            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            className="h-10 w-10 rounded-lg"
             style={{ border: "1px solid var(--ilc-hairline)" }}
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{active.other_name}</p>
             <p className="truncate text-xs ilc-muted">{active.other_school || "Student"}</p>
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+        <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1" aria-live="polite">
           {messages.length === 0 && (
             <p className="pt-8 text-center text-sm ilc-muted">
               Say hello and start the connection.
@@ -212,7 +259,7 @@ export const DirectMessages = () => {
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
-                  className="max-w-[80%] rounded-2xl px-3 py-2"
+                  className="max-w-[88%] rounded-xl px-3 py-2 sm:max-w-[72%] lg:max-w-[62%]"
                   style={{
                     background: mine ? "var(--ilc-teal)" : "var(--ilc-hairline)",
                     color: mine ? "#04201E" : "inherit",
@@ -227,7 +274,7 @@ export const DirectMessages = () => {
           <div ref={endRef} />
         </div>
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex items-end gap-2 border-t pt-3" style={{ borderColor: "var(--ilc-hairline)" }}>
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -238,37 +285,41 @@ export const DirectMessages = () => {
               }
             }}
             placeholder="Type a message…"
-            className="min-h-[44px] flex-1 rounded-xl border bg-transparent px-3 text-sm outline-none"
+            className="min-h-[44px] min-w-0 flex-1 rounded-lg border bg-transparent px-3 text-sm outline-none"
             style={{ borderColor: "var(--ilc-hairline)" }}
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={send}
+            disabled={!draft.trim() || !active || !userId}
             aria-label="Send message"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+            className="h-11 w-11 shrink-0 rounded-lg disabled:opacity-40"
             style={{ background: "var(--ilc-teal)", color: "#04201E" }}
           >
             <Send className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </section>
+      </div>
     );
   }
 
   // --- People finder ---
   if (finding) {
     return (
-      <section className="ilc-card flex h-[60vh] min-h-[380px] flex-col">
+      <section className="ilc-card flex h-[calc(100dvh-16rem)] min-h-[420px] max-h-[760px] flex-col sm:h-[65vh] lg:h-[calc(100dvh-17rem)]">
         <div className="mb-3 flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setFinding(false)}
             aria-label="Back to conversations"
-            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            className="h-10 w-10 rounded-lg"
             style={{ border: "1px solid var(--ilc-hairline)" }}
           >
             <ArrowLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ilc-muted" />
             <input
@@ -286,11 +337,13 @@ export const DirectMessages = () => {
             { label: "My school", value: true },
             { label: "All schools", value: false },
           ].map((opt) => (
-            <button
+            <Button
               key={opt.label}
               type="button"
+              variant="ghost"
               onClick={() => setSameSchoolOnly(opt.value)}
-              className="ilc-badge"
+              aria-pressed={sameSchoolOnly === opt.value}
+              className="min-h-10 rounded-lg px-3 text-xs font-semibold"
               style={{
                 background: sameSchoolOnly === opt.value ? "var(--ilc-teal-glow)" : "transparent",
                 color: sameSchoolOnly === opt.value ? "var(--ilc-teal)" : "var(--ilc-text-muted)",
@@ -298,7 +351,7 @@ export const DirectMessages = () => {
               }}
             >
               {opt.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -308,11 +361,12 @@ export const DirectMessages = () => {
             <p className="pt-6 text-center text-sm ilc-muted">No students found.</p>
           )}
           {people.map((p) => (
-            <button
+            <Button
               key={p.user_id}
               type="button"
+              variant="ghost"
               onClick={() => openWith(p)}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left"
+              className="h-auto min-h-[60px] w-full justify-between gap-3 rounded-lg border px-3 py-3 text-left"
               style={{ borderColor: "var(--ilc-hairline)" }}
             >
               <div className="min-w-0">
@@ -326,7 +380,7 @@ export const DirectMessages = () => {
               <span className="text-xs font-semibold" style={{ color: "var(--ilc-teal)" }}>
                 Message
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       </section>
@@ -335,16 +389,17 @@ export const DirectMessages = () => {
 
   // --- Conversation list ---
   return (
-    <section className="ilc-card flex h-[60vh] min-h-[380px] flex-col">
-      <button
+    <section className="ilc-card flex h-[calc(100dvh-16rem)] min-h-[420px] max-h-[760px] flex-col sm:h-[65vh] lg:h-[calc(100dvh-17rem)]">
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setFinding(true)}
-        className="mb-3 flex min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-semibold"
+        className="mb-3 min-h-[44px] gap-2 rounded-lg text-sm font-semibold"
         style={{ background: "var(--ilc-teal)", color: "#04201E" }}
       >
         <UserPlus className="h-4 w-4" />
         Find students to chat with
-      </button>
+      </Button>
 
       <div className="flex-1 space-y-2 overflow-y-auto pr-1">
         {loading && <p className="pt-8 text-center text-sm ilc-muted">Loading…</p>}
@@ -354,11 +409,12 @@ export const DirectMessages = () => {
           </p>
         )}
         {threads.map((t) => (
-          <button
+          <Button
             key={t.thread_id}
             type="button"
+            variant="ghost"
             onClick={() => setActive(t)}
-            className="flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left"
+            className="h-auto min-h-[60px] w-full justify-between gap-3 rounded-lg border px-3 py-3 text-left"
             style={{ borderColor: "var(--ilc-hairline)" }}
           >
             <div className="min-w-0">
@@ -368,7 +424,7 @@ export const DirectMessages = () => {
               </p>
             </div>
             <span className="shrink-0 text-[10px] ilc-muted">{time(t.last_message_at)}</span>
-          </button>
+          </Button>
         ))}
       </div>
     </section>
