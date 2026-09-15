@@ -182,6 +182,51 @@ export const DirectMessages = () => {
   // --- Conversation view ---
   if (active) {
     return (
+      <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside
+          className="ilc-card hidden h-[calc(100dvh-17rem)] min-h-[420px] max-h-[760px] flex-col lg:flex"
+          aria-label="Conversations"
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setFinding(true)}
+            className="mb-3 min-h-[44px] gap-2 rounded-lg text-sm font-semibold"
+            style={{ background: "var(--ilc-teal)", color: "#04201E" }}
+          >
+            <UserPlus className="h-4 w-4" />
+            New conversation
+          </Button>
+          <div className="flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1">
+            {threads.map((thread) => {
+              const selected = thread.thread_id === active.thread_id;
+              return (
+                <Button
+                  key={thread.thread_id}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setMessages([]);
+                    setActive(thread);
+                  }}
+                  aria-current={selected ? "true" : undefined}
+                  className="h-auto min-h-[64px] w-full justify-start rounded-lg border px-3 py-2 text-left"
+                  style={{
+                    borderColor: selected ? "var(--ilc-teal)" : "var(--ilc-hairline)",
+                    background: selected ? "var(--ilc-teal-glow)" : "transparent",
+                  }}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{thread.other_name}</span>
+                    <span className="mt-0.5 block truncate text-xs ilc-muted">
+                      {thread.last_message || thread.other_school || "Start chatting"}
+                    </span>
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </aside>
       <section className="ilc-card flex h-[calc(100dvh-16rem)] min-h-[420px] max-h-[760px] flex-col sm:h-[65vh] lg:h-[calc(100dvh-17rem)]">
         <div
           className="mb-3 flex items-center gap-2 border-b pb-2"
@@ -256,6 +301,7 @@ export const DirectMessages = () => {
           </Button>
         </div>
       </section>
+      </div>
     );
   }
 
