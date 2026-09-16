@@ -129,7 +129,8 @@ export default {
     		},
     		fontFamily: {
     			display: [
-    				'DM Sans',
+					'Outfit',
+					'DM Sans',
     				'Inter',
     				'ui-sans-serif',
     				'system-ui',
@@ -142,7 +143,8 @@ export default {
     				'monospace'
     			],
     			sans: [
-    				'Inter',
+					'Figtree',
+					'DM Sans',
     				'ui-sans-serif',
     				'system-ui',
     				'-apple-system',
