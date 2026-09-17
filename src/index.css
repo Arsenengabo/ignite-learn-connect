@@ -1,8 +1,28 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+@font-face { font-family: 'Inter'; src: url('./assets/fonts/inter-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./assets/fonts/inter-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./assets/fonts/inter-600.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./assets/fonts/inter-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('./assets/fonts/lora-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('./assets/fonts/lora-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('./assets/fonts/lora-600.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Lora'; src: url('./assets/fonts/lora-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Space Mono'; src: url('./assets/fonts/space-mono-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Space Mono'; src: url('./assets/fonts/space-mono-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./assets/fonts/dm-sans-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./assets/fonts/dm-sans-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./assets/fonts/dm-sans-600.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('./assets/fonts/dm-sans-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('./assets/fonts/jetbrains-mono-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('./assets/fonts/jetbrains-mono-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('./assets/fonts/jetbrains-mono-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('./assets/fonts/figtree-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('./assets/fonts/figtree-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('./assets/fonts/figtree-600.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Figtree'; src: url('./assets/fonts/figtree-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('./assets/fonts/outfit-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('./assets/fonts/outfit-600.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('./assets/fonts/outfit-700.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('./assets/fonts/outfit-800.ttf') format('truetype'); font-weight: 800; font-display: swap; }
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
