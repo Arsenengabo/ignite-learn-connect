@@ -52,6 +52,7 @@ export const DirectMessages = () => {
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [active, setActive] = useState<ThreadRow | null>(null);
   const [messages, setMessages] = useState<DM[]>([]);
+  const [currentSchool, setCurrentSchool] = useState("");
   const [loading, setLoading] = useState(true);
   const [finding, setFinding] = useState(false);
   const [query, setQuery] = useState("");
@@ -75,7 +76,16 @@ export const DirectMessages = () => {
     let cancelled = false;
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
-      if (!cancelled) setUserId(auth.user?.id ?? null);
+      const nextUserId = auth.user?.id ?? null;
+      if (!cancelled) setUserId(nextUserId);
+      if (nextUserId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("school_name")
+          .eq("id", nextUserId)
+          .maybeSingle();
+        if (!cancelled) setCurrentSchool(profile?.school_name ?? "");
+      }
       await loadThreads();
       if (!cancelled) setLoading(false);
     })();
@@ -136,10 +146,10 @@ export const DirectMessages = () => {
     const search = threadSearch.trim().toLowerCase();
     return threads.filter((thread) => {
       const matchesSearch = !search || `${thread.other_name} ${thread.other_school} ${thread.last_message ?? ""}`.toLowerCase().includes(search);
-      const matchesScope = threadScope === "all" || Boolean(thread.other_school);
+      const matchesScope = threadScope === "all" || (Boolean(currentSchool) && thread.other_school === currentSchool);
       return matchesSearch && matchesScope;
     });
-  }, [threads, threadSearch, threadScope]);
+  }, [threads, threadSearch, threadScope, currentSchool]);
 
   const visibleMessages = useMemo(() => {
     const search = messageSearch.trim().toLowerCase();
@@ -209,7 +219,7 @@ export const DirectMessages = () => {
         </label>
         <div className="chat-filters" aria-label="Conversation filter">
           <Button type="button" variant="ghost" onClick={() => setThreadScope("all")} className={threadScope === "all" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "all"}>All</Button>
-          <Button type="button" variant="ghost" onClick={() => setThreadScope("school")} className={threadScope === "school" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "school"}>Schoolmates</Button>
+          <Button type="button" variant="ghost" onClick={() => setThreadScope("school")} className={threadScope === "school" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "school"} disabled={!currentSchool} title={currentSchool ? "Show students from your school" : "No school is linked to your profile"}>Schoolmates</Button>
         </div>
       </div>
       <div className="chat-list">

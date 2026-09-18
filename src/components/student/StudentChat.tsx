@@ -277,7 +277,7 @@ export const StudentChat = () => {
                     <p className="chat-contact-meta">{selected.description || selected.school_name || "Student community room"}</p>
                   </div>
                   <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={toggleMessageSearch} aria-label={messageSearchOpen ? "Close message search" : "Search this room"} aria-pressed={messageSearchOpen}><Search /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => roomSearchRef.current?.focus()} aria-label="Browse rooms" title="Browse rooms"><MoreVertical /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => { setMobileRoomView("list"); window.setTimeout(() => roomSearchRef.current?.focus(), 0); }} aria-label="Browse rooms" title="Browse rooms"><MoreVertical /></Button>
                 </header>
 
                 {messageSearchOpen && (
