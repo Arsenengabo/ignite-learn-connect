@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -65,6 +65,10 @@ export const StudentChat = () => {
   const [mode, setMode] = useState<"rooms" | "direct">("direct");
   const [roomSearch, setRoomSearch] = useState("");
   const [mobileRoomView, setMobileRoomView] = useState<"list" | "chat">("list");
+  const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [messageSearch, setMessageSearch] = useState("");
+  const roomSearchRef = useRef<HTMLInputElement>(null);
+  const messageSearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +150,19 @@ export const StudentChat = () => {
       : channels;
   }, [channels, roomSearch]);
 
+  const visibleMessages = useMemo(() => {
+    const query = messageSearch.trim().toLowerCase();
+    return query ? messages.filter((message) => `${message.sender_name ?? ""} ${message.message}`.toLowerCase().includes(query)) : messages;
+  }, [messages, messageSearch]);
+
+  const toggleMessageSearch = () => {
+    setMessageSearchOpen((open) => {
+      if (open) setMessageSearch("");
+      else window.setTimeout(() => messageSearchRef.current?.focus(), 0);
+      return !open;
+    });
+  };
+
   const send = async ({ text }: { text: string }) => {
     if (!selected || !userId || !text.trim()) return;
     const parsed = ChatMessageSchema.safeParse({ message: text, channelId: selected.id, senderId: userId });
@@ -212,7 +229,7 @@ export const StudentChat = () => {
               <label className="chat-search">
                 <Search aria-hidden="true" />
                 <span className="sr-only">Search rooms</span>
-                <input value={roomSearch} onChange={(event) => setRoomSearch(event.target.value)} placeholder="Search discussions" />
+                <input ref={roomSearchRef} value={roomSearch} onChange={(event) => setRoomSearch(event.target.value)} placeholder="Search discussions" />
               </label>
               <div className="chat-filters" aria-label="Chat type">
                 <Button type="button" variant="ghost" className="chat-filter-active">Rooms</Button>
@@ -259,16 +276,27 @@ export const StudentChat = () => {
                     <h3 className="chat-contact-name">{selected.name}</h3>
                     <p className="chat-contact-meta">{selected.description || selected.school_name || "Student community room"}</p>
                   </div>
-                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" aria-label="Search this room"><Search /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" aria-label="Room options"><MoreVertical /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={toggleMessageSearch} aria-label={messageSearchOpen ? "Close message search" : "Search this room"} aria-pressed={messageSearchOpen}><Search /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => { setMobileRoomView("list"); window.setTimeout(() => roomSearchRef.current?.focus(), 0); }} aria-label="Browse rooms" title="Browse rooms"><MoreVertical /></Button>
                 </header>
+
+                {messageSearchOpen && (
+                  <label className="chat-message-search">
+                    <Search aria-hidden="true" />
+                    <span className="sr-only">Search messages in {selected.name}</span>
+                    <input ref={messageSearchRef} value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} placeholder={`Search in ${selected.name}`} />
+                    <span>{visibleMessages.length} found</span>
+                  </label>
+                )}
 
                 <Conversation className="chat-conversation">
                   <ConversationContent className="chat-message-list">
                     <div className="chat-date-divider"><span>Today</span></div>
                     {messages.length === 0 ? (
                       <ConversationEmptyState icon={<MessagesSquare />} title="No messages yet" description="Say hello to everyone in this room." />
-                    ) : messages.map((message) => {
+                    ) : visibleMessages.length === 0 ? (
+                      <ConversationEmptyState icon={<Search />} title="No matching messages" description="Try a different search term." />
+                    ) : visibleMessages.map((message) => {
                       const mine = message.sender_id === userId;
                       return (
                         <Message key={message.id} from={mine ? "user" : "assistant"} className="chat-message">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, MoreVertical, School, Search, Send, UserPlus, Users } from "lucide-react";
@@ -52,6 +52,7 @@ export const DirectMessages = () => {
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [active, setActive] = useState<ThreadRow | null>(null);
   const [messages, setMessages] = useState<DM[]>([]);
+  const [currentSchool, setCurrentSchool] = useState("");
   const [loading, setLoading] = useState(true);
   const [finding, setFinding] = useState(false);
   const [query, setQuery] = useState("");
@@ -59,6 +60,11 @@ export const DirectMessages = () => {
   const [sameSchoolOnly, setSameSchoolOnly] = useState(true);
   const [people, setPeople] = useState<StudentRow[]>([]);
   const [searching, setSearching] = useState(false);
+  const [threadScope, setThreadScope] = useState<"all" | "school">("all");
+  const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [messageSearch, setMessageSearch] = useState("");
+  const threadSearchRef = useRef<HTMLInputElement>(null);
+  const messageSearchRef = useRef<HTMLInputElement>(null);
 
   const loadThreads = useCallback(async () => {
     const { data, error } = await supabase.rpc("list_direct_chats");
@@ -70,7 +76,16 @@ export const DirectMessages = () => {
     let cancelled = false;
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
-      if (!cancelled) setUserId(auth.user?.id ?? null);
+      const nextUserId = auth.user?.id ?? null;
+      if (!cancelled) setUserId(nextUserId);
+      if (nextUserId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("school_name")
+          .eq("id", nextUserId)
+          .maybeSingle();
+        if (!cancelled) setCurrentSchool(profile?.school_name ?? "");
+      }
       await loadThreads();
       if (!cancelled) setLoading(false);
     })();
@@ -129,10 +144,25 @@ export const DirectMessages = () => {
 
   const visibleThreads = useMemo(() => {
     const search = threadSearch.trim().toLowerCase();
-    return search
-      ? threads.filter((thread) => `${thread.other_name} ${thread.other_school} ${thread.last_message ?? ""}`.toLowerCase().includes(search))
-      : threads;
-  }, [threads, threadSearch]);
+    return threads.filter((thread) => {
+      const matchesSearch = !search || `${thread.other_name} ${thread.other_school} ${thread.last_message ?? ""}`.toLowerCase().includes(search);
+      const matchesScope = threadScope === "all" || (Boolean(currentSchool) && thread.other_school === currentSchool);
+      return matchesSearch && matchesScope;
+    });
+  }, [threads, threadSearch, threadScope, currentSchool]);
+
+  const visibleMessages = useMemo(() => {
+    const search = messageSearch.trim().toLowerCase();
+    return search ? messages.filter((message) => message.content.toLowerCase().includes(search)) : messages;
+  }, [messages, messageSearch]);
+
+  const toggleMessageSearch = () => {
+    setMessageSearchOpen((open) => {
+      if (open) setMessageSearch("");
+      else window.setTimeout(() => messageSearchRef.current?.focus(), 0);
+      return !open;
+    });
+  };
 
   const openWith = async (person: StudentRow) => {
     const { data, error } = await supabase.rpc("start_direct_chat", { _other_user_id: person.user_id });
@@ -185,9 +215,12 @@ export const DirectMessages = () => {
         <label className="chat-search">
           <Search aria-hidden="true" />
           <span className="sr-only">Search conversations</span>
-          <input value={threadSearch} onChange={(event) => setThreadSearch(event.target.value)} placeholder="Search conversations" />
+          <input ref={threadSearchRef} value={threadSearch} onChange={(event) => setThreadSearch(event.target.value)} placeholder="Search conversations" />
         </label>
-        <div className="chat-filters"><Button type="button" variant="ghost" className="chat-filter-active">All</Button><Button type="button" variant="ghost" className="chat-filter">Schoolmates</Button></div>
+        <div className="chat-filters" aria-label="Conversation filter">
+          <Button type="button" variant="ghost" onClick={() => setThreadScope("all")} className={threadScope === "all" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "all"}>All</Button>
+          <Button type="button" variant="ghost" onClick={() => setThreadScope("school")} className={threadScope === "school" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "school"} disabled={!currentSchool} title={currentSchool ? "Show students from your school" : "No school is linked to your profile"}>Schoolmates</Button>
+        </div>
       </div>
       <div className="chat-list">
         {loading && <p className="chat-state">Loading conversations…</p>}
@@ -262,15 +295,25 @@ export const DirectMessages = () => {
               <Button type="button" variant="ghost" size="icon" className="chat-back" onClick={() => setActive(null)} aria-label="Back to conversations"><ArrowLeft /></Button>
               <span className="chat-avatar">{initials(active.other_name) || "ST"}</span>
               <div className="min-w-0 flex-1"><h3 className="chat-contact-name">{active.other_name}</h3><p className="chat-contact-meta">{active.other_school || "Student"}</p></div>
-              <Button type="button" variant="ghost" size="icon" className="chat-icon-button" aria-label="Search this conversation"><Search /></Button>
-              <Button type="button" variant="ghost" size="icon" className="chat-icon-button" aria-label="Conversation options"><MoreVertical /></Button>
+              <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={toggleMessageSearch} aria-label={messageSearchOpen ? "Close message search" : "Search this conversation"} aria-pressed={messageSearchOpen}><Search /></Button>
+              <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => setFinding(true)} aria-label="Find another student" title="Find another student"><MoreVertical /></Button>
             </header>
+            {messageSearchOpen && (
+              <label className="chat-message-search">
+                <Search aria-hidden="true" />
+                <span className="sr-only">Search messages with {active.other_name}</span>
+                <input ref={messageSearchRef} value={messageSearch} onChange={(event) => setMessageSearch(event.target.value)} placeholder={`Search messages with ${active.other_name}`} />
+                <span>{visibleMessages.length} found</span>
+              </label>
+            )}
             <Conversation className="chat-conversation">
               <ConversationContent className="chat-message-list">
                 <div className="chat-date-divider"><span>Today</span></div>
                 {messages.length === 0 ? (
                   <ConversationEmptyState title="Start the conversation" description={`Say hello to ${active.other_name}.`} />
-                ) : messages.map((message) => {
+                ) : visibleMessages.length === 0 ? (
+                  <ConversationEmptyState title="No matching messages" description="Try a different search term." />
+                ) : visibleMessages.map((message) => {
                   const mine = message.sender_id === userId;
                   return (
                     <Message key={message.id} from={mine ? "user" : "assistant"} className="chat-message">
