@@ -7,7 +7,7 @@ export const BottomNav = () => {
   return (
     <nav
       aria-label="Main navigation"
-      className="ilc-surface fixed bottom-0 left-0 right-0 z-50 border-t lg:hidden"
+      className="ilc-surface fixed bottom-0 left-0 right-0 z-50 border-t md:hidden"
       style={{
         borderColor: "var(--ilc-hairline)",
         paddingBottom: "env(safe-area-inset-bottom)",
