@@ -14,7 +14,7 @@ export const BottomNav = () => {
       }}
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-between px-1" style={{ height: 72 }}>
-        {tabs.map((tab) => {
+        {tabs.filter((tab) => !tab.desktopOnly).map((tab) => {
           const Icon = tab.icon;
           const isActive = tab.id === activeTab;
           return (
