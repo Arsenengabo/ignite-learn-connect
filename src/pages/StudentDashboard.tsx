@@ -23,6 +23,8 @@ type StudentView =
 const TAB_TO_VIEW: Record<string, StudentView> = {
   home: 'dashboard',
   learn: 'courses',
+  quizzes: 'quizzes',
+  competitions: 'competitions',
   exams: 'exams',
   chat: 'chat',
   mentors: 'mentors',
