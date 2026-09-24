@@ -8,7 +8,7 @@ export const DesktopNav = () => {
   return (
     <nav
       aria-label="Main navigation"
-      className="ilc-surface hidden border-b lg:block"
+      className="ilc-surface hidden border-b md:block"
       style={{ borderColor: "var(--ilc-hairline)" }}
     >
       <div className="container mx-auto flex items-center gap-1 px-6 py-2">
@@ -24,7 +24,7 @@ export const DesktopNav = () => {
               onClick={() => setActiveTab(tab.id)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative min-w-[112px] gap-2 rounded-lg px-4 text-sm transition-colors",
+                "relative md:min-w-[96px] lg:min-w-[112px] gap-2 rounded-lg px-4 text-sm transition-colors",
                 isActive ? "font-semibold" : "font-medium"
               )}
               style={{
