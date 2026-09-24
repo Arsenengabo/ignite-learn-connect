@@ -78,7 +78,8 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
     <div className="min-h-screen bg-background safe-area-inset">
 
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="sticky top-0 z-50">
+      <header className="border-b bg-card/95 backdrop-blur-sm">
         <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <img src={logo} alt="Codex Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain flex-shrink-0" />
@@ -176,9 +177,10 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
       </header>
 
       <DesktopNav />
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-3 py-4 pb-28 sm:px-4 sm:py-6 lg:px-6 lg:pb-6">
+      <main className="container mx-auto px-3 py-4 pb-28 sm:px-4 sm:py-6 lg:px-6 md:pb-6">
         {children}
       </main>
 
