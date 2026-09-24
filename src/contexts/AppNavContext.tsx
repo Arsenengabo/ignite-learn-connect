@@ -5,6 +5,7 @@ import {
   FileText,
   GraduationCap,
   Home,
+  ListChecks,
   LucideIcon,
   MessageSquare,
   Trophy,
@@ -18,12 +19,16 @@ export interface NavTab {
   id: string;
   label: string;
   icon: LucideIcon;
+  /** Shown only in the desktop top bar, not the phone bottom bar. */
+  desktopOnly?: boolean;
 }
 
 const STUDENT_TABS: NavTab[] = [
   { id: "home", label: "Home", icon: Home },
   { id: "learn", label: "Learn", icon: BookOpen },
+  { id: "quizzes", label: "Quizzes", icon: ListChecks, desktopOnly: true },
   { id: "exams", label: "Exams", icon: FileText },
+  { id: "competitions", label: "Competitions", icon: Trophy, desktopOnly: true },
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "mentors", label: "Mentors", icon: Users },
 ];
