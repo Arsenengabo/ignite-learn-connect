@@ -1,12 +1,6 @@
 // src/contexts/AuthContext.tsx
-//
-// This does NOT replace ILC's auth. It's a thin adapter so the ported
-// convo-connect hooks (useMessages, useGroupChat, useCalls, useWebRTC,
-// useLiveSession, useCallHistory, useFileUpload — all of which call
-// useAuth() from this exact path) work with zero changes to their internals.
-//
-// It is only mounted around <StudentDashboard>, fed from the session
-// Index.tsx already owns. It never talks to Supabase auth itself.
+// Thin adapter so the ported chat/call hooks can call useAuth().
+// Fed from the session Index.tsx already owns; never talks to Supabase auth itself.
 
 import React, { createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
@@ -15,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  schoolId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +26,7 @@ interface AuthProviderProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  schoolId: string | null;
   children: React.ReactNode;
 }
 
@@ -38,10 +34,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   user,
   session,
   loading,
+  schoolId,
   children,
 }) => {
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={{ user, session, loading, schoolId }}>
       {children}
     </AuthContext.Provider>
   );
