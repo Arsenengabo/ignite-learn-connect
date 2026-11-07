@@ -13,15 +13,17 @@ import ExamBrowser from "@/components/exam/ExamBrowser";
 import { MentorDirectory } from "@/components/student/MentorDirectory";
 import { StudentHome } from "@/components/student/StudentHome";
 import { StudentChat } from "@/components/student/StudentChat";
+import { StudyHub } from "@/components/student/study/StudyHub";
 import { useOptionalAppNav } from "@/contexts/AppNavContext";
 
 type StudentView =
   | 'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions'
-  | 'courses' | 'course-viewing' | 'exams' | 'mentors' | 'chat';
+  | 'courses' | 'course-viewing' | 'exams' | 'mentors' | 'chat' | 'study';
 
 /** Bottom-nav tab -> student view */
 const TAB_TO_VIEW: Record<string, StudentView> = {
   home: 'dashboard',
+  study: 'study',
   learn: 'courses',
   quizzes: 'quizzes',
   competitions: 'competitions',
@@ -213,6 +215,10 @@ export const StudentDashboard = ({ userProfile }: { userProfile?: any }) => {
 
   if (currentView === 'exams') {
     return <ExamBrowser onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'study') {
+    return <StudyHub />;
   }
 
   if (currentView === 'chat') {

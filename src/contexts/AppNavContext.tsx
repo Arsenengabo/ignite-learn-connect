@@ -8,6 +8,7 @@ import {
   ListChecks,
   LucideIcon,
   MessageSquare,
+  NotebookPen,
   Trophy,
   User,
   Users,
@@ -25,12 +26,13 @@ export interface NavTab {
 
 const STUDENT_TABS: NavTab[] = [
   { id: "home", label: "Home", icon: Home },
+  { id: "study", label: "Study", icon: NotebookPen },
   { id: "learn", label: "Learn", icon: BookOpen },
   { id: "quizzes", label: "Quizzes", icon: ListChecks, desktopOnly: true },
   { id: "exams", label: "Exams", icon: FileText },
   { id: "competitions", label: "Competitions", icon: Trophy, desktopOnly: true },
   { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "mentors", label: "Mentors", icon: Users },
+  { id: "mentors", label: "Mentors", icon: Users, desktopOnly: true },
 ];
 
 const TEACHER_TABS: NavTab[] = [
