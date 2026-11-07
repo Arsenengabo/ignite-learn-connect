@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChevronRight,
   Flame,
+  NotebookPen,
   Play,
   Star,
   Trophy,
@@ -26,6 +27,7 @@ interface UpcomingExam {
 }
 
 const ACTIONS = [
+  { id: "study", label: "Study planner", hint: "Your courses and weekly timetable", icon: NotebookPen, tone: "var(--ilc-amber)", glow: "var(--ilc-amber-glow)" },
   { id: "quizzes", label: "Take a quiz", hint: "Short practice sets", icon: BookOpen, tone: "var(--ilc-teal)", glow: "var(--ilc-teal-glow)" },
   { id: "courses", label: "Continue learning", hint: "Your enrolled courses", icon: Play, tone: "var(--ilc-teal)", glow: "var(--ilc-teal-glow)" },
   { id: "competitions", label: "Competitions", hint: "Compete and climb the board", icon: Trophy, tone: "var(--ilc-coral)", glow: "var(--ilc-coral-glow)" },
