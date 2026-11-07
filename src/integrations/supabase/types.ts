@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+    PostgrestVersion: "12.2.12"
   }
   public: {
     Tables: {
@@ -1571,125 +1571,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      study_courses: {
-        Row: {
-          code: string | null
-          color: string
-          created_at: string
-          credits: number | null
-          id: string
-          lecturer: string | null
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          code?: string | null
-          color?: string
-          created_at?: string
-          credits?: number | null
-          id?: string
-          lecturer?: string | null
-          name: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          code?: string | null
-          color?: string
-          created_at?: string
-          credits?: number | null
-          id?: string
-          lecturer?: string | null
-          name?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      study_profiles: {
-        Row: {
-          created_at: string
-          id: string
-          programme: string | null
-          semester: string | null
-          target_grade: string | null
-          university: string | null
-          updated_at: string
-          user_id: string
-          year_of_study: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          programme?: string | null
-          semester?: string | null
-          target_grade?: string | null
-          university?: string | null
-          updated_at?: string
-          user_id: string
-          year_of_study?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          programme?: string | null
-          semester?: string | null
-          target_grade?: string | null
-          university?: string | null
-          updated_at?: string
-          user_id?: string
-          year_of_study?: number | null
-        }
-        Relationships: []
-      }
-      study_sessions: {
-        Row: {
-          course_id: string
-          created_at: string
-          day_of_week: number
-          end_time: string
-          id: string
-          kind: string
-          location: string | null
-          start_time: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          course_id: string
-          created_at?: string
-          day_of_week: number
-          end_time: string
-          id?: string
-          kind?: string
-          location?: string | null
-          start_time: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          course_id?: string
-          created_at?: string
-          day_of_week?: number
-          end_time?: string
-          id?: string
-          kind?: string
-          location?: string | null
-          start_time?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_sessions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "study_courses"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_roles: {
         Row: {
