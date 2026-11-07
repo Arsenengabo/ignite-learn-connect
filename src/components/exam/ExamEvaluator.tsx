@@ -194,7 +194,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
       }
 
       const { data, error } = await supabase.functions.invoke('evaluate-subjective', {
-        body: { attemptId: selectedAttempt.id, questions: subjectiveResponses }
+        body: { attemptId: selectedAttempt.id } // the server loads questions and answers itself
       });
 
       if (error) throw error;
