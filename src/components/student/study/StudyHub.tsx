@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock, GraduationCap, MapPin, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronRight, Clock, GraduationCap, MapPin, Mic, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -7,10 +7,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LectureScreen } from "./LectureScreen";
 
 type StudyProfile = Tables<"study_profiles">;
 type StudyCourse = Tables<"study_courses">;
 type StudySession = Tables<"study_sessions">;
+type LectureListItem = Pick<Tables<"study_lectures">, "id" | "title" | "course_id" | "started_at" | "summarized_at">;
 
 /** Week shown Monday first, the way university timetables are printed. Values are JS day numbers (0 = Sunday). */
 const WEEK = [
@@ -58,6 +60,9 @@ export const StudyHub = () => {
   const [profile, setProfile] = useState<StudyProfile | null>(null);
   const [courses, setCourses] = useState<StudyCourse[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [lectures, setLectures] = useState<LectureListItem[]>([]);
+  /** null = the hub; "new" = start a live lecture; otherwise a lecture id to open. */
+  const [openLecture, setOpenLecture] = useState<string | null>(null);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
@@ -70,17 +75,24 @@ export const StudyHub = () => {
       return;
     }
     setUserId(user.id);
-    const [p, c, s] = await Promise.all([
+    const [p, c, s, l] = await Promise.all([
       supabase.from("study_profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("study_courses").select("*").eq("user_id", user.id).order("created_at"),
       supabase.from("study_sessions").select("*").eq("user_id", user.id).order("start_time"),
+      supabase
+        .from("study_lectures")
+        .select("id, title, course_id, started_at, summarized_at")
+        .eq("user_id", user.id)
+        .order("started_at", { ascending: false })
+        .limit(20),
     ]);
-    if (p.error || c.error || s.error) {
+    if (p.error || c.error || s.error || l.error) {
       toast.error("Could not load your study plan. Please try again.");
     }
     setProfile(p.data ?? null);
     setCourses(c.data ?? []);
     setSessions(s.data ?? []);
+    setLectures(l.data ?? []);
     setLoading(false);
   }, []);
 
@@ -112,6 +124,22 @@ export const StudyHub = () => {
       <div className="ilc-surface ilc-scope -mx-3 -my-4 px-3 py-10 text-center text-sm ilc-muted sm:-mx-4 lg:-mx-6 lg:rounded-2xl">
         Loading your study plan…
       </div>
+    );
+  }
+
+  if (openLecture && userId) {
+    return (
+      <LectureScreen
+        key={openLecture}
+        userId={userId}
+        courses={courses}
+        sessions={sessions}
+        lectureId={openLecture === "new" ? undefined : openLecture}
+        onClose={() => {
+          setOpenLecture(null);
+          load();
+        }}
+      />
     );
   }
 
@@ -181,6 +209,40 @@ export const StudyHub = () => {
               </div>
             );
           })
+        )}
+      </section>
+
+      {/* Lectures */}
+      <section className="ilc-card">
+        <button type="button" className="ilc-btn ilc-btn-primary w-full" onClick={() => setOpenLecture("new")}>
+          <Mic className="h-4 w-4" /> Start live lecture
+        </button>
+        <p className="mt-2 text-xs ilc-muted">Open it in class: it writes down the lecture and summarizes it as it goes.</p>
+        {lectures.length > 0 && (
+          <div className="mt-3">
+            <p className="mb-1 text-xs font-semibold ilc-muted">Past lectures</p>
+            {lectures.map((l) => {
+              const course = l.course_id ? courseById.get(l.course_id) : undefined;
+              return (
+                <button key={l.id} type="button" onClick={() => setOpenLecture(l.id)} className="ilc-row py-2.5 last:border-b-0">
+                  <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: colorOf(course).tone }} />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-sm font-medium">{l.title.replace(/ \(auto\)$/, "")}</span>
+                    <span className="block truncate text-xs ilc-muted">
+                      {new Date(l.started_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+                      {course ? ` · ${course.code || course.name}` : ""}
+                    </span>
+                  </span>
+                  {l.summarized_at ? (
+                    <span className="ilc-badge ilc-badge-success shrink-0">Summary</span>
+                  ) : (
+                    <span className="ilc-badge ilc-badge-warning shrink-0">No summary</span>
+                  )}
+                  <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--ilc-text-muted)" }} />
+                </button>
+              );
+            })}
+          </div>
         )}
       </section>
 
