@@ -8,6 +8,7 @@ import {
   ListChecks,
   LucideIcon,
   MessageSquare,
+  Mic,
   NotebookPen,
   Trophy,
   User,
@@ -27,6 +28,7 @@ export interface NavTab {
 const STUDENT_TABS: NavTab[] = [
   { id: "home", label: "Home", icon: Home },
   { id: "study", label: "Study", icon: NotebookPen },
+  { id: "lectures", label: "Live Lectures", icon: Mic, desktopOnly: true },
   { id: "learn", label: "Learn", icon: BookOpen },
   { id: "quizzes", label: "Quizzes", icon: ListChecks, desktopOnly: true },
   { id: "exams", label: "Exams", icon: FileText },

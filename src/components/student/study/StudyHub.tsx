@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LectureScreen } from "./LectureScreen";
+import { Button } from "@/components/ui/button";
 
 type StudyProfile = Tables<"study_profiles">;
 type StudyCourse = Tables<"study_courses">;
@@ -54,7 +55,7 @@ const initials = (name: string) =>
     .slice(0, 3)
     .toUpperCase();
 
-export const StudyHub = () => {
+export const StudyHub = ({ lecturesOnly = false }: { lecturesOnly?: boolean }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StudyProfile | null>(null);
@@ -145,6 +146,8 @@ export const StudyHub = () => {
 
   return (
     <div className="ilc-surface ilc-scope -mx-3 -my-4 space-y-4 rounded-none px-3 py-4 sm:-mx-4 sm:px-4 lg:-mx-6 lg:rounded-2xl lg:px-6">
+      {lecturesOnly && <h1 className="font-display text-2xl font-bold">Live Lectures</h1>}
+      {!lecturesOnly && <>
       {/* Profile hero */}
       <section className="ilc-card-hero">
         <div className="flex items-start gap-3">
@@ -212,12 +215,12 @@ export const StudyHub = () => {
         )}
       </section>
 
+      </>}
       {/* Lectures */}
       <section className="ilc-card">
-        <button type="button" className="ilc-btn ilc-btn-primary w-full" onClick={() => setOpenLecture("new")}>
+        <Button className="w-full" onClick={() => setOpenLecture("new")}>
           <Mic className="h-4 w-4" /> Start live lecture
-        </button>
-        <p className="mt-2 text-xs ilc-muted">Open it in class: it writes down the lecture and summarizes it as it goes.</p>
+        </Button>
         {lectures.length > 0 && (
           <div className="mt-3">
             <p className="mb-1 text-xs font-semibold ilc-muted">Past lectures</p>
@@ -246,6 +249,7 @@ export const StudyHub = () => {
         )}
       </section>
 
+      {!lecturesOnly && <>
       {/* Courses */}
       <section className="ilc-card">
         <div className="mb-2 flex items-center justify-between">
@@ -357,6 +361,7 @@ export const StudyHub = () => {
         )}
       </section>
 
+      </>}
       {userId && (
         <>
           <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} userId={userId} profile={profile} onSaved={load} />

@@ -18,12 +18,13 @@ import { useOptionalAppNav } from "@/contexts/AppNavContext";
 
 type StudentView =
   | 'dashboard' | 'quizzes' | 'quiz-taking' | 'competitions'
-  | 'courses' | 'course-viewing' | 'exams' | 'mentors' | 'chat' | 'study';
+  | 'courses' | 'course-viewing' | 'exams' | 'mentors' | 'chat' | 'study' | 'lectures';
 
 /** Bottom-nav tab -> student view */
 const TAB_TO_VIEW: Record<string, StudentView> = {
   home: 'dashboard',
   study: 'study',
+  lectures: 'lectures',
   learn: 'courses',
   quizzes: 'quizzes',
   competitions: 'competitions',
@@ -219,6 +220,10 @@ export const StudentDashboard = ({ userProfile }: { userProfile?: any }) => {
 
   if (currentView === 'study') {
     return <StudyHub />;
+  }
+
+  if (currentView === 'lectures') {
+    return <StudyHub lecturesOnly />;
   }
 
   if (currentView === 'chat') {
