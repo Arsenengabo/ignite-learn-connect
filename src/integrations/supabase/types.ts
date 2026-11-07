@@ -1608,6 +1608,62 @@ export type Database = {
         }
         Relationships: []
       }
+      study_lectures: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          language: string
+          my_notes: string
+          started_at: string
+          summarized_at: string | null
+          summary: Json | null
+          title: string
+          transcript: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          language?: string
+          my_notes?: string
+          started_at?: string
+          summarized_at?: string | null
+          summary?: Json | null
+          title?: string
+          transcript?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          language?: string
+          my_notes?: string
+          started_at?: string
+          summarized_at?: string | null
+          summary?: Json | null
+          title?: string
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_lectures_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "study_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_profiles: {
         Row: {
           created_at: string
