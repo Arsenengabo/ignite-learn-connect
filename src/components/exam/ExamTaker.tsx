@@ -120,6 +120,46 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
         if (sectionsError) throw sectionsError;
         setSections(sectionsData || []);
 
+        // Start the attempt first (or resume an unfinished one): the database allows one
+        // attempt per exam, and only returns questions once an attempt exists.
+        const { data: existing } = await supabase
+          .from('exam_attempts')
+          .select('*')
+          .eq('exam_id', examId)
+          .eq('student_id', user.id)
+          .maybeSingle();
+
+        let attempt = existing;
+        if (existing && existing.status !== 'in_progress') {
+          toast({
+            title: "Already submitted",
+            description: "You have already taken this exam. Ask your teacher if you need a retake.",
+          });
+          onComplete(existing.id, Number(existing.total_score) || 0);
+          return;
+        }
+        if (!attempt) {
+          const { data: created, error: attemptError } = await supabase
+            .from('exam_attempts')
+            .insert({
+              exam_id: examId,
+              student_id: user.id,
+              time_remaining_seconds: examData.time_limit_minutes * 60,
+              max_score: examData.total_marks
+            })
+            .select()
+            .single();
+          if (attemptError) throw attemptError;
+          attempt = created;
+        }
+        setAttemptId(attempt.id);
+
+        // The deadline is kept on the server; show the time that is really left.
+        if (examData.time_limit_minutes) {
+          const elapsed = Math.floor((Date.now() - new Date(attempt.started_at).getTime()) / 1000);
+          setTimeRemaining(Math.max(0, examData.time_limit_minutes * 60 - elapsed));
+        }
+
         // Fetch questions using secure function that excludes answer fields
         const { data: questionsData, error: questionsError } = await supabase
           .rpc('get_exam_questions_for_student' as any, { _exam_id: examId });
@@ -138,21 +178,6 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
           ...q,
           options: Array.isArray(q.options) ? q.options : null
         })));
-
-        // Create attempt
-        const { data: attempt, error: attemptError } = await supabase
-          .from('exam_attempts')
-          .insert({
-            exam_id: examId,
-            student_id: user.id,
-            time_remaining_seconds: examData.time_limit_minutes * 60,
-            max_score: examData.total_marks
-          })
-          .select()
-          .single();
-
-        if (attemptError) throw attemptError;
-        setAttemptId(attempt.id);
 
       } catch (error) {
         console.error("Error loading exam:", error);
@@ -283,7 +308,7 @@ export default function ExamTaker({ examId, onComplete, onBack }: ExamTakerProps
         if (subjectiveQuestions.length > 0) {
           try {
             const { data: aiResult, error: aiError } = await supabase.functions.invoke('evaluate-subjective', {
-              body: { attemptId, questions: subjectiveQuestions }
+              body: { attemptId } // the server loads questions and answers itself
             });
 
             if (aiError) {

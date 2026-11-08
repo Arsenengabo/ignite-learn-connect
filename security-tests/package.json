@@ -1,0 +1,12 @@
+{
+  "name": "codex-security-tests",
+  "private": true,
+  "type": "module",
+  "description": "Rebuilds the database from supabase/migrations in memory and tries known attacks.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.0"
+  }
+}
