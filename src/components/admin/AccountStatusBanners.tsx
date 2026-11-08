@@ -18,9 +18,9 @@ export const ApprovalsWaitingBanner = ({ count }: { count: number }) => (
 );
 
 const PENDING_TEXT: Record<string, string> = {
-  mentor: "Students will see your mentor profile once Codex has checked your account. This usually takes 1–2 working days.",
+  mentor: "Students will see your mentor profile once Codex has approved your account.",
   school_admin:
-    "You can set up your school now. Teachers and students can join once Codex has checked your account. This usually takes 1–2 working days.",
+    "You can set up your school now. You can approve teachers and students once Codex has approved your account.",
   teacher: "Your account is being checked. Your school's admin approves teachers when they accept your join request.",
 };
 
@@ -41,8 +41,8 @@ export const AccountStatusBanner = ({ role, status }: { role: string | null; sta
   }
 
   return (
-    <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
+    <div role="status" className="mb-4 flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+      <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning" />
       <p>
         <strong>Waiting for approval.</strong> {PENDING_TEXT[role]}
       </p>

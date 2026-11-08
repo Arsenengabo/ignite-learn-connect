@@ -89,3 +89,13 @@ test("users cannot set their own approval fields", async () => {
   const [p] = await asOwner(db, `select verification_status from profiles where user_id = '${MENTOR}'`);
   assert.equal(p.verification_status, "rejected");
 });
+
+test("platform admins cannot change their own approval", async () => {
+  const r = await asUser(db, OWNER, `select set_account_verification('${OWNER}', 'verified')`);
+  assert.match(r.error ?? "", /own approval/);
+});
+
+test("approval rejects unknown statuses", async () => {
+  const r = await asUser(db, OWNER, `select set_account_verification('${MENTOR}', 'active')`);
+  assert.match(r.error ?? "", /Invalid status/);
+});

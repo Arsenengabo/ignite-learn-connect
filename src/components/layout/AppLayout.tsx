@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Settings, User, MapPin, School, BookOpen } from "lucide-react";
+import { LogOut, Settings, User, MapPin, School, BookOpen, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { AppNavProvider, NavRole, useAppNav } from "@/contexts/AppNavContext";
@@ -52,9 +53,10 @@ interface AppLayoutProps {
   user: any;
   userProfile: any;
   onProfileUpdate?: () => void;
+  canReviewAccounts?: boolean;
 }
 
-export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppLayoutProps) => {
+export const AppLayout = ({ children, user, userProfile, onProfileUpdate, canReviewAccounts = false }: AppLayoutProps) => {
   const { toast } = useToast();
 
   const handleSignOut = async () => {
@@ -91,6 +93,14 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate }: AppL
             </div>
           </div>
           <div className="flex items-center gap-2">
+          {canReviewAccounts && (
+            <Button variant="outline" size="sm" asChild className="shrink-0 gap-2">
+              <Link to="/approvals" aria-label="Account approvals">
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Account approvals</span>
+              </Link>
+            </Button>
+          )}
           <RoleViewToggle />
           <DropdownMenu>
 

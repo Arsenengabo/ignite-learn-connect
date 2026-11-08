@@ -59,6 +59,9 @@ const Index = ({ view = "dashboard" }: IndexProps) => {
         } else {
           setUserProfile(null);
           setUserRole(null);
+          setMembership(null);
+          setIsPlatformAdmin(false);
+          setWaitingApprovals(0);
         }
       }
     );
@@ -122,6 +125,7 @@ const Index = ({ view = "dashboard" }: IndexProps) => {
       // Codex platform admins review new school admins and mentors.
       const { data: adminFlag } = await supabase.rpc('is_platform_admin');
       setIsPlatformAdmin(adminFlag === true);
+      setWaitingApprovals(0);
       if (adminFlag === true) {
         const { data: waiting } = await supabase.rpc('list_accounts_for_review', { _status: 'pending' });
         setWaitingApprovals(waiting?.length ?? 0);
@@ -187,7 +191,7 @@ const Index = ({ view = "dashboard" }: IndexProps) => {
   };
 
   return (
-    <AppLayout user={user} userProfile={profileWithRole}>
+    <AppLayout user={user} userProfile={profileWithRole} canReviewAccounts={isPlatformAdmin}>
       {view === 'dashboard' && isPlatformAdmin && waitingApprovals > 0 && (
         <ApprovalsWaitingBanner count={waitingApprovals} />
       )}

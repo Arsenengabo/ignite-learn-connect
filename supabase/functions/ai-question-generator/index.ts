@@ -470,7 +470,7 @@ Each item must have:
     }
   } catch (error) {
     console.error("ai-question-generator error:", error);
-    return new Response(JSON.stringify({ error: error?.message || "Unexpected error" }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unexpected error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
