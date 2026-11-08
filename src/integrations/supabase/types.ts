@@ -1225,6 +1225,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1247,6 +1265,9 @@ export type Database = {
           subscription_tier: string | null
           updated_at: string
           user_id: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1269,6 +1290,9 @@ export type Database = {
           subscription_tier?: string | null
           updated_at?: string
           user_id: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1291,6 +1315,9 @@ export type Database = {
           subscription_tier?: string | null
           updated_at?: string
           user_id?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
       }
@@ -2004,6 +2031,29 @@ export type Database = {
           thread_id: string
         }[]
       }
+      is_platform_admin: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
+      list_accounts_for_review: {
+        Args: { _status?: string }
+        Returns: {
+          created_at: string
+          district: string
+          email: string
+          full_name: string
+          organization_name: string
+          province: string
+          registered_school: string | null
+          role: string
+          role_description: string
+          school_name: string
+          subjects_taught: string[]
+          user_id: string
+          verification_status: string
+          verified_at: string | null
+        }[]
+      }
       list_mentors: {
         Args: never
         Returns: {
@@ -2057,6 +2107,10 @@ export type Database = {
           school_name: string
           user_id: string
         }[]
+      }
+      set_account_verification: {
+        Args: { _status: string; _user_id: string }
+        Returns: Json
       }
       set_school_member_status: {
         Args: { _member_id: string; _status: string }

@@ -13,3 +13,7 @@ npm test
 Run them after any change to the database or its access rules. If a test fails, the change has reopened a hole.
 
 Limits: the test database stands in for Supabase's `auth` and `storage` schemas, and skips 4 old migrations (September 2025) that no longer replay on an empty database. The test prints which ones it skipped.
+
+## Test files
+- `attacks.test.js`: grades, exams, roles and course files (audit fixes C1–C3, H1, H2).
+- `approvals.test.js`: who can approve which accounts.

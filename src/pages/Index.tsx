@@ -5,6 +5,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LandingPage } from "./LandingPage";
 import { PendingApproval } from "@/components/school/PendingApproval";
+import { AccountStatusBanner, ApprovalsWaitingBanner } from "@/components/admin/AccountStatusBanners";
 
 const StudentDashboard = lazy(() =>
   import("./StudentDashboard").then((m) => ({ default: m.StudentDashboard }))
@@ -17,13 +18,22 @@ const SchoolAdminDashboard = lazy(() =>
   }))
 );
 
+const AccountApprovals = lazy(() =>
+  import("@/components/admin/AccountApprovals").then((m) => ({ default: m.AccountApprovals }))
+);
+
 const DashboardFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400" />
   </div>
 );
 
-const Index = () => {
+interface IndexProps {
+  /** "approvals" shows the account review queue (Codex platform admins only). */
+  view?: "dashboard" | "approvals";
+}
+
+const Index = ({ view = "dashboard" }: IndexProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -31,6 +41,8 @@ const Index = () => {
   const [membership, setMembership] = useState<{ status: string; school_id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [waitingApprovals, setWaitingApprovals] = useState(0);
 
   useEffect(() => {
     // Set up auth state listener
@@ -106,6 +118,14 @@ const Index = () => {
       } else {
         setMembership(null);
       }
+
+      // Codex platform admins review new school admins and mentors.
+      const { data: adminFlag } = await supabase.rpc('is_platform_admin');
+      setIsPlatformAdmin(adminFlag === true);
+      if (adminFlag === true) {
+        const { data: waiting } = await supabase.rpc('list_accounts_for_review', { _status: 'pending' });
+        setWaitingApprovals(waiting?.length ?? 0);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -142,6 +162,15 @@ const Index = () => {
   const teacherBlocked = userRole === 'teacher' && membership?.status !== 'approved';
 
   const renderDashboard = () => {
+    if (view === 'approvals') {
+      return isPlatformAdmin ? (
+        <AccountApprovals />
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-16">
+          This page is only for Codex platform admins.
+        </p>
+      );
+    }
     if (teacherBlocked) {
       return (
         <PendingApproval
@@ -159,6 +188,12 @@ const Index = () => {
 
   return (
     <AppLayout user={user} userProfile={profileWithRole}>
+      {view === 'dashboard' && isPlatformAdmin && waitingApprovals > 0 && (
+        <ApprovalsWaitingBanner count={waitingApprovals} />
+      )}
+      {view === 'dashboard' && !teacherBlocked && (
+        <AccountStatusBanner role={userRole} status={userProfile?.verification_status} />
+      )}
       <Suspense fallback={<DashboardFallback />}>{renderDashboard()}</Suspense>
     </AppLayout>
   );
