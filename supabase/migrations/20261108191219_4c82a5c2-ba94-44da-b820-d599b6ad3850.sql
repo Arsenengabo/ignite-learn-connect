@@ -1,0 +1,12 @@
+CREATE SCHEMA IF NOT EXISTS account_approvals_private;
+REVOKE ALL ON SCHEMA account_approvals_private FROM PUBLIC,anon;
+GRANT USAGE ON SCHEMA account_approvals_private TO authenticated,service_role;
+ALTER FUNCTION public.is_platform_admin(uuid) SECURITY INVOKER;
+ALTER FUNCTION public.list_accounts_for_review(text) SET SCHEMA account_approvals_private;
+ALTER FUNCTION public.set_account_verification(uuid,text) SET SCHEMA account_approvals_private;
+CREATE FUNCTION public.list_accounts_for_review(_status text DEFAULT 'pending') RETURNS TABLE(user_id uuid,full_name text,email text,role text,organization_name text,school_name text,role_description text,subjects_taught text[],province text,district text,registered_school text,verification_status text,created_at timestamptz,verified_at timestamptz) LANGUAGE sql STABLE SECURITY INVOKER SET search_path=public AS $$ SELECT * FROM account_approvals_private.list_accounts_for_review(_status) $$;
+CREATE FUNCTION public.set_account_verification(_user_id uuid,_status text) RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path=public AS $$ SELECT account_approvals_private.set_account_verification(_user_id,_status) $$;
+REVOKE ALL ON FUNCTION public.list_accounts_for_review(text),public.set_account_verification(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.list_accounts_for_review(text),public.set_account_verification(uuid,text) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION account_approvals_private.list_accounts_for_review(text),account_approvals_private.set_account_verification(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION account_approvals_private.list_accounts_for_review(text),account_approvals_private.set_account_verification(uuid,text) TO authenticated,service_role;
