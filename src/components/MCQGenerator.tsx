@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { functionErrorMessage } from "@/lib/functionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,7 @@ export const MCQGenerator = () => {
         body: { subject, topic, count: 10 },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await functionErrorMessage(error, "Failed to generate questions"));
 
       setMcqData(data);
       toast({

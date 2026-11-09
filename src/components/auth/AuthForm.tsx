@@ -18,6 +18,23 @@ export const AuthForm = () => {
     password: "",
   });
   const { toast } = useToast();
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleSendReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+    if (error && error.status === 429) {
+      toast({ title: "Too many requests", description: "Please wait a minute and try again.", variant: "destructive" });
+      return;
+    }
+    // Same message whether or not the email has an account, so nobody can check who is registered.
+    setResetSent(true);
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +88,50 @@ export const AuthForm = () => {
               </TabsList>
 
               <TabsContent value="signin">
+                {forgotMode ? (
+                  resetSent ? (
+                    <div className="space-y-4 py-2 text-center" role="status">
+                      <p className="text-sm">
+                        If <strong>{formData.email}</strong> has a Codex account, we have sent it a link to choose a new
+                        password. Check your inbox and spam folder.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setForgotMode(false);
+                          setResetSent(false);
+                        }}
+                      >
+                        Back to sign in
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSendReset} className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Enter the email you signed up with and we will send you a link to choose a new password.
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          autoComplete="email"
+                          value={formData.email}
+                          onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send reset link
+                      </Button>
+                      <Button type="button" variant="ghost" className="w-full" onClick={() => setForgotMode(false)}>
+                        Back to sign in
+                      </Button>
+                    </form>
+                  )
+                ) : (
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -86,7 +147,16 @@ export const AuthForm = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setForgotMode(true)}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input 
                       id="password" 
                       type="password" 
@@ -103,6 +173,7 @@ export const AuthForm = () => {
                     Sign In
                   </Button>
                 </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup">

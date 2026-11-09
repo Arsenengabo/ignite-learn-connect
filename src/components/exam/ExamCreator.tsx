@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { functionErrorMessage } from "@/lib/functionError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -107,7 +108,7 @@ export default function ExamCreator({ onExamCreated, onBack }: ExamCreatorProps)
         }
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await functionErrorMessage(error, "Failed to generate exam"));
 
       if (data.sections) {
         setGeneratedData(data);

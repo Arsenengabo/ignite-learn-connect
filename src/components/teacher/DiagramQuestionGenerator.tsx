@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { functionErrorMessage } from "@/lib/functionError";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ export const DiagramQuestionGenerator = () => {
         body: { topic: topic.trim(), questionType, difficulty, numLabels },
       });
 
-      if (error) throw new Error(error.message || "Failed to generate diagram question");
+      if (error) throw new Error(await functionErrorMessage(error, "Failed to generate diagram question"));
       if (!data || data.error) throw new Error(data?.error || "Unexpected response");
 
       setResult(data as DiagramQuestion);

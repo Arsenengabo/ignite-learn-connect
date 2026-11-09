@@ -145,6 +145,22 @@ serve(async (req) => {
       );
     }
 
+    // Daily AI limit, and who may use this tool (audit H3). Counted before calling the AI.
+    const quota = await supabase.rpc("consume_ai_quota", { _feature: "generate-exam" });
+    if (quota.error) {
+      const notAllowed = String(quota.error.message ?? "").includes("AI_NOT_ALLOWED");
+      return new Response(
+        JSON.stringify({ error: notAllowed ? "This AI tool is not available for your account type." : "Could not check your AI limit. Please try again." }),
+        { status: notAllowed ? 403 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!quota.data?.allowed) {
+      return new Response(
+        JSON.stringify({ error: `You have used all ${quota.data?.limit ?? 0} of today's AI exams. Try again tomorrow.`, code: "AI_DAILY_LIMIT" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { examFormat }: { examFormat: ExamFormat } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { takePreferredRole } from "@/lib/signupIntent";
+import { MIN_PASSWORD_LENGTH } from "@/lib/passwords";
+import { SITE } from "@/config/site";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,9 +49,13 @@ interface SignUpFormData {
   schoolCode: string;
   joinMode: "school" | "independent";
   verifiedSchoolName: string;
+
+  // Agreement to the Terms and Privacy Policy (and guardian consent for under-16s)
+  acceptedTerms: boolean;
 }
 
 const initialFormData: SignUpFormData = {
+  acceptedTerms: false,
   role: null,
   fullName: "",
   email: "",
@@ -100,7 +107,7 @@ export const SignUpWizard = () => {
         return (
           formData.fullName.trim() !== "" &&
           formData.email.trim() !== "" &&
-          formData.password.length >= 6 &&
+          formData.password.length >= MIN_PASSWORD_LENGTH &&
           formData.password === formData.confirmPassword
         );
       case 3:
@@ -136,7 +143,7 @@ export const SignUpWizard = () => {
         }
         return false;
       case 4:
-        return true;
+        return formData.acceptedTerms;
       default:
         return false;
     }
@@ -164,6 +171,9 @@ export const SignUpWizard = () => {
       const metadata: Record<string, any> = {
         full_name: formData.fullName,
         role: formData.role,
+        // Record of consent (Rwanda Law No. 058/2021)
+        accepted_terms_version: SITE.legalVersion,
+        accepted_terms_at: new Date().toISOString(),
       };
 
       if (formData.role === "student" || formData.role === "teacher") {
@@ -303,7 +313,24 @@ export const SignUpWizard = () => {
         )}
 
         {currentStep === 4 && (
-          <ReviewStep formData={formData} />
+          <>
+            <ReviewStep formData={formData} />
+            <label htmlFor="accept-terms" className="mt-4 flex items-start gap-3 rounded-lg border border-border p-3 text-sm leading-relaxed cursor-pointer">
+              <Checkbox
+                id="accept-terms"
+                checked={formData.acceptedTerms}
+                onCheckedChange={(v) => setFormData((prev) => ({ ...prev, acceptedTerms: v === true }))}
+                className="mt-0.5"
+              />
+              <span>
+                I agree to the{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Terms of Use</a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Privacy Policy</a>.
+                If I am under 16, my parent or guardian agrees too.
+              </span>
+            </label>
+          </>
         )}
       </div>
 
@@ -431,7 +458,7 @@ const AccountInfoStep = ({
   updateFormData: (field: keyof SignUpFormData, value: any) => void;
 }) => {
   const passwordsMatch = formData.password === formData.confirmPassword;
-  const passwordLengthOk = formData.password.length >= 6;
+  const passwordLengthOk = formData.password.length >= MIN_PASSWORD_LENGTH;
 
   return (
     <div className="space-y-4">
@@ -469,13 +496,13 @@ const AccountInfoStep = ({
           <Input
             id="password"
             type="password"
-            placeholder="At least 6 characters"
+            placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
             value={formData.password}
             onChange={(e) => updateFormData("password", e.target.value)}
             required
           />
           {formData.password && !passwordLengthOk && (
-            <p className="text-xs text-destructive">Password must be at least 6 characters</p>
+            <p className="text-xs text-destructive">Password must be at least {MIN_PASSWORD_LENGTH} characters</p>
           )}
         </div>
 

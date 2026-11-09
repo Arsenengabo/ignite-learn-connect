@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { functionErrorMessage } from "@/lib/functionError";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,7 +233,7 @@ export const AIQuestionGenerator = () => {
       });
 
       if (error) {
-        throw new Error(error.message || 'Failed to generate exam');
+        throw new Error(await functionErrorMessage(error, 'Failed to generate exam'));
       }
 
       if (generationMode === "online") {

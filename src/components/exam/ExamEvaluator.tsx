@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { functionErrorMessage } from "@/lib/functionError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -197,7 +198,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
         body: { attemptId: selectedAttempt.id } // the server loads questions and answers itself
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await functionErrorMessage(error, "Could not complete AI evaluation. Please try again."));
 
       toast({
         title: "AI Evaluation Complete",
@@ -211,7 +212,7 @@ export default function ExamEvaluator({ examId, onBack }: ExamEvaluatorProps) {
       console.error("AI evaluation error:", error);
       toast({
         title: "AI Evaluation Failed",
-        description: "Could not complete AI evaluation. Please try again.",
+        description: error instanceof Error ? error.message : "Could not complete AI evaluation. Please try again.",
         variant: "destructive"
       });
     } finally {

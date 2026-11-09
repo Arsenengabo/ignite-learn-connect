@@ -8,6 +8,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
+import ResetPassword from "./pages/ResetPassword";
+import { PrivacyPage, TermsPage } from "./pages/Legal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +34,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/install" element={<Install />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
               <Route path="/approvals" element={<Index view="approvals" />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

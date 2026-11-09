@@ -497,6 +497,12 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             <Link to="/install" className="inline-flex items-center hover:text-foreground">
               Install the app
             </Link>
+            <Link to="/privacy" className="inline-flex items-center hover:text-foreground">
+              Privacy
+            </Link>
+            <Link to="/terms" className="inline-flex items-center hover:text-foreground">
+              Terms
+            </Link>
             <button type="button" onClick={() => start("signin")} className="p-0 text-sm leading-5 hover:text-foreground">
               Sign in
             </button>
