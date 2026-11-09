@@ -1,0 +1,1 @@
+INSERT INTO public.platform_admins(user_id,note) VALUES ('ef1298d9-350a-45e3-966b-9fed6c797e3f','Designated platform approver by project owner') ON CONFLICT (user_id) DO NOTHING;
