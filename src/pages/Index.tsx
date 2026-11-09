@@ -18,6 +18,9 @@ const SchoolAdminDashboard = lazy(() =>
   }))
 );
 
+const ChatReports = lazy(() =>
+  import("@/components/chat/ChatReports").then((m) => ({ default: m.ChatReports }))
+);
 const AccountApprovals = lazy(() =>
   import("@/components/admin/AccountApprovals").then((m) => ({ default: m.AccountApprovals }))
 );
@@ -168,7 +171,10 @@ const Index = ({ view = "dashboard" }: IndexProps) => {
   const renderDashboard = () => {
     if (view === 'approvals') {
       return isPlatformAdmin ? (
-        <AccountApprovals />
+        <div className="space-y-8">
+          <AccountApprovals />
+          <ChatReports />
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-16">
           This page is only for Codex platform admins.

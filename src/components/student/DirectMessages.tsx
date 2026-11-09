@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, MoreVertical, School, Search, Send, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Ban, Flag, MoreHorizontal, MoreVertical, School, Search, Send, ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Conversation,
   ConversationContent,
@@ -16,6 +23,10 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
+import { chatApi } from "@/lib/chatApi";
+import { ReportDialog } from "@/components/chat/ReportDialog";
+import { BlockedPeopleDialog } from "@/components/chat/BlockedPeopleDialog";
+import { JoinSchoolCard } from "@/components/chat/JoinSchoolCard";
 
 interface ThreadRow {
   thread_id: string;
@@ -24,6 +35,8 @@ interface ThreadRow {
   other_school: string;
   last_message: string | null;
   last_message_at: string;
+  is_blocked: boolean;
+  can_message: boolean;
 }
 
 interface StudentRow {
@@ -39,6 +52,7 @@ interface DM {
   content: string;
   sender_id: string;
   created_at: string;
+  deleted_at: string | null;
 }
 
 const time = (timestamp: string) =>
@@ -50,42 +64,34 @@ const initials = (name: string) =>
 export const DirectMessages = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [threads, setThreads] = useState<ThreadRow[]>([]);
-  const [active, setActive] = useState<ThreadRow | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draftThread, setDraftThread] = useState<ThreadRow | null>(null);
   const [messages, setMessages] = useState<DM[]>([]);
-  const [currentSchool, setCurrentSchool] = useState("");
   const [loading, setLoading] = useState(true);
   const [finding, setFinding] = useState(false);
   const [query, setQuery] = useState("");
   const [threadSearch, setThreadSearch] = useState("");
-  const [sameSchoolOnly, setSameSchoolOnly] = useState(true);
   const [people, setPeople] = useState<StudentRow[]>([]);
   const [searching, setSearching] = useState(false);
-  const [threadScope, setThreadScope] = useState<"all" | "school">("all");
   const [messageSearchOpen, setMessageSearchOpen] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
-  const threadSearchRef = useRef<HTMLInputElement>(null);
+  const [reportTarget, setReportTarget] = useState<DM | null>(null);
+  const [blockedOpen, setBlockedOpen] = useState(false);
   const messageSearchRef = useRef<HTMLInputElement>(null);
+
+  const active = threads.find((t) => t.thread_id === activeId) ?? (draftThread?.thread_id === activeId ? draftThread : null);
 
   const loadThreads = useCallback(async () => {
     const { data, error } = await supabase.rpc("list_direct_chats");
     if (error) toast.error("Could not load your conversations");
-    else setThreads((data as ThreadRow[]) ?? []);
+    else setThreads((data as unknown as ThreadRow[]) ?? []);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
-      const nextUserId = auth.user?.id ?? null;
-      if (!cancelled) setUserId(nextUserId);
-      if (nextUserId) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("school_name")
-          .eq("id", nextUserId)
-          .maybeSingle();
-        if (!cancelled) setCurrentSchool(profile?.school_name ?? "");
-      }
+      if (!cancelled) setUserId(auth.user?.id ?? null);
       await loadThreads();
       if (!cancelled) setLoading(false);
     })();
@@ -97,10 +103,7 @@ export const DirectMessages = () => {
     let cancelled = false;
     setSearching(true);
     const timeout = setTimeout(async () => {
-      const { data, error } = await supabase.rpc("search_students", {
-        _query: query.trim(),
-        _same_school_only: sameSchoolOnly,
-      });
+      const { data, error } = await supabase.rpc("search_students", { _query: query.trim(), _same_school_only: true });
       if (cancelled) return;
       if (error) toast.error("Search failed");
       else setPeople((data as StudentRow[]) ?? []);
@@ -110,46 +113,45 @@ export const DirectMessages = () => {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [finding, query, sameSchoolOnly]);
+  }, [finding, query]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!activeId) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("dm_messages")
-        .select("id, content, sender_id, created_at")
-        .eq("thread_id", active.thread_id)
+        .select("*")
+        .eq("thread_id", activeId)
         .order("created_at", { ascending: true })
         .limit(200);
       if (cancelled) return;
       if (error) toast.error("Could not load messages");
-      else setMessages((data as DM[]) ?? []);
+      else setMessages((data as unknown as DM[]) ?? []);
     })();
 
     const channel = supabase
-      .channel(`dm-${active.thread_id}`)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "dm_messages", filter: `thread_id=eq.${active.thread_id}`,
-      }, (payload) => {
+      .channel(`dm-${activeId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "dm_messages", filter: `thread_id=eq.${activeId}` }, (payload) => {
         const incoming = payload.new as DM;
-        setMessages((current) => current.some((message) => message.id === incoming.id) ? current : [...current, incoming]);
+        if (!incoming?.id) return;
+        setMessages((current) =>
+          current.some((m) => m.id === incoming.id)
+            ? current.map((m) => (m.id === incoming.id ? incoming : m))
+            : [...current, incoming],
+        );
       })
       .subscribe();
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [active]);
+  }, [activeId]);
 
   const visibleThreads = useMemo(() => {
     const search = threadSearch.trim().toLowerCase();
-    return threads.filter((thread) => {
-      const matchesSearch = !search || `${thread.other_name} ${thread.other_school} ${thread.last_message ?? ""}`.toLowerCase().includes(search);
-      const matchesScope = threadScope === "all" || (Boolean(currentSchool) && thread.other_school === currentSchool);
-      return matchesSearch && matchesScope;
-    });
-  }, [threads, threadSearch, threadScope, currentSchool]);
+    return threads.filter((thread) => !search || `${thread.other_name} ${thread.other_school} ${thread.last_message ?? ""}`.toLowerCase().includes(search));
+  }, [threads, threadSearch]);
 
   const visibleMessages = useMemo(() => {
     const search = messageSearch.trim().toLowerCase();
@@ -164,18 +166,25 @@ export const DirectMessages = () => {
     });
   };
 
+  const open = (threadId: string) => {
+    setMessages([]);
+    setActiveId(threadId);
+  };
+
   const openWith = async (person: StudentRow) => {
     const { data, error } = await supabase.rpc("start_direct_chat", { _other_user_id: person.user_id });
     if (error || !data) return toast.error(error?.message || "Could not start the conversation");
-    setMessages([]);
-    setActive({
+    setDraftThread({
       thread_id: data as string,
       other_user_id: person.user_id,
       other_name: person.full_name,
       other_school: person.school_name,
       last_message: null,
       last_message_at: new Date().toISOString(),
+      is_blocked: false,
+      can_message: true,
     });
+    open(data as string);
     setFinding(false);
     setQuery("");
     loadThreads();
@@ -185,14 +194,10 @@ export const DirectMessages = () => {
     const content = text.trim();
     if (!content || !active || !userId) return;
     if (content.length > 2000) {
-      toast.error("Message is too long");
+      toast.error("Message is too long (2,000 characters at most)");
       throw new Error("Message is too long");
     }
-    const { error } = await supabase.from("dm_messages").insert({
-      thread_id: active.thread_id,
-      sender_id: userId,
-      content,
-    });
+    const { error } = await supabase.from("dm_messages").insert({ thread_id: active.thread_id, sender_id: userId, content });
     if (error) {
       toast.error(error.message || "Message not sent");
       throw error;
@@ -200,27 +205,52 @@ export const DirectMessages = () => {
     loadThreads();
   };
 
+  const remove = async (message: DM) => {
+    try {
+      await chatApi.deleteDirectMessage(message.id);
+      setMessages((list) => list.map((m) => (m.id === message.id ? { ...m, content: "", deleted_at: new Date().toISOString() } : m)));
+      loadThreads();
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  const setBlocked = async (thread: ThreadRow, block: boolean) => {
+    try {
+      if (block) await chatApi.block(thread.other_user_id);
+      else await chatApi.unblock(thread.other_user_id);
+      toast.success(block ? `${thread.other_name} is blocked` : `${thread.other_name} is unblocked`, {
+        description: block ? "They can't send you private messages, and they aren't told." : undefined,
+      });
+      setDraftThread(null);
+      loadThreads();
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
   const directory = (
     <aside className={`chat-directory ${active ? "chat-mobile-hidden" : ""}`}>
       <div className="chat-directory-header">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="chat-eyebrow">Connections</p>
+            <p className="chat-eyebrow">Schoolmates</p>
             <h2 className="chat-heading">Messages</h2>
           </div>
-          <Button type="button" variant="ghost" size="icon" className="chat-new-button" onClick={() => setFinding(true)} aria-label="New conversation" title="New conversation">
-            <UserPlus />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => setBlockedOpen(true)} aria-label="Blocked people" title="Blocked people">
+              <ShieldCheck />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="chat-new-button" onClick={() => setFinding(true)} aria-label="New conversation" title="New conversation">
+              <UserPlus />
+            </Button>
+          </div>
         </div>
         <label className="chat-search">
           <Search aria-hidden="true" />
           <span className="sr-only">Search conversations</span>
-          <input ref={threadSearchRef} value={threadSearch} onChange={(event) => setThreadSearch(event.target.value)} placeholder="Search conversations" />
+          <input value={threadSearch} onChange={(event) => setThreadSearch(event.target.value)} placeholder="Search conversations" />
         </label>
-        <div className="chat-filters" aria-label="Conversation filter">
-          <Button type="button" variant="ghost" onClick={() => setThreadScope("all")} className={threadScope === "all" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "all"}>All</Button>
-          <Button type="button" variant="ghost" onClick={() => setThreadScope("school")} className={threadScope === "school" ? "chat-filter-active" : "chat-filter"} aria-pressed={threadScope === "school"} disabled={!currentSchool} title={currentSchool ? "Show students from your school" : "No school is linked to your profile"}>Schoolmates</Button>
-        </div>
       </div>
       <div className="chat-list">
         {loading && <p className="chat-state">Loading conversations…</p>}
@@ -228,7 +258,7 @@ export const DirectMessages = () => {
           <div className="chat-state-block">
             <Users />
             <p>No conversations yet.</p>
-            <Button type="button" onClick={() => setFinding(true)} className="chat-primary-action">Find students</Button>
+            <Button type="button" onClick={() => setFinding(true)} className="chat-primary-action">Find schoolmates</Button>
           </div>
         )}
         {visibleThreads.map((thread) => (
@@ -236,13 +266,15 @@ export const DirectMessages = () => {
             key={thread.thread_id}
             type="button"
             variant="ghost"
-            onClick={() => { setMessages([]); setActive(thread); }}
-            className={`chat-list-item ${thread.thread_id === active?.thread_id ? "chat-list-item-active" : ""}`}
+            onClick={() => open(thread.thread_id)}
+            className={`chat-list-item ${thread.thread_id === activeId ? "chat-list-item-active" : ""}`}
           >
             <span className="chat-avatar">{initials(thread.other_name) || "ST"}</span>
             <span className="min-w-0 flex-1 text-left">
               <span className="chat-list-title">{thread.other_name}</span>
-              <span className="chat-list-preview">{thread.last_message || thread.other_school || "Start chatting"}</span>
+              <span className="chat-list-preview">
+                {thread.is_blocked ? "Blocked" : thread.last_message || thread.other_school || "Start chatting"}
+              </span>
             </span>
             <span className="chat-list-time">{time(thread.last_message_at)}</span>
           </Button>
@@ -251,6 +283,8 @@ export const DirectMessages = () => {
     </aside>
   );
 
+  const blockedDialog = <BlockedPeopleDialog open={blockedOpen} onOpenChange={setBlockedOpen} onChanged={loadThreads} />;
+
   if (finding) {
     return (
       <>
@@ -258,29 +292,34 @@ export const DirectMessages = () => {
           <div className="chat-directory-header">
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => setFinding(false)} aria-label="Back to conversations"><ArrowLeft /></Button>
-              <h2 className="chat-heading">Find students</h2>
+              <h2 className="chat-heading">Find schoolmates</h2>
             </div>
             <label className="chat-search"><Search aria-hidden="true" /><span className="sr-only">Search students</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name" /></label>
-            <div className="chat-filters">
-              <Button type="button" variant="ghost" onClick={() => setSameSchoolOnly(true)} className={sameSchoolOnly ? "chat-filter-active" : "chat-filter"}>My school</Button>
-              <Button type="button" variant="ghost" onClick={() => setSameSchoolOnly(false)} className={!sameSchoolOnly ? "chat-filter-active" : "chat-filter"}>All schools</Button>
-            </div>
+            <p className="text-xs leading-relaxed text-[var(--chat-muted)]">
+              To keep everyone safe, private messages are only open between students at the same school.
+            </p>
           </div>
           <div className="chat-list">
             {searching && <p className="chat-state">Searching…</p>}
-            {!searching && people.length === 0 && <p className="chat-state">No students found.</p>}
+            {!searching && people.length === 0 && (
+              <>
+                <p className="chat-state">No schoolmates found.</p>
+                <JoinSchoolCard />
+              </>
+            )}
             {people.map((person) => (
               <Button key={person.user_id} type="button" variant="ghost" onClick={() => openWith(person)} className="chat-list-item">
                 <span className="chat-avatar">{initials(person.full_name) || "ST"}</span>
                 <span className="min-w-0 flex-1 text-left">
                   <span className="chat-list-title">{person.full_name}</span>
-                  <span className="chat-list-preview"><School /> {person.school_name || "Independent learner"}{person.district ? ` · ${person.district}` : ""}</span>
+                  <span className="chat-list-preview"><School /> {person.school_name}{person.district ? ` · ${person.district}` : ""}</span>
                 </span>
               </Button>
             ))}
           </div>
         </aside>
-        <main className="chat-pane chat-empty-pane"><ConversationEmptyState icon={<Users />} title="Build your learning network" description="Connect with a schoolmate or a student from another school." /></main>
+        <main className="chat-pane chat-empty-pane"><ConversationEmptyState icon={<Users />} title="Message a schoolmate" description="Ask about homework, share notes and study together." /></main>
+        {blockedDialog}
       </>
     );
   }
@@ -292,11 +331,23 @@ export const DirectMessages = () => {
         {active ? (
           <>
             <header className="chat-pane-header">
-              <Button type="button" variant="ghost" size="icon" className="chat-back" onClick={() => setActive(null)} aria-label="Back to conversations"><ArrowLeft /></Button>
+              <Button type="button" variant="ghost" size="icon" className="chat-back" onClick={() => setActiveId(null)} aria-label="Back to conversations"><ArrowLeft /></Button>
               <span className="chat-avatar">{initials(active.other_name) || "ST"}</span>
               <div className="min-w-0 flex-1"><h3 className="chat-contact-name">{active.other_name}</h3><p className="chat-contact-meta">{active.other_school || "Student"}</p></div>
               <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={toggleMessageSearch} aria-label={messageSearchOpen ? "Close message search" : "Search this conversation"} aria-pressed={messageSearchOpen}><Search /></Button>
-              <Button type="button" variant="ghost" size="icon" className="chat-icon-button" onClick={() => setFinding(true)} aria-label="Find another student" title="Find another student"><MoreVertical /></Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="chat-icon-button" aria-label="Conversation options" title="Conversation options"><MoreVertical /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="[&_svg]:mr-2 [&_svg]:h-4 [&_svg]:w-4">
+                  <DropdownMenuItem onSelect={() => setBlocked(active, !active.is_blocked)} className={active.is_blocked ? "" : "text-destructive focus:text-destructive"}>
+                    <Ban /> {active.is_blocked ? `Unblock ${active.other_name}` : `Block ${active.other_name}`}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setBlockedOpen(true)}><ShieldCheck /> Blocked people</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setFinding(true)}><UserPlus /> Message someone else</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </header>
             {messageSearchOpen && (
               <label className="chat-message-search">
@@ -308,7 +359,6 @@ export const DirectMessages = () => {
             )}
             <Conversation className="chat-conversation">
               <ConversationContent className="chat-message-list">
-                <div className="chat-date-divider"><span>Today</span></div>
                 {messages.length === 0 ? (
                   <ConversationEmptyState title="Start the conversation" description={`Say hello to ${active.other_name}.`} />
                 ) : visibleMessages.length === 0 ? (
@@ -316,29 +366,68 @@ export const DirectMessages = () => {
                 ) : visibleMessages.map((message) => {
                   const mine = message.sender_id === userId;
                   return (
-                    <Message key={message.id} from={mine ? "user" : "assistant"} className="chat-message">
-                      <MessageContent className={mine ? "chat-bubble-outgoing" : "chat-bubble-incoming"}>
-                        <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                        <span className="chat-time">{time(message.created_at)}{mine ? "  ✓✓" : ""}</span>
-                      </MessageContent>
-                    </Message>
+                    <div key={message.id} className={`chat-row ${mine ? "chat-row-mine" : ""}`}>
+                      <Message from={mine ? "user" : "assistant"} className="chat-message">
+                        <MessageContent className={mine ? "chat-bubble-outgoing" : "chat-bubble-incoming"}>
+                          {message.deleted_at ? <p className="chat-removed">Message deleted</p> : <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+                          <span className="chat-time">{time(message.created_at)}</span>
+                        </MessageContent>
+                      </Message>
+                      {!message.deleted_at && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="icon" className="chat-message-actions" aria-label="Message actions"><MoreHorizontal /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="[&_svg]:mr-2 [&_svg]:h-4 [&_svg]:w-4">
+                            {mine ? (
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => remove(message)}><Trash2 /> Delete</DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onSelect={() => setReportTarget(message)}><Flag /> Report message</DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   );
                 })}
               </ConversationContent>
               <ConversationScrollButton className="chat-scroll-button" />
             </Conversation>
             <footer className="chat-composer-wrap">
-              <PromptInput onSubmit={send} className="chat-composer">
-                <PromptInputTextarea placeholder="Type a message" className="chat-composer-input" />
-                <PromptInputFooter className="chat-composer-footer">
-                  <span className="chat-composer-hint">Enter to send · Shift + Enter for a new line</span>
-                  <PromptInputSubmit className="chat-send" disabled={!active || !userId} aria-label="Send message"><Send /></PromptInputSubmit>
-                </PromptInputFooter>
-              </PromptInput>
+              {active.is_blocked ? (
+                <div className="chat-composer-notice">
+                  You blocked {active.other_name}.{" "}
+                  <button type="button" className="chat-link" onClick={() => setBlocked(active, false)}>Unblock</button>
+                </div>
+              ) : !active.can_message ? (
+                <p className="chat-composer-notice">
+                  You can't send messages here any more. Private messages are only open between students at the same school.
+                </p>
+              ) : (
+                <PromptInput onSubmit={send} className="chat-composer">
+                  <PromptInputTextarea placeholder="Type a message" className="chat-composer-input" />
+                  <PromptInputFooter className="chat-composer-footer">
+                    <span className="chat-composer-hint">Enter to send · Shift + Enter for a new line</span>
+                    <PromptInputSubmit className="chat-send" disabled={!userId} aria-label="Send message"><Send /></PromptInputSubmit>
+                  </PromptInputFooter>
+                </PromptInput>
+              )}
             </footer>
           </>
-        ) : <ConversationEmptyState icon={<Users />} title="Your conversations" description="Choose a conversation or find someone new to connect with." />}
+        ) : <ConversationEmptyState icon={<Users />} title="Your conversations" description="Choose a conversation or find a schoolmate to message." />}
       </main>
+      {reportTarget && active && (
+        <ReportDialog
+          open
+          onOpenChange={(isOpen) => !isOpen && setReportTarget(null)}
+          authorName={active.other_name}
+          preview={reportTarget.content}
+          reviewer="your school admin"
+          onSubmit={(reason, details) => chatApi.reportDirectMessage(reportTarget.id, reason, details)}
+          onBlock={() => setBlocked(active, true)}
+        />
+      )}
+      {blockedDialog}
     </>
   );
 };
