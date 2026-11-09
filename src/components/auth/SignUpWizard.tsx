@@ -12,6 +12,8 @@ import { Loader2, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase, Gradu
 import { rwandaProvinces, rwandaDistricts, educationLevels, subjects, type Province } from "@/data/rwandaLocations";
 import { getSchoolsByLocation } from "@/data/rwandaSchools";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SITE } from "@/config/site";
 
 type Role = "student" | "teacher" | "mentor" | "school_admin";
 
@@ -24,6 +26,10 @@ interface SignUpFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  /** Agreed to the Terms of Use and Privacy Policy. */
+  acceptTerms: boolean;
+  /** 16 or older, or a parent or guardian has agreed (Rwanda Law 058/2021, art. 9). */
+  ageConfirmed: boolean;
   
   // Step 3 - Role specific
   // Student & Teacher
@@ -55,6 +61,8 @@ const initialFormData: SignUpFormData = {
   email: "",
   password: "",
   confirmPassword: "",
+  acceptTerms: false,
+  ageConfirmed: false,
   province: "",
   district: "",
   schoolName: "",
@@ -102,7 +110,9 @@ export const SignUpWizard = () => {
           formData.fullName.trim() !== "" &&
           formData.email.trim() !== "" &&
           passwordProblem(formData.password) === null &&
-          formData.password === formData.confirmPassword
+          formData.password === formData.confirmPassword &&
+          formData.acceptTerms &&
+          formData.ageConfirmed
         );
       case 3:
         if (formData.role === "teacher") {
@@ -165,6 +175,10 @@ export const SignUpWizard = () => {
       const metadata: Record<string, any> = {
         full_name: formData.fullName,
         role: formData.role,
+        // A record of what the person agreed to, and when.
+        terms_version: SITE.termsVersion,
+        terms_accepted_at: new Date().toISOString(),
+        age_confirmed: formData.ageConfirmed,
       };
 
       if (formData.role === "student" || formData.role === "teacher") {
@@ -493,6 +507,35 @@ const AccountInfoStep = ({
           {formData.confirmPassword && !passwordsMatch && (
             <p className="text-xs text-destructive">Passwords do not match</p>
           )}
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-border p-3">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="acceptTerms"
+              checked={formData.acceptTerms}
+              onCheckedChange={(v) => updateFormData("acceptTerms", v === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="acceptTerms" className="text-sm font-normal leading-snug">
+              I agree to the{" "}
+              <a href="/terms" target="_blank" rel="noopener" className="text-primary underline underline-offset-2">Terms of Use</a>{" "}
+              and{" "}
+              <a href="/privacy" target="_blank" rel="noopener" className="text-primary underline underline-offset-2">Privacy Policy</a>,
+              including storage of my information outside Rwanda.
+            </Label>
+          </div>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="ageConfirmed"
+              checked={formData.ageConfirmed}
+              onCheckedChange={(v) => updateFormData("ageConfirmed", v === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="ageConfirmed" className="text-sm font-normal leading-snug">
+              I am 16 or older, or my parent or guardian has agreed to me using Codex.
+            </Label>
+          </div>
         </div>
       </div>
     </div>

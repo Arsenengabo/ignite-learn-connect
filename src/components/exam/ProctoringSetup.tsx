@@ -202,12 +202,10 @@ export default function ProctoringSetup({
                     By proceeding with this proctored exam, you acknowledge and consent to the following:
                   </p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Your webcam will record video during the exam session</li>
-                    <li>Your microphone may capture audio for verification purposes</li>
-                    <li>Your browser activity (tab switches, fullscreen status) will be monitored</li>
-                    <li>Suspicious activities will be flagged and logged</li>
-                    <li>Recording data will be retained for review by exam administrators</li>
-                    <li>Data is handled in accordance with our privacy policy</li>
+                    <li>Your camera and microphone stay on during the exam. They are checked on your device only: nothing is recorded or uploaded.</li>
+                    <li>Leaving the exam tab, exiting full screen, and copy or paste are counted as warnings.</li>
+                    <li>Too many warnings may submit your exam automatically.</li>
+                    <li>Read more in the Codex Privacy Policy (codex /privacy).</li>
                   </ul>
                   <p className="mt-2">
                     <strong>Data Retention:</strong> Proctoring data is retained for 90 days after the exam 
