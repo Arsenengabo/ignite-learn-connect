@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Enable secure account approvals and administrator navigation.
+- [x] Enable secure account approvals and administrator navigation.
 - [ ] Run account approval tests and verify app loading.
 - [ ] Assign the first platform approver — requires the user's chosen account.
 - [x] Enable private lecture storage for the existing lecture workflow.
