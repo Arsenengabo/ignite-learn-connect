@@ -14,7 +14,8 @@ let joinCode;
 let teacherMemberId;
 
 before(async () => {
-  ({ db } = await buildDatabase());
+  // These archived drafts were never applied remotely; test the live approval migrations instead.
+  ({ db } = await buildDatabase({ excludeMigrations: ["20261107180000", "20261107190000"] }));
   await signUp(db, OWNER, "student");
   await signUp(db, SCHOOL_ADMIN, "school_admin");
   await signUp(db, TEACHER, "teacher");

@@ -29,12 +29,13 @@ const SUPABASE_STANDINS = `
   CREATE PUBLICATION supabase_realtime;
 `;
 
-export async function buildDatabase() {
+export async function buildDatabase({ excludeMigrations = [] } = {}) {
   const db = new PGlite();
   await db.exec(SUPABASE_STANDINS);
   const skipped = [];
   const files = fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
   for (const file of files) {
+    if (excludeMigrations.some((prefix) => file.startsWith(prefix))) continue;
     let sql = fs.readFileSync(path.join(MIGRATIONS, file), "utf8");
     // Some old migrations create the same policy twice; tolerate that during replay.
     sql = sql.replace(/CREATE POLICY\s+("[^"]+")\s+ON\s+([\w.]+)/gi, "DROP POLICY IF EXISTS $1 ON $2; CREATE POLICY $1 ON $2");
