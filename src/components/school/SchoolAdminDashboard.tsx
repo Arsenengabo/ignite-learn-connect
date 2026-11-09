@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { rwandaProvinces, rwandaDistricts, type Province } from "@/data/rwandaLocations";
 import { Building2, Copy, Loader2, ShieldCheck, Users, GraduationCap, Check, X } from "lucide-react";
+import { ChatReports } from "@/components/chat/ChatReports";
+import { chatApi } from "@/lib/chatApi";
 
 interface School {
   id: string;
@@ -37,6 +39,11 @@ export const SchoolAdminDashboard = ({ userProfile }: { userProfile: any }) => {
   const [loading, setLoading] = useState(true);
   const [school, setSchool] = useState<School | null>(null);
   const [roster, setRoster] = useState<RosterRow[]>([]);
+  const [openReports, setOpenReports] = useState(0);
+
+  useEffect(() => {
+    chatApi.reports("open").then((rows) => setOpenReports(rows.length)).catch(() => undefined);
+  }, []);
 
   const loadSchool = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -142,13 +149,20 @@ export const SchoolAdminDashboard = ({ userProfile }: { userProfile: any }) => {
       </Card>
 
       <Tabs defaultValue="pending">
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="pending" className="text-xs sm:text-sm">
             Requests {pending.length > 0 && `(${pending.length})`}
           </TabsTrigger>
           <TabsTrigger value="teachers" className="text-xs sm:text-sm">Teachers</TabsTrigger>
           <TabsTrigger value="students" className="text-xs sm:text-sm">Students</TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">
+            Reports {openReports > 0 && `(${openReports})`}
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="reports" className="mt-4">
+          <ChatReports compact onCountChange={setOpenReports} />
+        </TabsContent>
 
         <TabsContent value="pending" className="space-y-2 mt-4">
           {pending.length === 0 && <EmptyState text="No pending join requests" />}

@@ -80,6 +80,35 @@ const messages = [
   { id: "m3", channel_id: "ch1", user_id: "s5", content: "Thanks Aline. Quiz on Friday covers kVp vs mAs.", created_at: iso(now - 40 * 60000) },
 ];
 
+// Rooms, teacher posts and private messages for the chat screens.
+const rooms = [
+  { id: "r-class", name: "Radiography Year 1", description: "Physics of Medical Imaging · Hall A", channel_type: "class_room", school_id: "sc1", school_name: "University of Rwanda", posting_mode: "comments_only", can_moderate: role === "teacher", member_count: 42, last_message_at: iso(now - 20 * 60000) },
+  { id: "r-school", name: "University of Rwanda", description: "Everyone at University of Rwanda: teachers, students and staff", channel_type: "school_room", school_id: "sc1", school_name: "University of Rwanda", posting_mode: "everyone", can_moderate: role === "teacher", member_count: 812, last_message_at: iso(now - 2 * 3600000) },
+  { id: "r-lounge", name: role === "teacher" ? "Staff Room" : "Student Lounge", description: role === "teacher" ? "Teachers across Codex" : "Casual chat with students across the platform", channel_type: role === "teacher" ? "teacher_general" : "student_general", school_id: null, school_name: "", posting_mode: "everyone", can_moderate: false, member_count: null, last_message_at: iso(now - day) },
+];
+const rm = (id: string, sender: string, name: string, teacher: boolean, mins: number, message: string, extra: any = {}) =>
+  ({ id, channel_id: "r-class", sender_id: sender, sender_name: name, sender_is_teacher: teacher, message, post_kind: "message", title: null, parent_id: null, is_pinned: false, comments_open: true, is_deleted: false, created_at: iso(now - mins * 60000), ...extra });
+const roomMessages = [
+  rm("p1", TEACHER, "Eric Habimana", true, 26 * 60, "Bring your lab coat and dosimeter badge. We meet in Physics Lab 2 at 10:00. Late arrivals can't join the exposure session.", { post_kind: "note", title: "Practical moved to Friday", is_pinned: true }),
+  rm("c1", "s3", "Jean Bosco", false, 25 * 60, "Thank you sir, is it the whole class or group A only?", { parent_id: "p1" }),
+  rm("c2", TEACHER, "Eric Habimana", true, 24 * 60, "Whole class. Groups rotate inside the lab.", { parent_id: "p1" }),
+  rm("p2", TEACHER, "Eric Habimana", true, 3 * 60, "Electrons leave the heated cathode and hit the tungsten anode\nAbout 99% of the energy becomes heat, only 1% X-rays\nBremsstrahlung gives a continuous spectrum\nCharacteristic radiation gives sharp peaks\nkVp controls penetration; mAs controls quantity", { post_kind: "key_points", title: "X-ray production: what to know for the CAT" }),
+  rm("c3", STUDENT, "Aline Uwimana", false, 2 * 60, "Is the anode heel effect in the CAT too?", { parent_id: "p2" }),
+  rm("c4", "s5", "Divine Mukamana", false, 20, "Same question 🙏", { parent_id: "p2" }),
+];
+const reports = [
+  { id: "rep1", created_at: iso(now - 40 * 60000), source: "room", reason: "bullying", details: "He keeps posting this about her", message_snapshot: "nobody wants you in this group lol", status: "open", room_name: "Radiography Year 1", school_name: "University of Rwanda", reporter_name: "Divine Mukamana", reported_user_id: "s9", reported_name: "Kevin N.", message_removed: false, resolution: null },
+];
+const threads = [
+  { thread_id: "t1", other_user_id: "s3", other_name: "Jean Bosco", other_school: "University of Rwanda", last_message: "Can you share the anatomy notes?", last_message_at: iso(now - 30 * 60000), is_blocked: false, can_message: true },
+  { thread_id: "t2", other_user_id: "s5", other_name: "Divine Mukamana", other_school: "University of Rwanda", last_message: "See you at the lab", last_message_at: iso(now - 5 * 3600000), is_blocked: false, can_message: true },
+];
+const dms = [
+  { id: "d1", thread_id: "t1", sender_id: "s3", content: "Hi Aline! Did you record today's physics lecture?", created_at: iso(now - 40 * 60000), deleted_at: null },
+  { id: "d2", thread_id: "t1", sender_id: STUDENT, content: "Yes, the summary is in my Study tab. I'll send the key points.", created_at: iso(now - 35 * 60000), deleted_at: null },
+  { id: "d3", thread_id: "t1", sender_id: "s3", content: "Can you share the anatomy notes?", created_at: iso(now - 30 * 60000), deleted_at: null },
+];
+
 const db: Record<string, any[]> = {
   profiles, user_roles: [{ user_id: STUDENT, role: "student" }, { user_id: TEACHER, role: "teacher" }],
   school_members: [{ user_id: STUDENT, status: "approved", school_id: "sc1", created_at: "" }, { user_id: TEACHER, status: "approved", school_id: "sc1", created_at: "" }],
@@ -90,7 +119,7 @@ const db: Record<string, any[]> = {
   course_progress: [{ id: "cp1", student_id: STUDENT, progress_percentage: 100, updated_at: "", courses: { title: "Radiographic Anatomy I", subject: "Anatomy" } }, { id: "cp2", student_id: STUDENT, progress_percentage: 40, updated_at: "", courses: { title: "Physics of Imaging", subject: "Physics" } }],
   exams, exam_attempts: attempts, quizzes: quizRows, courses: [{ id: "co1", teacher_id: TEACHER, title: "Radiographic Anatomy I", is_published: true }],
   competitions: [], competition_entries: [], user_streaks: [{ user_id: STUDENT, current_streak: 6, longest_streak: 9 }],
-  chat_channels: channels, chat_messages: messages, chat_channel_members: [],
+  chat_channels: channels, chat_messages: messages, chat_channel_members: [], dm_messages: dms, chat_mutes: [],
 };
 
 function query(table: string) {
@@ -126,7 +155,13 @@ export const supabase: any = {
     signOut: async () => ({}),
   },
   from: query,
-  rpc: async (fn: string) => {
+  rpc: async (fn: string, args: any = {}) => {
+    if (fn === "list_my_rooms") return { data: rooms, error: null };
+    if (fn === "list_room_messages") return { data: args._channel_id === "r-class" ? roomMessages : [], error: null };
+    if (fn === "list_my_teaching_schools") return { data: role === "teacher" ? [{ school_id: "sc1", school_name: "University of Rwanda" }] : [], error: null };
+    if (fn === "list_chat_reports") return { data: role === "teacher" && (args._status ?? "open") === "open" ? reports : [], error: null };
+    if (fn === "list_direct_chats") return { data: threads, error: null };
+    if (fn === "search_students") return { data: [], error: null };
     if (fn === "get_quiz_questions_for_student") return { data: quizQuestions, error: null };
     if (fn === "get_user_display_name") return { data: "Classmate", error: null };
     if (fn === "is_platform_admin") return { data: false, error: null };
