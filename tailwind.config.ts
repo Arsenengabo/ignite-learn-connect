@@ -121,11 +121,32 @@ export default {
     				to: {
     					height: '0'
     				}
+    			},
+    			'float-slow': {
+    				'0%, 100%': { transform: 'translateY(0)' },
+    				'50%': { transform: 'translateY(-10px)' }
+    			},
+    			marquee: {
+    				from: { transform: 'translateX(0)' },
+    				to: { transform: 'translateX(-50%)' }
+    			},
+    			'tour-progress': {
+    				from: { transform: 'scaleX(0)' },
+    				to: { transform: 'scaleX(1)' }
+    			},
+    			'fade-in': {
+    				from: { opacity: '0', transform: 'translateY(8px)' },
+    				to: { opacity: '1', transform: 'translateY(0)' }
     			}
     		},
     		animation: {
     			'accordion-down': 'accordion-down 0.2s ease-out',
-    			'accordion-up': 'accordion-up 0.2s ease-out'
+    			'accordion-up': 'accordion-up 0.2s ease-out',
+    			'float-slow': 'float-slow 6s ease-in-out infinite',
+    			'float-slower': 'float-slow 8s ease-in-out infinite 1s',
+    			marquee: 'marquee 40s linear infinite',
+    			'tour-progress': 'tour-progress var(--tour-duration, 6s) linear forwards',
+    			'fade-in': 'fade-in 0.5s ease-out'
     		},
     		fontFamily: {
     			display: [
