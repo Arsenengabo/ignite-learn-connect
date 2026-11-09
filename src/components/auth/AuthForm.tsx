@@ -8,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap, ArrowLeft, ArrowRight, Check, User, BookOpen, Briefcase } from "lucide-react";
 import { SignUpWizard } from "./SignUpWizard";
+import { takeStartTab } from "@/lib/signupIntent";
 
 export const AuthForm = () => {
+  const [startTab] = useState(takeStartTab);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -52,7 +54,7 @@ export const AuthForm = () => {
               <GraduationCap className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-2 text-foreground">Ignite Learn Connect</h1>
+          <h1 className="text-4xl font-bold mb-2 text-foreground">Codex</h1>
           <p className="text-muted-foreground">Empowering education through technology</p>
         </div>
 
@@ -62,7 +64,7 @@ export const AuthForm = () => {
             <CardDescription>Sign in to continue or create a new account</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs defaultValue={startTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>

@@ -184,7 +184,7 @@ export const StudentChat = () => {
   return (
     <section className="chat-shell -mx-3 -my-4 sm:-mx-4 lg:-mx-6 lg:-my-6" aria-label="Student chat">
       <nav className="chat-rail" aria-label="Chat sections">
-        <div className="chat-brand" aria-label="Ignite Learn Connect">ILC</div>
+        <div className="chat-brand" aria-label="Codex">CX</div>
         <Button
           type="button"
           variant="ghost"

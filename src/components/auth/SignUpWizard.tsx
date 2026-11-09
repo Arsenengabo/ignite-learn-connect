@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { takePreferredRole } from "@/lib/signupIntent";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,8 @@ const steps = [
 
 export const SignUpWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<SignUpFormData>(initialFormData);
+  // Pre-select the role the visitor picked on the home page, if any.
+  const [formData, setFormData] = useState<SignUpFormData>(() => ({ ...initialFormData, role: takePreferredRole() }));
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -215,7 +217,7 @@ export const SignUpWizard = () => {
         });
       } else {
         toast({
-          title: "Welcome to Ignite Learn Connect!",
+          title: "Welcome to Codex!",
           description: "Check your email to confirm your account."
         });
       }
