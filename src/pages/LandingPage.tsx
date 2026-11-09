@@ -6,7 +6,6 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
-  Brain,
   Building2,
   CalendarDays,
   Check,
@@ -15,7 +14,6 @@ import {
   HeartHandshake,
   Lock,
   Menu,
-  MessagesSquare,
   Mic,
   ScanLine,
   ShieldCheck,
@@ -27,6 +25,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { rememberSignupIntent, type SignupRole } from "@/lib/signupIntent";
+import { FeatureMarquee, HeroVideo, ProductTour, Reveal, type TourStep } from "@/components/landing/Showcase";
 import logo from "@/assets/logo.png";
 
 interface LandingPageProps {
@@ -34,6 +33,7 @@ interface LandingPageProps {
 }
 
 const NAV_LINKS = [
+  { href: "#tour", label: "Tour" },
   { href: "#students", label: "Students" },
   { href: "#teachers", label: "Teachers" },
   { href: "#schools", label: "Schools" },
@@ -86,6 +86,64 @@ const SAFETY: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: ShieldCheck, title: "Private by default", text: "Your notes, study plan and messages are visible only to you and the people you share them with." },
 ];
 
+const TOUR: TourStep[] = [
+  {
+    id: "plan",
+    tab: "Plan your week",
+    title: "Your semester at a glance",
+    text: "Courses, timetable and today's classes in one place, with the next class highlighted.",
+    desktop: { src: "/showcase/desk-study.webp", alt: "Codex Study tab on a computer: today's classes, live lecture button and past lectures" },
+    phone: { src: "/showcase/phone-study.webp", alt: "Codex Study tab on a phone" },
+  },
+  {
+    id: "lecture",
+    tab: "Capture the lecture",
+    title: "Every lecture, summarised",
+    text: "The overview, what the lecturer stressed, key points, key terms with links to read more, and likely exam questions.",
+    desktop: { src: "/showcase/desk-summary.webp", alt: "A lecture summary in Codex on a computer" },
+    phone: { src: "/showcase/phone-summary.webp", alt: "A lecture summary in Codex on a phone" },
+  },
+  {
+    id: "practise",
+    tab: "Practise",
+    title: "Quizzes from your teachers",
+    text: "Short timed quizzes by subject and level. Results are marked on the server and saved to your progress.",
+    desktop: { src: "/showcase/desk-quizzes.webp", alt: "Browse quizzes in Codex on a computer" },
+    phone: { src: "/showcase/phone-quiz.webp", alt: "Answering a quiz question in Codex on a phone" },
+  },
+  {
+    id: "teach",
+    tab: "For teachers",
+    title: "Your teaching toolkit",
+    text: "Generate questions with AI, create quizzes and courses, print answer sheets and scan them to mark.",
+    desktop: { src: "/showcase/desk-teacher-home.webp", alt: "Codex teacher dashboard with quick actions" },
+    phone: { src: "/showcase/phone-home.webp", alt: "Codex student home on a phone" },
+  },
+  {
+    id: "analytics",
+    tab: "See who needs help",
+    title: "Class analytics",
+    text: "Score spread, pass rate and weak topics across your exams, with one tap to build a revision quiz.",
+    desktop: { src: "/showcase/desk-analytics.webp", alt: "Codex class analytics: score distribution and weak topics" },
+  },
+];
+
+const MARQUEE = [
+  "Live lecture notes",
+  "Lecture summaries",
+  "Weekly timetable",
+  "Quizzes",
+  "Timed exams",
+  "AI study assistant",
+  "AI question generator",
+  "Answer sheet scanning",
+  "Class analytics",
+  "Competitions",
+  "Class chat",
+  "Mentors",
+  "School join codes",
+];
+
 const FAQ: { q: string; a: string }[] = [
   {
     q: "Who is Codex for?",
@@ -134,7 +192,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
           <div className="hidden md:flex items-center gap-7">
             {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a key={l.href} href={l.href} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {l.label}
               </a>
             ))}
@@ -216,8 +274,12 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </ul>
             </div>
 
-            <HeroPreview />
+            <HeroVideo />
           </div>
+        </section>
+
+        <section aria-label="Features" className="pb-12 sm:pb-16">
+          <FeatureMarquee items={MARQUEE} />
         </section>
 
         {/* Who are you */}
@@ -251,6 +313,23 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           </div>
         </section>
 
+        {/* Product tour */}
+        <section id="tour" aria-labelledby="tour-title" className="scroll-mt-20 px-4 sm:px-6 pb-16 sm:pb-24">
+          <div className="max-w-6xl mx-auto">
+            <Reveal>
+              <SectionHeading
+                eyebrow="See how it works"
+                id="tour-title"
+                title="On your phone and your computer"
+                text="The same account everywhere. These are real Codex screens, shown with sample data."
+              />
+            </Reveal>
+            <Reveal className="mt-10" delay={100}>
+              <ProductTour steps={TOUR} />
+            </Reveal>
+          </div>
+        </section>
+
         {/* Students */}
         <section id="students" aria-labelledby="students-title" className="scroll-mt-20 px-4 sm:px-6 py-16 sm:py-24 bg-muted/30 border-y border-border">
           <div className="max-w-6xl mx-auto">
@@ -262,7 +341,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             />
             <ol className="mt-10 grid md:grid-cols-3 gap-4">
               {STUDENT_STEPS.map(({ icon: Icon, label, title, text, points }, i) => (
-                <li key={label} className="rounded-xl border border-border bg-card p-6">
+                <li key={label} className="contents">
+                <Reveal delay={i * 120} className="rounded-xl border border-border bg-card p-6">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                       <Icon className="w-5 h-5 text-primary" aria-hidden />
@@ -280,6 +360,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                       </li>
                     ))}
                   </ul>
+                </Reveal>
                 </li>
               ))}
             </ol>
@@ -296,12 +377,12 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               text="Prepare, test and follow up with your classes in one place. You stay in control of every mark."
             />
             <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {TEACHER_FEATURES.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="rounded-xl border border-border bg-card p-5">
+              {TEACHER_FEATURES.map(({ icon: Icon, title, text }, i) => (
+                <Reveal key={title} delay={(i % 3) * 100} className="rounded-xl border border-border bg-card p-5">
                   <Icon className="w-6 h-6 text-primary" aria-hidden />
                   <h3 className="mt-3 font-semibold">{title}</h3>
                   <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{text}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
             <div className="mt-8 text-center">
@@ -342,7 +423,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
+            <Reveal className="rounded-2xl border border-border bg-card p-6 sm:p-8">
               <h3 className="flex items-center gap-2 text-lg font-semibold">
                 <ShieldCheck className="w-5 h-5 text-primary" aria-hidden /> Safe by design
               </h3>
@@ -359,7 +440,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
           </div>
         </section>
 
@@ -409,11 +490,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           </div>
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm leading-5 text-muted-foreground">
             {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-foreground">
+              <a key={l.href} href={l.href} className="inline-flex items-center hover:text-foreground">
                 {l.label}
               </a>
             ))}
-            <Link to="/install" className="hover:text-foreground">
+            <Link to="/install" className="inline-flex items-center hover:text-foreground">
               Install the app
             </Link>
             <button type="button" onClick={() => start("signin")} className="p-0 text-sm leading-5 hover:text-foreground">
@@ -446,58 +527,5 @@ const SectionHeading = ({
       {title}
     </h2>
     {text && <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">{text}</p>}
-  </div>
-);
-
-/** A drawn preview of the app (no screenshots needed): a live lecture summary and a quiz question. */
-const HeroPreview = () => (
-  <div aria-hidden className="relative mx-auto w-full max-w-sm">
-    <div className="rounded-[2rem] border border-border bg-card p-3 shadow-2xl shadow-primary/10">
-      <div className="rounded-[1.5rem] bg-background p-4 pb-20 space-y-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">Live lecture</span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Listening · 24:10
-          </span>
-        </div>
-        <div className="rounded-xl border border-border p-3">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Overview</p>
-          <p className="mt-1 text-sm leading-snug">
-            How X-rays are produced in the tube, and how kVp and mAs change the image.
-          </p>
-        </div>
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-          <p className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400">The lecturer stressed</p>
-          <p className="mt-1 text-sm leading-snug">Know the two types of X-ray radiation. "This always comes in the exam."</p>
-        </div>
-        <div className="rounded-xl border border-border p-3">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Key terms</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {["Anode", "kVp", "mAs", "Heel effect"].map((t) => (
-              <span key={t} className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div className="absolute -bottom-6 left-2 sm:-left-10 w-56 rounded-xl border border-border bg-card p-3 shadow-xl">
-      <p className="flex items-center gap-1.5 text-xs font-semibold">
-        <Brain className="w-3.5 h-3.5 text-primary" /> Quick quiz · 3 of 10
-      </p>
-      <p className="mt-1.5 text-xs leading-snug">Which setting mainly controls beam penetration?</p>
-      <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-        <span className="rounded-md border border-primary bg-primary/10 px-2 py-1 text-primary">kVp ✓</span>
-        <span className="rounded-md border border-border px-2 py-1 text-muted-foreground">mAs</span>
-      </div>
-    </div>
-
-    <div className="absolute -top-4 right-2 sm:-right-6 rounded-xl border border-border bg-card px-3 py-2 shadow-xl">
-      <p className="flex items-center gap-1.5 text-xs">
-        <MessagesSquare className="w-3.5 h-3.5 text-primary" /> Physics study group
-      </p>
-    </div>
   </div>
 );
