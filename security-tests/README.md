@@ -17,3 +17,4 @@ Limits: the test database stands in for Supabase's `auth` and `storage` schemas,
 ## Test files
 - `attacks.test.js`: grades, exams, roles and course files (audit fixes C1–C3, H1, H2).
 - `approvals.test.js`: who can approve which accounts.
+- `ai-limits.test.js`: daily AI usage limits.

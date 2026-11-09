@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { takePreferredRole } from "@/lib/signupIntent";
+import { passwordProblem } from "@/lib/passwordRules";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +101,7 @@ export const SignUpWizard = () => {
         return (
           formData.fullName.trim() !== "" &&
           formData.email.trim() !== "" &&
-          formData.password.length >= 6 &&
+          passwordProblem(formData.password) === null &&
           formData.password === formData.confirmPassword
         );
       case 3:
@@ -431,7 +432,7 @@ const AccountInfoStep = ({
   updateFormData: (field: keyof SignUpFormData, value: any) => void;
 }) => {
   const passwordsMatch = formData.password === formData.confirmPassword;
-  const passwordLengthOk = formData.password.length >= 6;
+  const passwordIssue = passwordProblem(formData.password);
 
   return (
     <div className="space-y-4">
@@ -469,13 +470,13 @@ const AccountInfoStep = ({
           <Input
             id="password"
             type="password"
-            placeholder="At least 6 characters"
+            placeholder="At least 8 characters, letters and numbers"
             value={formData.password}
             onChange={(e) => updateFormData("password", e.target.value)}
             required
           />
-          {formData.password && !passwordLengthOk && (
-            <p className="text-xs text-destructive">Password must be at least 6 characters</p>
+          {formData.password && passwordIssue && (
+            <p className="text-xs text-destructive">{passwordIssue}</p>
           )}
         </div>
 

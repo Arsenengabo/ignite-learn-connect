@@ -18,6 +18,24 @@ export const AuthForm = () => {
     password: "",
   });
   const { toast } = useToast();
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  // Audit M2: email a password-reset link. The answer is the same whether or not an
+  // account exists, so the form cannot be used to find out who has an account.
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+    if (error && /rate|too many/i.test(error.message)) {
+      toast({ title: "Please wait a minute", description: "Too many reset emails were requested. Try again shortly.", variant: "destructive" });
+      return;
+    }
+    setResetSent(true);
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +89,51 @@ export const AuthForm = () => {
               </TabsList>
 
               <TabsContent value="signin">
+                {resetMode ? (
+                  <form onSubmit={handleReset} className="space-y-4">
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold">Reset your password</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Enter your account's email and we'll send you a link to choose a new password.
+                      </p>
+                    </div>
+                    {resetSent ? (
+                      <p role="status" className="rounded-md border border-primary/40 bg-primary/10 p-3 text-sm">
+                        If an account exists for <strong>{formData.email}</strong>, a reset link is on its way. Check your
+                        inbox and spam folder. The link works once and expires after about an hour.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          autoComplete="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                          required
+                        />
+                      </div>
+                    )}
+                    {!resetSent && (
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send reset link
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        setResetMode(false);
+                        setResetSent(false);
+                      }}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in
+                    </Button>
+                  </form>
+                ) : (
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -98,11 +161,21 @@ export const AuthForm = () => {
                       required 
                     />
                   </div>
+                  <div className="-mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setResetMode(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
                 </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup">

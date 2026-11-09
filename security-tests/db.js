@@ -57,7 +57,7 @@ export async function buildDatabase({ excludeMigrations = [] } = {}) {
   await db.exec(`
     GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
     GRANT ALL ON ALL TABLES IN SCHEMA storage TO authenticated;
-    GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+    -- Functions: Postgres lets everyone execute new functions unless a migration revokes it, as on Supabase.
   `);
   return { db, skipped };
 }
