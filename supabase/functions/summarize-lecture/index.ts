@@ -77,6 +77,49 @@ async function wikipediaSummary(query: string) {
   }
 }
 
+// --- AI usage limits (audit H3) ---------------------------------------------
+// Counts this request against the user's daily limit for lecture_summary. Only the
+// service role can count usage, so users cannot reset their own counters.
+async function checkAiAllowance(
+  userId: string,
+  feature: string,
+  dailyLimit: number,
+  teachersOnly: boolean,
+): Promise<Response | null> {
+  const deny = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
+  if (teachersOnly) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("role, verification_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (profile?.role !== "teacher" || profile?.verification_status !== "verified") {
+      return deny(403, "This AI tool is for approved teachers.");
+    }
+  }
+  const { data, error } = await admin.rpc("consume_ai_quota", {
+    _user_id: userId,
+    _feature: feature,
+    _daily_limit: dailyLimit,
+  });
+  if (error) {
+    console.error("AI quota check failed", error);
+    return deny(503, "AI is temporarily unavailable. Please try again later.");
+  }
+  if (!data?.allowed) {
+    return deny(429, `You have used today's limit for this AI feature (${dailyLimit} a day). It resets at midnight.`);
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -92,6 +135,9 @@ serve(async (req) => {
     });
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+    const limited = await checkAiAllowance(user.id, "lecture_summary", 60, false);
+    if (limited) return limited;
 
     const { lectureId, lookup = true } = (await req.json()) as { lectureId?: string; lookup?: boolean };
     if (!lectureId) return json({ error: "Missing lectureId" }, 400);
