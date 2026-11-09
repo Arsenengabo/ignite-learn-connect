@@ -1,611 +1,503 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
-  CheckCircle, 
-  Rocket, 
-  Users, 
-  BarChart3, 
-  Settings, 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
   ArrowRight,
-  Video,
-  MessageCircle,
-  Shield,
+  BarChart3,
+  BookOpen,
   Brain,
-  Scan,
-  CreditCard,
-  UserCheck,
-  Bot,
-  Trophy,
-  Building,
+  Building2,
+  CalendarDays,
+  Check,
+  ClipboardCheck,
   GraduationCap,
-  Star,
-  Play,
-  Zap,
+  HeartHandshake,
+  Lock,
   Menu,
-  X
+  MessagesSquare,
+  Mic,
+  ScanLine,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  UserCheck,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { rememberSignupIntent, type SignupRole } from "@/lib/signupIntent";
 import logo from "@/assets/logo.png";
+
 interface LandingPageProps {
   onGetStarted: () => void;
 }
-export const LandingPage = ({
-  onGetStarted
-}: LandingPageProps) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleJoinAsTeacher = () => {
-    localStorage.setItem('preferredRole', 'teacher');
+const NAV_LINKS = [
+  { href: "#students", label: "Students" },
+  { href: "#teachers", label: "Teachers" },
+  { href: "#schools", label: "Schools" },
+  { href: "#faq", label: "FAQ" },
+];
+
+const ROLES: { role: SignupRole; icon: LucideIcon; title: string; text: string }[] = [
+  { role: "student", icon: GraduationCap, title: "Student", text: "Secondary school or university. Notes, practice and exams in one place." },
+  { role: "teacher", icon: BookOpen, title: "Teacher", text: "Build quizzes and exams in minutes and see who needs help." },
+  { role: "school_admin", icon: Building2, title: "School", text: "Bring your teachers and students together with one join code." },
+  { role: "mentor", icon: HeartHandshake, title: "Mentor", text: "Guide students in your field. Profiles are checked before going live." },
+];
+
+const STUDENT_STEPS: { icon: LucideIcon; label: string; title: string; text: string; points: string[] }[] = [
+  {
+    icon: CalendarDays,
+    label: "Before class",
+    title: "Know what is coming",
+    text: "Add your courses and timetable once. Codex shows today's classes and what is next.",
+    points: ["Weekly timetable", "Course list with lecturers and credits"],
+  },
+  {
+    icon: Mic,
+    label: "In class",
+    title: "Notes that write themselves",
+    text: "Open Live lecture and keep listening. Codex writes down what the lecturer says and builds a summary as the class goes.",
+    points: ["Key points and key terms", "What the lecturer stressed", "Likely exam questions"],
+  },
+  {
+    icon: ClipboardCheck,
+    label: "After class",
+    title: "Practise until it sticks",
+    text: "Take quizzes and exams from your teachers, ask the AI study assistant when you are stuck, and join class chats and competitions.",
+    points: ["Quizzes with instant results", "AI study assistant", "Class chat and study groups"],
+  },
+];
+
+const TEACHER_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: Sparkles, title: "AI question generator", text: "Turn your notes into multiple-choice and written questions, then edit before you publish." },
+  { icon: ClipboardCheck, title: "Exams with fair marking", text: "Timed exams, marked on the server. Written answers get an AI first mark that you review." },
+  { icon: ScanLine, title: "Paper answer sheets", text: "Print answer sheets and scan them with your phone to mark multiple-choice tests." },
+  { icon: BookOpen, title: "Courses", text: "Publish lessons, files and videos for your students in modules." },
+  { icon: BarChart3, title: "Class analytics", text: "See scores by student and question to know who needs help." },
+  { icon: Trophy, title: "Competitions", text: "Run quiz competitions to keep revision lively." },
+];
+
+const SAFETY: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: UserCheck, title: "Checked accounts", text: "School admins and mentors are checked by the Codex team. Teachers are approved by their school." },
+  { icon: Lock, title: "Marks you can trust", text: "Only the marking system or the teacher can set a grade. Students cannot change results." },
+  { icon: ShieldCheck, title: "Private by default", text: "Your notes, study plan and messages are visible only to you and the people you share them with." },
+];
+
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "Who is Codex for?",
+    a: "Secondary school and university students, their teachers, school administrators, and mentors who want to guide students. Each gets their own dashboard.",
+  },
+  {
+    q: "Does it work on my phone?",
+    a: "Yes. Codex runs in your phone's browser, and you can install it like an app from the Install page. Live lecture listening works best in Chrome on Android or a computer.",
+  },
+  {
+    q: "Do I need internet?",
+    a: "Yes. Codex saves your work online so it is there on any device, and live lecture listening uses your browser's speech service, which needs a connection.",
+  },
+  {
+    q: "How does my school join?",
+    a: "A school administrator registers the school and gets a join code. Teachers and students sign up with that code and the administrator approves them. New school administrators are checked by the Codex team first.",
+  },
+  {
+    q: "Is it allowed to capture my lecturer's lessons?",
+    a: "Ask your lecturer first. Codex keeps only the text of the lecture, never the audio, and your notes are private to you.",
+  },
+  {
+    q: "Can students change their marks?",
+    a: "No. Quiz and exam results are calculated on Codex's servers. Only the marking system or the teacher who owns the exam can set a grade.",
+  },
+];
+
+export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const start = (tab: "signin" | "signup", role?: SignupRole) => {
+    rememberSignupIntent(tab, role);
+    setMenuOpen(false);
     onGetStarted();
   };
 
-  const handleMobileNavClick = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  return <div className="min-h-screen bg-background" style={{
-    background: 'var(--gradient-hero)'
-  }}>
+  return (
+    <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <img src={logo} alt="Codex Logo" className="w-6 h-6 sm:w-8 sm:h-8 object-contain dark:invert dark:brightness-200" />
-              <span className="text-lg sm:text-xl font-bold text-foreground">Codex</span>
-            </div>
-            
-            {/* Mobile Menu */}
-            <div className="flex md:hidden items-center space-x-2">
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
-            </div>
+      <header className="fixed top-0 inset-x-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between" aria-label="Main">
+          <a href="#top" className="flex items-center gap-2" aria-label="Codex home">
+            <img src={logo} alt="" className="w-7 h-7 object-contain dark:invert dark:brightness-200" />
+            <span className="text-lg font-bold">Codex</span>
+          </a>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-muted-foreground hover:text-foreground transition-colors">Reviews</a>
-              <ThemeToggle />
-              <Button onClick={onGetStarted} variant="outline">
-                Sign In
-              </Button>
-            </div>
+          <div className="hidden md:flex items-center gap-7">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {l.label}
+              </a>
+            ))}
           </div>
-        </div>
 
-        {/* Mobile Menu Dropdown */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border z-40 shadow-lg">
-            <div className="px-4 py-4 space-y-4">
-              <a 
-                href="#features" 
-                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-                onClick={handleMobileNavClick}
-              >
-                Features
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => start("signin")}>
+              Sign in
+            </Button>
+            <Button className="hidden sm:inline-flex" onClick={() => start("signup", "student")}>
+              Get started
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
+        </nav>
+
+        {menuOpen && (
+          <div id="mobile-menu" className="md:hidden border-t border-border bg-background px-4 py-3 space-y-1 shadow-lg">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="block py-3 text-base text-muted-foreground hover:text-foreground">
+                {l.label}
               </a>
-              <a 
-                href="#how-it-works" 
-                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-                onClick={handleMobileNavClick}
-              >
-                How It Works
-              </a>
-              <a 
-                href="#testimonials" 
-                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-                onClick={handleMobileNavClick}
-              >
-                Reviews
-              </a>
-              <div className="pt-2 border-t border-border">
-                <Button onClick={onGetStarted} variant="outline" className="w-full">
-                  Sign In
-                </Button>
-              </div>
+            ))}
+            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
+              <Button variant="outline" onClick={() => start("signin")}>Sign in</Button>
+              <Button onClick={() => start("signup", "student")}>Get started</Button>
             </div>
           </div>
         )}
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section className="pt-24 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 sm:mb-8 animate-fade-in">
-            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-primary mr-2" />
-            <span className="text-primary text-xs sm:text-sm font-medium">The Future of Connected Learning</span>
-          </div>
-          
-          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-4 sm:mb-6 leading-tight animate-slide-up px-2">
-            Codex – Learn, Teach, and
-            <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-primary to-learning bg-clip-text text-transparent">
-              Connect in One Digital Space
-            </span>
-          </h1>
-          
-          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed px-4">
-            Live classes, AI exams, and a connected student community – all in one platform. 
-            Experience Discord-inspired learning with professional education tools.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-            <Button 
-              onClick={onGetStarted} 
-              size="lg" 
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl transition-all duration-300 w-full sm:w-auto" 
-              style={{ boxShadow: 'var(--shadow-primary)' }}
-            >
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-              Start Learning
-            </Button>
-            <Button 
-              onClick={handleJoinAsTeacher} 
-              variant="outline" 
-              size="lg" 
-              className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 w-full sm:w-auto"
-            >
-              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-              Join as a Teacher
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Core Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
-              Revolutionary Features for
-              <br className="hidden sm:block" />
-              <span className="text-primary">Modern Education</span>
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
-              Combining the best of Discord's community features with professional education tools.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Video className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Live Classes & Real-Time Exams</h3>
-                <p className="text-muted-foreground">Interactive voice, video, and screen-sharing sessions with instant feedback and collaboration.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-learning/10 flex items-center justify-center mb-4 group-hover:bg-learning/20 transition-colors">
-                  <MessageCircle className="w-6 h-6 text-learning" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Community Servers for Classes</h3>
-                <p className="text-muted-foreground">Each subject or school has its own "server" with chat channels and study rooms.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-achievement/10 flex items-center justify-center mb-4 group-hover:bg-achievement/20 transition-colors">
-                  <Shield className="w-6 h-6 text-achievement" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Secure Student Records</h3>
-                <p className="text-muted-foreground">Track grades, awards, behavior, and performance in one comprehensive profile.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Brain className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">AI Question Generator</h3>
-                <p className="text-muted-foreground">Upload books or PDFs, and Codex creates practice questions instantly with AI.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-learning/10 flex items-center justify-center mb-4 group-hover:bg-learning/20 transition-colors">
-                  <Scan className="w-6 h-6 text-learning" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Smart Exam Scanner</h3>
-                <p className="text-muted-foreground">Scan bubble sheets and grade them automatically with precision.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-achievement/10 flex items-center justify-center mb-4 group-hover:bg-achievement/20 transition-colors">
-                  <CreditCard className="w-6 h-6 text-achievement" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Digital Student Card</h3>
-                <p className="text-muted-foreground">Pay fees, access transport, and get school materials with one ID.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <UserCheck className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Roles & Permissions</h3>
-                <p className="text-muted-foreground">Teachers, students, and employers have custom access levels and capabilities.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-learning/10 flex items-center justify-center mb-4 group-hover:bg-learning/20 transition-colors">
-                  <Bot className="w-6 h-6 text-learning" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">AI Study Bots</h3>
-                <p className="text-muted-foreground">24/7 tutor, reminders for exams, and motivation challenges.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-achievement/10 flex items-center justify-center mb-4 group-hover:bg-achievement/20 transition-colors">
-                  <Trophy className="w-6 h-6 text-achievement" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Gamification & Rewards</h3>
-                <p className="text-muted-foreground">Earn points, badges, and climb leaderboards for achievements.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Building className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Employer Portal</h3>
-                <p className="text-muted-foreground">Companies can find talent based on verified knowledge and skills.</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How Codex Works Section */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
-              How Codex Works
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
-              Simple steps to transform your learning experience
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-primary">1</span>
-              </div>
-              <h3 className="text-2xl font-semibold text-foreground mb-4">Teachers Create</h3>
-              <p className="text-muted-foreground">Teachers create classes and interactive exams with AI-powered tools and live session capabilities.</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-learning/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-learning">2</span>
-              </div>
-              <h3 className="text-2xl font-semibold text-foreground mb-4">Students Engage</h3>
-              <p className="text-muted-foreground">Students join with a digital ID and engage in class communities with chat, voice, and study groups.</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-achievement/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-achievement">3</span>
-              </div>
-              <h3 className="text-2xl font-semibold text-foreground mb-4">Employers Connect</h3>
-              <p className="text-muted-foreground">Employers connect with students who match their skill needs based on verified achievements.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
-              Benefits for Everyone
-            </h2>
-          </div>
-
-          <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-12">
-            <Card className="learning-card">
-              <CardContent className="p-8 text-center">
-                <GraduationCap className="w-16 h-16 text-primary mx-auto mb-6" />
-                <h3 className="text-2xl font-semibold text-foreground mb-4">For Students</h3>
-                <ul className="space-y-3 text-muted-foreground">
-                  <li>• Learn anywhere with mobile access</li>
-                  <li>• Join study groups and communities</li>
-                  <li>• Track progress with gamification</li>
-                  <li>• Earn rewards and certificates</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card">
-              <CardContent className="p-8 text-center">
-                <Users className="w-16 h-16 text-learning mx-auto mb-6" />
-                <h3 className="text-2xl font-semibold text-foreground mb-4">For Teachers</h3>
-                <ul className="space-y-3 text-muted-foreground">
-                  <li>• Manage classes with ease</li>
-                  <li>• AI-powered exam creation</li>
-                  <li>• Real-time student analytics</li>
-                  <li>• Automated grading system</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card">
-              <CardContent className="p-8 text-center">
-                <Building className="w-16 h-16 text-achievement mx-auto mb-6" />
-                <h3 className="text-2xl font-semibold text-foreground mb-4">For Employers</h3>
-                <ul className="space-y-3 text-muted-foreground">
-                  <li>• Access verified talent pool</li>
-                  <li>• View skill-based achievements</li>
-                  <li>• Connect with job-ready candidates</li>
-                  <li>• Streamlined recruitment process</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Community & Engagement Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 sm:mb-6 px-4">
-              Discord-Inspired Learning
-              <br className="hidden sm:block" />
-              <span className="text-primary">Community</span>
-            </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
-              Experience the future of connected education with secure, moderated environments
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            <Card className="learning-card group">
-              <CardContent className="p-6 text-center">
-                <MessageCircle className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-3">Chat & Voice Channels</h3>
-                <p className="text-muted-foreground text-sm">Dedicated study groups with voice and text communication</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6 text-center">
-                <Bot className="w-12 h-12 text-learning mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-3">AI Tutors</h3>
-                <p className="text-muted-foreground text-sm">24/7 instant answers and personalized assistance</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6 text-center">
-                <Trophy className="w-12 h-12 text-achievement mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-3">Leaderboards</h3>
-                <p className="text-muted-foreground text-sm">Gamified motivation with competitive elements</p>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card group">
-              <CardContent className="p-6 text-center">
-                <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-3">Secure Environment</h3>
-                <p className="text-muted-foreground text-sm">Moderated spaces with safety-first approach</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-              What Our Community Says
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Real feedback from students, teachers, and employers using Codex
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            <Card className="learning-card">
-              <CardContent className="p-8">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-achievement fill-current" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-6 italic">
-                  "I love how Codex makes learning fun with study groups and challenges. The AI tutor helps me 24/7!"
-                </p>
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
-                    <GraduationCap className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Sarah Chen</p>
-                    <p className="text-sm text-muted-foreground">Computer Science Student</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card">
-              <CardContent className="p-8">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-achievement fill-current" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-6 italic">
-                  "The live class + AI exam tools save me hours every week. My students are more engaged than ever!"
-                </p>
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-learning/10 rounded-full flex items-center justify-center mr-3">
-                    <Users className="w-5 h-5 text-learning" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Prof. Michael Rodriguez</p>
-                    <p className="text-sm text-muted-foreground">Mathematics Teacher</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="learning-card">
-              <CardContent className="p-8">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-achievement fill-current" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-6 italic">
-                  "Codex helps us find students who are truly job-ready. The skill verification is impressive!"
-                </p>
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-achievement/10 rounded-full flex items-center justify-center mr-3">
-                    <Building className="w-5 h-5 text-achievement" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Emily Johnson</p>
-                    <p className="text-sm text-muted-foreground">HR Director, TechCorp</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary/10 via-learning/10 to-achievement/10">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-            Codex is more than a platform –
-            <br />
-            <span className="bg-gradient-to-r from-primary to-learning bg-clip-text text-transparent">
-              it's the future of connected learning
-            </span>
-          </h2>
-          <p className="text-xl text-muted-foreground mb-10">
-            Join the revolution in education technology. Start building your learning community today.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={onGetStarted} 
-              size="lg" 
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-10 py-4 text-lg rounded-xl transition-all duration-300 animate-pulse-glow" 
-              style={{ boxShadow: 'var(--shadow-primary)' }}
-            >
-              Sign Up Free
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              onClick={onGetStarted} 
-              variant="outline" 
-              size="lg" 
-              className="px-10 py-4 text-lg rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-            >
-              Request a Demo
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-background/80 border-t border-border py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <GraduationCap className="w-6 h-6 text-primary" />
-                <span className="text-xl font-bold text-foreground">Codex</span>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                The future of connected learning - bringing together students, teachers, and employers in one digital space.
+      <main id="top">
+        {/* Hero */}
+        <section className="relative overflow-hidden pt-28 sm:pt-36 pb-16 sm:pb-24 px-4 sm:px-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{ background: "radial-gradient(60% 50% at 70% 20%, hsl(var(--primary) / 0.18), transparent 70%)" }}
+          />
+          <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-center">
+            <div className="text-center lg:text-left">
+              <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs sm:text-sm font-medium text-primary">
+                <Sparkles className="w-3.5 h-3.5" aria-hidden /> Built in Rwanda for students, teachers and schools
               </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/></svg>
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                </a>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.097.118.112.222.085.343-.09.383-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.757-1.378l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.624 0 11.99-5.367 11.99-11.987C24.007 5.367 18.641.001 12.017.001z"/></svg>
-                </a>
+              <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight">
+                Study smarter.{" "}
+                <span className="text-primary">Teach faster.</span>{" "}
+                All in one place.
+              </h1>
+              <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Codex turns lectures into notes, notes into practice, and exams into results you can trust, for
+                secondary schools and universities.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <Button size="lg" className="h-12 px-6 text-base" onClick={() => start("signup", "student")}>
+                  Start learning <ArrowRight className="w-4 h-4 ml-2" aria-hidden />
+                </Button>
+                <Button size="lg" variant="outline" className="h-12 px-6 text-base" onClick={() => start("signup", "teacher")}>
+                  I'm a teacher
+                </Button>
               </div>
-            </div>
-            
-            <div>
-              <h3 className="text-foreground font-semibold mb-4">Company</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Careers</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Press</a></li>
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start text-sm text-muted-foreground">
+                {["Works in any phone browser", "Install it like an app", "Private by default"].map((t) => (
+                  <li key={t} className="flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-primary" aria-hidden /> {t}
+                  </li>
+                ))}
               </ul>
             </div>
-            
-            <div>
-              <h3 className="text-foreground font-semibold mb-4">Product</h3>
-              <ul className="space-y-2">
-                <li><a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</a></li>
-                <li><a href="#testimonials" className="text-muted-foreground hover:text-foreground transition-colors">Reviews</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">API</a></li>
-              </ul>
+
+            <HeroPreview />
+          </div>
+        </section>
+
+        {/* Who are you */}
+        <section aria-labelledby="roles-title" className="px-4 sm:px-6 pb-16 sm:pb-24">
+          <div className="max-w-6xl mx-auto">
+            <h2 id="roles-title" className="text-center text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Get started as
+            </h2>
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {ROLES.map(({ role, icon: Icon, title, text }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => start("signup", role)}
+                  className="group flex items-center gap-4 sm:block text-left rounded-xl border border-border bg-card p-4 sm:p-5 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <span className="flex flex-shrink-0 items-center justify-between">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="w-5 h-5 text-primary" aria-hidden />
+                    </span>
+                    <ArrowRight className="hidden sm:block w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 sm:block">
+                    <span className="block font-semibold sm:mt-4">{title}</span>
+                    <span className="mt-0.5 sm:mt-1 block text-sm text-muted-foreground leading-snug sm:leading-relaxed">{text}</span>
+                  </span>
+                  <ArrowRight className="sm:hidden w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden />
+                </button>
+              ))}
             </div>
-            
+          </div>
+        </section>
+
+        {/* Students */}
+        <section id="students" aria-labelledby="students-title" className="scroll-mt-20 px-4 sm:px-6 py-16 sm:py-24 bg-muted/30 border-y border-border">
+          <div className="max-w-6xl mx-auto">
+            <SectionHeading
+              eyebrow="For students"
+              id="students-title"
+              title="From the first lecture to the final exam"
+              text="Codex follows the way you actually study: before, during and after class."
+            />
+            <ol className="mt-10 grid md:grid-cols-3 gap-4">
+              {STUDENT_STEPS.map(({ icon: Icon, label, title, text, points }, i) => (
+                <li key={label} className="rounded-xl border border-border bg-card p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="w-5 h-5 text-primary" aria-hidden />
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                      {i + 1}. {label}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{text}</p>
+                  <ul className="mt-4 space-y-2">
+                    {points.map((p) => (
+                      <li key={p} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" aria-hidden /> {p}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Teachers */}
+        <section id="teachers" aria-labelledby="teachers-title" className="scroll-mt-20 px-4 sm:px-6 py-16 sm:py-24">
+          <div className="max-w-6xl mx-auto">
+            <SectionHeading
+              eyebrow="For teachers"
+              id="teachers-title"
+              title="Less marking. More teaching."
+              text="Prepare, test and follow up with your classes in one place. You stay in control of every mark."
+            />
+            <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {TEACHER_FEATURES.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="rounded-xl border border-border bg-card p-5">
+                  <Icon className="w-6 h-6 text-primary" aria-hidden />
+                  <h3 className="mt-3 font-semibold">{title}</h3>
+                  <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{text}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Button variant="outline" size="lg" onClick={() => start("signup", "teacher")}>
+                Join as a teacher <ArrowRight className="w-4 h-4 ml-2" aria-hidden />
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Schools and safety */}
+        <section id="schools" aria-labelledby="schools-title" className="scroll-mt-20 px-4 sm:px-6 py-16 sm:py-24 bg-muted/30 border-y border-border">
+          <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
             <div>
-              <h3 className="text-foreground font-semibold mb-4">Support</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Help Center</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+              <SectionHeading
+                align="left"
+                eyebrow="For schools"
+                id="schools-title"
+                title="Your whole school, one join code"
+                text="Register your school and share its code. Teachers and students join with it, and you approve each one, so only your people get in."
+              />
+              <ol className="mt-8 space-y-4">
+                {[
+                  "Register your school and get its join code.",
+                  "Teachers and students sign up with the code.",
+                  "You approve each request from your dashboard.",
+                ].map((t, i) => (
+                  <li key={t} className="flex items-start gap-3">
+                    <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                      {i + 1}
+                    </span>
+                    <span className="pt-0.5">{t}</span>
+                  </li>
+                ))}
+              </ol>
+              <Button className="mt-8" size="lg" onClick={() => start("signup", "school_admin")}>
+                Register your school <ArrowRight className="w-4 h-4 ml-2" aria-hidden />
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
+              <h3 className="flex items-center gap-2 text-lg font-semibold">
+                <ShieldCheck className="w-5 h-5 text-primary" aria-hidden /> Safe by design
+              </h3>
+              <ul className="mt-6 space-y-6">
+                {SAFETY.map(({ icon: Icon, title, text }) => (
+                  <li key={title} className="flex gap-4">
+                    <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="w-5 h-5 text-primary" aria-hidden />
+                    </span>
+                    <span>
+                      <span className="block font-medium">{title}</span>
+                      <span className="mt-1 block text-sm text-muted-foreground leading-relaxed">{text}</span>
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-muted-foreground">© 2025 Codex. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Privacy</a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Terms</a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Cookies</a>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 px-4 sm:px-6 py-16 sm:py-24">
+          <div className="max-w-3xl mx-auto">
+            <SectionHeading eyebrow="FAQ" id="faq-title" title="Questions, answered" />
+            <Accordion type="single" collapsible className="mt-8">
+              {FAQ.map(({ q, a }) => (
+                <AccordionItem key={q} value={q}>
+                  <AccordionTrigger className="text-left text-base">{q}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed">{a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
+        {/* Final call to action */}
+        <section className="px-4 sm:px-6 pb-16 sm:pb-24">
+          <div className="max-w-6xl mx-auto rounded-2xl bg-primary px-6 py-12 sm:px-12 text-center text-primary-foreground">
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight">Ready for your next class?</h2>
+            <p className="mt-3 text-base sm:text-lg opacity-90">Set up your account in a few minutes.</p>
+            <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" variant="secondary" className="h-12 px-6 text-base" onClick={() => start("signup", "student")}>
+                Start learning
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 px-6 text-base bg-transparent border-primary-foreground/60 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                onClick={() => start("signup", "teacher")}
+              >
+                I'm a teacher
+              </Button>
             </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-border px-4 sm:px-6 py-10">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row gap-6 sm:items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="" className="w-6 h-6 object-contain dark:invert dark:brightness-200" />
+            <span className="font-bold">Codex</span>
+            <span className="text-sm text-muted-foreground">· Learn, teach, connect</span>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm leading-5 text-muted-foreground">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-foreground">
+                {l.label}
+              </a>
+            ))}
+            <Link to="/install" className="hover:text-foreground">
+              Install the app
+            </Link>
+            <button type="button" onClick={() => start("signin")} className="p-0 text-sm leading-5 hover:text-foreground">
+              Sign in
+            </button>
+          </nav>
+        </div>
+        <p className="max-w-6xl mx-auto mt-6 text-xs text-muted-foreground">© {new Date().getFullYear()} Codex</p>
+      </footer>
+    </div>
+  );
+};
+
+const SectionHeading = ({
+  eyebrow,
+  title,
+  text,
+  id,
+  align = "center",
+}: {
+  eyebrow: string;
+  title: string;
+  text?: string;
+  id: string;
+  align?: "center" | "left";
+}) => (
+  <div className={align === "center" ? "text-center max-w-2xl mx-auto" : "max-w-xl"}>
+    <p className="text-sm font-semibold uppercase tracking-wider text-primary">{eyebrow}</p>
+    <h2 id={id} className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+      {title}
+    </h2>
+    {text && <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">{text}</p>}
+  </div>
+);
+
+/** A drawn preview of the app (no screenshots needed): a live lecture summary and a quiz question. */
+const HeroPreview = () => (
+  <div aria-hidden className="relative mx-auto w-full max-w-sm">
+    <div className="rounded-[2rem] border border-border bg-card p-3 shadow-2xl shadow-primary/10">
+      <div className="rounded-[1.5rem] bg-background p-4 pb-20 space-y-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">Live lecture</span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Listening · 24:10
+          </span>
+        </div>
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Overview</p>
+          <p className="mt-1 text-sm leading-snug">
+            How X-rays are produced in the tube, and how kVp and mAs change the image.
+          </p>
+        </div>
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400">The lecturer stressed</p>
+          <p className="mt-1 text-sm leading-snug">Know the two types of X-ray radiation. "This always comes in the exam."</p>
+        </div>
+        <div className="rounded-xl border border-border p-3">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Key terms</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {["Anode", "kVp", "mAs", "Heel effect"].map((t) => (
+              <span key={t} className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
+                {t}
+              </span>
+            ))}
           </div>
         </div>
-      </footer>
-    </div>;
-};
+      </div>
+    </div>
+
+    <div className="absolute -bottom-6 left-2 sm:-left-10 w-56 rounded-xl border border-border bg-card p-3 shadow-xl">
+      <p className="flex items-center gap-1.5 text-xs font-semibold">
+        <Brain className="w-3.5 h-3.5 text-primary" /> Quick quiz · 3 of 10
+      </p>
+      <p className="mt-1.5 text-xs leading-snug">Which setting mainly controls beam penetration?</p>
+      <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+        <span className="rounded-md border border-primary bg-primary/10 px-2 py-1 text-primary">kVp ✓</span>
+        <span className="rounded-md border border-border px-2 py-1 text-muted-foreground">mAs</span>
+      </div>
+    </div>
+
+    <div className="absolute -top-4 right-2 sm:-right-6 rounded-xl border border-border bg-card px-3 py-2 shadow-xl">
+      <p className="flex items-center gap-1.5 text-xs">
+        <MessagesSquare className="w-3.5 h-3.5 text-primary" /> Physics study group
+      </p>
+    </div>
+  </div>
+);

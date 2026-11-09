@@ -86,7 +86,7 @@ export const AppLayout = ({ children, user, userProfile, onProfileUpdate, canRev
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <img src={logo} alt="Codex Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain flex-shrink-0" />
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg lg:text-xl font-bold truncate">Ignite Learn Connect</h1>
+              <h1 className="text-base sm:text-lg lg:text-xl font-bold truncate">Codex</h1>
               <p className="text-xs sm:text-sm text-muted-foreground capitalize truncate">
                 {userProfile?.role} Dashboard
               </p>
