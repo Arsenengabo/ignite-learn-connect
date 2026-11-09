@@ -1,4 +1,10 @@
 # Tasks
+- [ ] Apply the pending secure chat foundation and extend it for modern message actions, media, receipts, mentions and unread counts.
+- [ ] Add replies, reactions, editing, deletion, forwarding and pins to rooms and private messages.
+- [ ] Add photo/document sharing and voice notes with private signed downloads.
+- [ ] Add online presence, typing indicators, delivery/read ticks, notifications, mentions and stronger search.
+- [ ] Run chat security tests and verify responsive builds and preview loading.
+- [ ] Check signed-in chat actions end to end — blocked by externally managed authentication without an available test session.
 - [x] Enable secure account approvals and administrator navigation.
 - [x] Run account approval tests and verify public app loading (11 tests passed).
 - [ ] Check signed-in account approvals — blocked by externally managed authentication without an available test session.
