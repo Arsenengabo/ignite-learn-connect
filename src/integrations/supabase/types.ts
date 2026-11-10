@@ -240,11 +240,16 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          attachment_mime: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           channel_id: string
           comments_open: boolean
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
+          edited_at: string | null
           file_url: string | null
           id: string
           is_pinned: boolean
@@ -252,16 +257,22 @@ export type Database = {
           message_type: string | null
           parent_id: string | null
           post_kind: string
+          reply_to_id: string | null
           sender_id: string
           title: string | null
           updated_at: string
         }
         Insert: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           channel_id: string
           comments_open?: boolean
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           file_url?: string | null
           id?: string
           is_pinned?: boolean
@@ -269,16 +280,22 @@ export type Database = {
           message_type?: string | null
           parent_id?: string | null
           post_kind?: string
+          reply_to_id?: string | null
           sender_id: string
           title?: string | null
           updated_at?: string
         }
         Update: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           channel_id?: string
           comments_open?: boolean
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           file_url?: string | null
           id?: string
           is_pinned?: boolean
@@ -286,6 +303,7 @@ export type Database = {
           message_type?: string | null
           parent_id?: string | null
           post_kind?: string
+          reply_to_id?: string | null
           sender_id?: string
           title?: string | null
           updated_at?: string
@@ -301,6 +319,13 @@ export type Database = {
           {
             foreignKeyName: "chat_messages_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "chat_messages"
             referencedColumns: ["id"]
@@ -374,6 +399,164 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_notifications: {
+        Row: {
+          actor_id: string
+          channel_id: string | null
+          created_at: string
+          dm_message_id: string | null
+          id: string
+          kind: string
+          message_id: string | null
+          preview: string
+          read_at: string | null
+          recipient_id: string
+          thread_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          channel_id?: string | null
+          created_at?: string
+          dm_message_id?: string | null
+          id?: string
+          kind: string
+          message_id?: string | null
+          preview?: string
+          read_at?: string | null
+          recipient_id: string
+          thread_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          channel_id?: string | null
+          created_at?: string
+          dm_message_id?: string | null
+          id?: string
+          kind?: string
+          message_id?: string | null
+          preview?: string
+          read_at?: string | null
+          recipient_id?: string
+          thread_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_dm_message_id_fkey"
+            columns: ["dm_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_reactions: {
+        Row: {
+          created_at: string
+          dm_message_id: string | null
+          emoji: string
+          id: string
+          message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dm_message_id?: string | null
+          emoji: string
+          id?: string
+          message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dm_message_id?: string | null
+          emoji?: string
+          id?: string
+          message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reactions_dm_message_id_fkey"
+            columns: ["dm_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_read_states: {
+        Row: {
+          channel_id: string | null
+          id: string
+          last_delivered_at: string
+          last_read_at: string
+          thread_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          id?: string
+          last_delivered_at?: string
+          last_read_at?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          id?: string
+          last_delivered_at?: string
+          last_read_at?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_read_states_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_read_states_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
             referencedColumns: ["id"]
           },
         ]
@@ -795,36 +978,67 @@ export type Database = {
       }
       dm_messages: {
         Row: {
+          attachment_mime: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           content: string
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
+          edited_at: string | null
           id: string
+          is_pinned: boolean
+          message_type: string
+          reply_to_id: string | null
           sender_id: string
           thread_id: string
           updated_at: string
         }
         Insert: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           content: string
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           id?: string
+          is_pinned?: boolean
+          message_type?: string
+          reply_to_id?: string | null
           sender_id: string
           thread_id: string
           updated_at?: string
         }
         Update: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           content?: string
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           id?: string
+          is_pinned?: boolean
+          message_type?: string
+          reply_to_id?: string | null
           sender_id?: string
           thread_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dm_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dm_messages_thread_id_fkey"
             columns: ["thread_id"]
@@ -2199,11 +2413,35 @@ export type Database = {
       }
       delete_chat_message: { Args: { _message_id: string }; Returns: Json }
       delete_direct_message: { Args: { _dm_message_id: string }; Returns: Json }
+      edit_direct_message: {
+        Args: { _dm_message_id: string; _text: string }
+        Returns: Json
+      }
+      edit_room_message: {
+        Args: { _message_id: string; _text: string }
+        Returns: Json
+      }
       evaluate_exam_responses: {
         Args: { p_attempt_id: string; p_responses: Json }
         Returns: Json
       }
+      forward_chat_message: {
+        Args: {
+          _dm_message_id: string
+          _message_id: string
+          _target_channel_id: string
+          _target_thread_id: string
+        }
+        Returns: string
+      }
       generate_school_code: { Args: never; Returns: string }
+      get_direct_read_state: {
+        Args: { _thread_id: string }
+        Returns: {
+          other_last_delivered_at: string
+          other_last_read_at: string
+        }[]
+      }
       get_exam_questions_for_student: {
         Args: { _exam_id: string }
         Returns: {
@@ -2320,6 +2558,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_chat_notifications: {
+        Args: { _limit?: number }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          channel_id: string
+          conversation_name: string
+          created_at: string
+          id: string
+          kind: string
+          preview: string
+          read_at: string
+          thread_id: string
+        }[]
+      }
       list_chat_reports: {
         Args: { _status?: string }
         Returns: {
@@ -2346,9 +2599,35 @@ export type Database = {
           is_blocked: boolean
           last_message: string
           last_message_at: string
+          last_message_type: string
+          other_last_delivered_at: string
+          other_last_read_at: string
           other_name: string
           other_school: string
           other_user_id: string
+          thread_id: string
+          unread_count: number
+        }[]
+      }
+      list_direct_messages: {
+        Args: { _limit?: number; _thread_id: string }
+        Returns: {
+          attachment_mime: string
+          attachment_name: string
+          attachment_path: string
+          attachment_size: number
+          content: string
+          created_at: string
+          deleted_at: string
+          edited_at: string
+          id: string
+          is_pinned: boolean
+          message_type: string
+          reactions: Json
+          reply_sender_name: string
+          reply_text: string
+          reply_to_id: string
+          sender_id: string
           thread_id: string
         }[]
       }
@@ -2371,12 +2650,15 @@ export type Database = {
           channel_type: string
           description: string
           id: string
+          last_message: string
           last_message_at: string
           member_count: number
+          mention_count: number
           name: string
           posting_mode: string
           school_id: string
           school_name: string
+          unread_count: number
         }[]
       }
       list_my_teaching_schools: {
@@ -2406,15 +2688,25 @@ export type Database = {
       list_room_messages: {
         Args: { _channel_id: string; _limit?: number }
         Returns: {
+          attachment_mime: string
+          attachment_name: string
+          attachment_path: string
+          attachment_size: number
           channel_id: string
           comments_open: boolean
           created_at: string
+          edited_at: string
           id: string
           is_deleted: boolean
           is_pinned: boolean
           message: string
+          message_type: string
           parent_id: string
           post_kind: string
+          reactions: Json
+          reply_sender_name: string
+          reply_text: string
+          reply_to_id: string
           sender_id: string
           sender_is_teacher: boolean
           sender_name: string
@@ -2438,6 +2730,12 @@ export type Database = {
           province: string
         }[]
       }
+      mark_chat_notifications_read: {
+        Args: { _notification_id?: string }
+        Returns: Json
+      }
+      mark_direct_active: { Args: { _thread_id: string }; Returns: Json }
+      mark_room_read: { Args: { _channel_id: string }; Returns: Json }
       mute_room_member: {
         Args: { _channel_id: string; _minutes: number; _user_id: string }
         Returns: Json
@@ -2487,6 +2785,10 @@ export type Database = {
         Args: { _status: string; _user_id: string }
         Returns: Json
       }
+      set_direct_message_pinned: {
+        Args: { _dm_message_id: string; _pinned: boolean }
+        Returns: Json
+      }
       set_message_pinned: {
         Args: { _message_id: string; _pinned: boolean }
         Returns: Json
@@ -2506,6 +2808,10 @@ export type Database = {
       start_direct_chat: { Args: { _other_user_id: string }; Returns: string }
       submit_quiz_responses: {
         Args: { _responses: Json; _session_id: string }
+        Returns: Json
+      }
+      toggle_chat_reaction: {
+        Args: { _dm_message_id: string; _emoji: string; _message_id: string }
         Returns: Json
       }
       touch_user_streak: {
