@@ -150,9 +150,13 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_archived: boolean
           is_premium: boolean | null
           name: string
+          posting_mode: string
+          school_id: string | null
           school_name: string | null
+          updated_at: string
         }
         Insert: {
           channel_type: string
@@ -160,9 +164,13 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          is_archived?: boolean
           is_premium?: boolean | null
           name: string
+          posting_mode?: string
+          school_id?: string | null
           school_name?: string | null
+          updated_at?: string
         }
         Update: {
           channel_type?: string
@@ -170,9 +178,13 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          is_archived?: boolean
           is_premium?: boolean | null
           name?: string
+          posting_mode?: string
+          school_id?: string | null
           school_name?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -181,6 +193,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "chat_channels_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -222,37 +241,251 @@ export type Database = {
       chat_messages: {
         Row: {
           channel_id: string
+          comments_open: boolean
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           file_url: string | null
           id: string
+          is_pinned: boolean
           message: string
           message_type: string | null
+          parent_id: string | null
+          post_kind: string
           sender_id: string
+          title: string | null
           updated_at: string
         }
         Insert: {
           channel_id: string
+          comments_open?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           file_url?: string | null
           id?: string
+          is_pinned?: boolean
           message: string
           message_type?: string | null
+          parent_id?: string | null
+          post_kind?: string
           sender_id: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
           channel_id?: string
+          comments_open?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           file_url?: string | null
           id?: string
+          is_pinned?: boolean
           message?: string
           message_type?: string | null
+          parent_id?: string | null
+          post_kind?: string
           sender_id?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_moderation_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          channel_id: string | null
+          created_at: string
+          details: Json
+          dm_message_id: string | null
+          id: string
+          message_id: string | null
+          original_text: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          details?: Json
+          dm_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          original_text?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          details?: Json
+          dm_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          original_text?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      chat_mutes: {
+        Row: {
+          channel_id: string
+          created_at: string
+          muted_by: string
+          muted_until: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          muted_by: string
+          muted_until: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          muted_by?: string
+          muted_until?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_mutes_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_reports: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          details: string
+          dm_message_id: string | null
+          id: string
+          message_id: string | null
+          message_snapshot: string
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string
+          resolution: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string | null
+          status: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          details?: string
+          dm_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          message_snapshot?: string
+          reason: string
+          reported_user_id?: string | null
+          reporter_id: string
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          details?: string
+          dm_message_id?: string | null
+          id?: string
+          message_id?: string | null
+          message_snapshot?: string
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reports_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reports_dm_message_id_fkey"
+            columns: ["dm_message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_room_members: {
+        Row: {
+          added_by: string | null
+          channel_id: string
+          created_at: string
+          member_role: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          channel_id: string
+          created_at?: string
+          member_role?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          channel_id?: string
+          created_at?: string
+          member_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_members_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "chat_channels"
@@ -564,6 +797,8 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           sender_id: string
           thread_id: string
@@ -572,6 +807,8 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           sender_id: string
           thread_id: string
@@ -580,6 +817,8 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           sender_id?: string
           thread_id?: string
@@ -1777,6 +2016,24 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1930,6 +2187,18 @@ export type Database = {
       }
     }
     Functions: {
+      add_room_members: {
+        Args: { _channel_id: string; _user_ids: string[] }
+        Returns: number
+      }
+      archive_class_room: { Args: { _channel_id: string }; Returns: Json }
+      block_user: { Args: { _user_id: string }; Returns: Json }
+      create_class_room: {
+        Args: { _description?: string; _name: string; _school_id: string }
+        Returns: string
+      }
+      delete_chat_message: { Args: { _message_id: string }; Returns: Json }
+      delete_direct_message: { Args: { _dm_message_id: string }; Returns: Json }
       evaluate_exam_responses: {
         Args: { p_attempt_id: string; p_responses: Json }
         Returns: Json
@@ -2043,9 +2312,38 @@ export type Database = {
           verified_at: string
         }[]
       }
+      list_blocked_users: {
+        Args: never
+        Returns: {
+          blocked_at: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      list_chat_reports: {
+        Args: { _status?: string }
+        Returns: {
+          created_at: string
+          details: string
+          id: string
+          message_removed: boolean
+          message_snapshot: string
+          reason: string
+          reported_name: string
+          reported_user_id: string
+          reporter_name: string
+          resolution: string
+          room_name: string
+          school_name: string
+          source: string
+          status: string
+        }[]
+      }
       list_direct_chats: {
         Args: never
         Returns: {
+          can_message: boolean
+          is_blocked: boolean
           last_message: string
           last_message_at: string
           other_name: string
@@ -2066,6 +2364,63 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_my_rooms: {
+        Args: never
+        Returns: {
+          can_moderate: boolean
+          channel_type: string
+          description: string
+          id: string
+          last_message_at: string
+          member_count: number
+          name: string
+          posting_mode: string
+          school_id: string
+          school_name: string
+        }[]
+      }
+      list_my_teaching_schools: {
+        Args: never
+        Returns: {
+          school_id: string
+          school_name: string
+        }[]
+      }
+      list_room_candidates: {
+        Args: { _channel_id: string; _query?: string }
+        Returns: {
+          full_name: string
+          member_role: string
+          user_id: string
+        }[]
+      }
+      list_room_members: {
+        Args: { _channel_id: string }
+        Returns: {
+          full_name: string
+          member_role: string
+          muted_until: string
+          user_id: string
+        }[]
+      }
+      list_room_messages: {
+        Args: { _channel_id: string; _limit?: number }
+        Returns: {
+          channel_id: string
+          comments_open: boolean
+          created_at: string
+          id: string
+          is_deleted: boolean
+          is_pinned: boolean
+          message: string
+          parent_id: string
+          post_kind: string
+          sender_id: string
+          sender_is_teacher: boolean
+          sender_name: string
+          title: string
+        }[]
+      }
       list_school_classmates: {
         Args: { _school_id: string }
         Returns: {
@@ -2083,6 +2438,10 @@ export type Database = {
           province: string
         }[]
       }
+      mute_room_member: {
+        Args: { _channel_id: string; _minutes: number; _user_id: string }
+        Returns: Json
+      }
       register_school: {
         Args: {
           _contact_email: string
@@ -2092,6 +2451,22 @@ export type Database = {
           _phone: string
           _province: string
         }
+        Returns: Json
+      }
+      remove_room_member: {
+        Args: { _channel_id: string; _user_id: string }
+        Returns: Json
+      }
+      report_chat_message: {
+        Args: { _details?: string; _message_id: string; _reason: string }
+        Returns: string
+      }
+      report_direct_message: {
+        Args: { _details?: string; _dm_message_id: string; _reason: string }
+        Returns: string
+      }
+      resolve_chat_report: {
+        Args: { _action: string; _report_id: string }
         Returns: Json
       }
       respond_mentor_enrollment: {
@@ -2110,6 +2485,18 @@ export type Database = {
       }
       set_account_verification: {
         Args: { _status: string; _user_id: string }
+        Returns: Json
+      }
+      set_message_pinned: {
+        Args: { _message_id: string; _pinned: boolean }
+        Returns: Json
+      }
+      set_post_comments: {
+        Args: { _message_id: string; _open: boolean }
+        Returns: Json
+      }
+      set_room_posting_mode: {
+        Args: { _channel_id: string; _mode: string }
         Returns: Json
       }
       set_school_member_status: {
@@ -2140,6 +2527,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      unblock_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "student" | "teacher" | "other" | "mentor" | "school_admin"
