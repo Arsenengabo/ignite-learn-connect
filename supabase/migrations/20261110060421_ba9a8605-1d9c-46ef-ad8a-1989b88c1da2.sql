@@ -1,0 +1,1 @@
+CREATE POLICY "App users cannot read or change the moderation log" ON public.chat_moderation_log FOR ALL TO authenticated USING (false) WITH CHECK (false);
